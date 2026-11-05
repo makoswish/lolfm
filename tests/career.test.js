@@ -66,3 +66,18 @@ ok(S.teams[S.user].roster.length>=5,'Kader des neuen Vereins kaputt');
 // Gute Saison bringt Angebote nach oben
 ok(jobCands(true).every(t=>t.rep>=S.teams[S.user].rep+3),'Angebote nach oben von kleineren Vereinen');
 `;
+// Vorstandsziele
+module.exports+=`
+newGame('LYL','Tester');
+{const G=S.goals;ok(G&&PHIL[G.phil]&&G.list.length>=3&&G.list.some(g=>g.k==='liga'),'Keine Vorstandsziele');
+ ok(G.list.every(g=>g.imp>=1&&g.imp<=3&&g.txt),'Ziel ohne Gewicht oder Text');
+ for(const g of G.list){const e=goalEval(g,false);ok(e.st&&e.sc>=-1&&e.sc<=1,'goalEval '+g.k)}
+ ACT.nav2({v:'club',k:'CLUBTAB',t:'staff'});chk('Vorstand-Panel');ok(html().includes('Philosophie'),'Philosophie fehlt');
+ ACT.nav2({v:'home'});chk('Übersicht mit Zielen');
+ const b0=S.board=60;S.rec.S3={};for(const r of REGS)S.rec.S3[r]=teamsOf(r).map(t=>t.id).sort((a,b)=>a===S.user?1:b===S.user?-1:0);
+ S.fin.balance=G.bal0-5e6;boardSeason();ok(S.board>=b0-30&&S.board<b0,'Schlechte Saison senkt Vertrauen nicht oder zu stark: '+S.board);
+ S.board=60;S.goals.warned=false;const lg=S.goals.list.find(g=>g.k==='liga');S.rec.S1={};for(const r of REGS)S.rec.S1[r]=S.rec.S3[r];S.board=36;boardSplit('S1');
+ ok(S.board<35?S.inbox.some(m=>m.title==='Ultimatum des Vorstands'):true,'Kein Ultimatum unter 35%');
+ delete S.goals;ensureGoals();ok(S.goals&&S.goals.year===S.year,'Alter Stand bekommt keine Ziele');
+ const T=teamsOf('LCK').sort((a,b)=>b.rep-a.rep)[0];ok(philOf(T)==='titel','Topverein ohne Titelhunger')}
+`;

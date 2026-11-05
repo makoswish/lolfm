@@ -108,6 +108,7 @@ function finishEvent(ev){
     const champ=S.teams[ev.reg[U.reg].order[0]];for(const r of REGS){const c=S.teams[ev.reg[r].order[0]];if(c)news(`${c.name} gewinnt den ${ev.name} der ${r}.`,'title')}
     mail(`${ev.name} beendet`,pl===1?`Dein Team gewinnt den ${ev.name} der ${U.reg}! Preisgeld ${eurK(pr)}.`:`${champ.name} gewinnt den ${ev.name}. Dein Team wird ${pl}. Preisgeld ${eurK(pr)}.`);
     if(pl===1){S.trophies.unshift({year:S.year,name:`${U.reg} ${ev.name}`});raiseDemands()}
+    try{boardSplit(ev.id)}catch(e){}
   }else{
     S.rec[ev.id]={champ:ev.champ,place:ev.place};
     for(const id in ev.place){const b=REPB[ev.place[id]]||0;if(b)S.teams[id].rep=clamp(S.teams[id].rep+b,45,95)}
@@ -203,8 +204,7 @@ function endSeason(){sponsorSeasonEnd();
   for(const r of REGS){const o=S.rec.S3[r],ranks=teamsOf(r).sort((a,b)=>b.rep-a.rep).map(t=>t.id);
     o.forEach((id,i)=>{const T=S.teams[id];T.rep=clamp(Math.round(T.rep+(ranks.indexOf(id)-i)*1.2),45,95)})}
   const intl=['FS','MSI','DC','WLD'].map(id=>({id,name:CAL.find(c=>c.id===id).name,res:S.rec[id]&&S.rec[id].place[S.user]||null,champ:S.rec[id]&&S.rec[id].champ}));
-  const wbonus=intl.find(x=>x.id==='WLD').res?6:0;
-  S.board=clamp(S.board+(exp-place)*7+4+wbonus,0,100);
+  boardSeason();
   S.fin.fans=Math.round(S.fin.fans*(1+(4.5-place)*.03));
   const splits=['S1','S2','S3'].map(id=>({id,name:CAL.find(c=>c.id===id).name,place:S.rec[id][U.reg].indexOf(S.user)+1}));
   S.summary={place,exp,splits,intl};
@@ -253,7 +253,7 @@ function newSeason(){
   S.ev=initEvent(CAL[0]);try{pressPreview()}catch(e){}
   mail(`Budgets ${S.year}`,`Transferbudget ${eurK(S.fin.budget.transfer)}, Gehaltsbudget ${eurK(S.fin.budget.wage)} pro Woche (aktuell genutzt: ${eurK(wageBill())}). ${S.fin.budget.salePct}% der Verkaufserlöse fließen ins Transferbudget.`);
   poachBids();
-  mail(`Saison ${S.year} startet`,`Die Sponsorverträge sind ausgelaufen. Unter Verein warten neue Angebote. Vorstandsziel: Platz ${expected(S.user)} im Sommer-Split.`);
+  genGoals();mail(`Saison ${S.year} startet`,`Die Sponsorverträge sind ausgelaufen. Unter Verein warten neue Angebote. Die Ziele des Vorstands (${PHIL[S.goals.phil][0]}): ${S.goals.list.map(g=>`${g.txt} (${GIMP[g.imp]})`).join(', ')}.`);
   S.view='home';save();
 }
 

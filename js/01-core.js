@@ -270,6 +270,7 @@ function newGame(teamId,mgr){
   genT2();initScouting();initStaff();S.training.plan=PLANS.bal.slice();S.ment={};
   for(const p of Object.values(S.players)){p.o0=ovr(p);p.gel=p.team?ri(55,92):40}
   S.ev=initEvent(CAL[0]);try{pressPreview()}catch(e){}
+  genGoals();
   mail('Willkommen im Büro',`Der Vorstand der ${U.name} erwartet im Sommer-Split Platz ${expected(teamId)} in der ${U.reg} oder besser. Budget: ${eurK(S.fin.balance)}. Wähle unter Verein deine Sponsoren, sonst unterschreibt der Vorstand nach der ersten Woche die Festbetrag-Angebote. Die Saison hat drei Splits (je eine Hin-Runde im Bo1 über 7 Wochen plus Top-4-Playoffs im Bo5) und vier internationale Turniere: First Stand, MSI, Demacia Cup und Worlds.`);
   save();
 }

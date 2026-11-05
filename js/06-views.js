@@ -140,9 +140,8 @@ function clubView(){
   }else if(CLUBTAB==='infra'){
     body=infraTab();
   }else{
-    body=`${staffTab()}${careerPanel()}
-    <section class="panel s6"><div class="lab">Vorstand</div>${bar(S.board,barCol(S.board))}<p class="muted" style="font-size:13px">Vertrauen ${Math.round(S.board)}%. Steigt mit guten Platzierungen im Sommer-Split und einer Worlds-Teilnahme. Ziel: Platz ${expected(S.user)}.</p>
-     <div class="lab" style="margin-top:16px">Spielstand</div>
+    body=`${goalsPanel()}${staffTab()}${careerPanel()}
+    <section class="panel s6"><div class="lab">Spielstand</div>
      <p class="muted" style="font-size:13px;margin:0 0 8px">Hängt ein Turnier fest, startet "Phase neu starten" die aktuelle Turnierphase neu. Bisherige Ergebnisse bleiben.</p>
      <div class="acts"><button class="btn ghost sm" data-a="repair">Phase neu starten</button>${MODAL==='reset'?`<button class="btn danger sm" data-a="reset" data-ok="1">Ja, alles löschen</button><button class="btn ghost sm" data-a="reset" data-ok="0">Abbrechen</button>`:`<button class="btn ghost sm" data-a="reset">Neue Karriere</button>`}</div></section>`;
   }

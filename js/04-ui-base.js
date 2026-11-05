@@ -82,7 +82,7 @@ function homeView(){
     <div class="tile"><span>Form</span><b style="color:${barCol(af)}">${af}</b><small>${me&&me.form.length?formDots(me.form):'Ø im Kader'}</small></div>
     <div class="tile"><span>Moral</span><b style="color:${barCol(am)}">${am}</b><small>${moodText(am)}</small></div>
     <div class="tile"><span>Konto</span><b class="${S.fin.balance<0?'bad':''}">${eurK(S.fin.balance)}</b><small class="${fs.cls}">${fs.label} · Prognose ${eurK(fs.proj)}</small></div>
-    <div class="tile"><span>Vorstand</span><b>${Math.round(S.board)}%</b><small>Ziel: Platz ${expected(S.user)}</small></div></section>`;
+    <button class="tile tilebtn" data-a="nav2" data-v="club" data-k="CLUBTAB" data-t="staff"><span>Vorstand</span><b>${Math.round(S.board)}%</b><small>${(()=>{const G=ensureGoals(),c={};for(const g of G.list){const st=goalEval(g,false).st;c[st]=(c[st]||0)+1}return ['auf Kurs','gefährdet','verfehlt','erfüllt','offen'].filter(k=>c[k]).map(k=>`${c[k]} ${k}`).join(' · ')})()}</small></button></section>`;
   const cats={};for(const m of S.inbox.slice(0,12))cats[mailCat(m.title)]=(cats[mailCat(m.title)]||0)+1;
   return `<div class="pagehead"><div><h1>Übersicht</h1><p>${S.manager} · ${U.name} · ${S.ev?evLabel(S.ev):'Saisonpause'}</p></div></div>
   <div class="grid">${tiles}${next}${S.phase==='offseason'?'':last}

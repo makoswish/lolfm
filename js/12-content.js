@@ -99,7 +99,7 @@ function genJobs(up){const L=jobCands(up),U=S.teams[S.user];if(!L.length)return[
 function careerSeason(){const s=S.summary;if(!s)return;S.career=S.career||[];S.career.unshift({year:S.year,team:S.user,place:s.place,exp:s.exp,board:Math.round(S.board),titles:S.trophies.filter(t=>t.year===S.year).length});
   S.jobs=null;
   if(S.board<SACK_AT){const L=genJobs(false);S.jobless=true;S.jobs={list:L.length?L:genJobs(true),sacked:true};
-    mail('Der Vorstand trennt sich von dir',`Nach Platz ${s.place} bei Ziel ${s.exp} und einem Vertrauen von ${Math.round(S.board)}% ist Schluss bei ${S.teams[S.user].name}. Es liegen ${S.jobs.list.length} Angebote vor. Du musst eins annehmen, bevor die neue Saison startet.`,{type:'job'});news(`${S.teams[S.user].name} trennt sich von ${S.manager}.`,'liga');return}
+    mail('Der Vorstand trennt sich von dir',`Das Vertrauen liegt bei ${Math.round(S.board)}%. Die Bilanz: ${(S.goals&&S.goals.final||[]).map(x=>`${x.txt} ${x.st}`).join(', ')}. Damit ist Schluss bei ${S.teams[S.user].name}. Es liegen ${S.jobs.list.length} Angebote vor. Du musst eins annehmen, bevor die neue Saison startet.`,{type:'job'});news(`${S.teams[S.user].name} trennt sich von ${S.manager}.`,'liga');return}
   const good=s.place<=Math.max(1,s.exp-1)||S.trophies.some(t=>t.year===S.year);
   if(good&&R()<.75){const L=genJobs(true);if(L.length){S.jobs={list:L,sacked:false};mail('Jobangebote',`${L.map(id=>S.teams[id].name).join(' und ')} ${L.length>1?'wollen':'will'} dich als Manager. Die Angebote gelten bis zum Start der neuen Saison.`,{type:'job'})}}}
 function switchTeam(tid){const T=S.teams[tid];if(!T||T.tier===2||T.academy||tid===S.user||LIVE)return 'Wechsel nicht möglich.';if(S.phase!=='offseason')return 'Gewechselt wird nur in der Saisonpause.';
@@ -109,7 +109,7 @@ function switchTeam(tid){const T=S.teams[tid];if(!T||T.tier===2||T.academy||tid=
   S.fin=newFin((T.rep-40)*20000,T.rep*2000);S.fin.lshare=1;S.fin.ibase=null;infraInit();genOffers();setBudgets();
   S.staffs=null;S.staff={coach:1,analyst:1};initStaff();newStaffPool();syncStaff();S.scouts=null;initScouting();S.trials=[];S.ment={};
   S.tacs=['A','B','C'].map(n=>defTac(T,n));S.tacs[1].style='SCL';S.tacs[2].style='AGG';S.tacA=0;applyTac();initKnow();
-  S.board=60;S.capt=null;S.scrim=null;VIEWREG=T.reg;KTAB='depth';
+  S.board=60;S.capt=null;S.scrim=null;VIEWREG=T.reg;KTAB='depth';S.goals=null;
   /* T2-Ligen ausgleichen: die neue Academy braucht in ihrer Region einen Platz */
   const t2n=t2Of(T.reg).filter(t=>!t.academy);if(t2n.length>=8){const w=t2n.sort((a,b)=>teamOvr(a)-teamOvr(b))[0];for(const id of [...w.roster])toFA(S.players[id]);delete S.teams[w.id]}
   for(const r of REGS){const n=t2Of(r).length+(r===T.reg?1:0);if(n<8){const used=new Set(Object.keys(S.teams));const L='ABCDEFGH'.split('').find(x=>!used.has(REGC[r]+'2'+x));if(L)mkT2Team(REGC[r]+'2'+L,`${pick(T2CITY[r])} ${pick(T2SUF)}`,r,clamp(46+REG[r].off+ri(-2,2),36,58),`hsl(${ri(0,359)} 30% 62%)`)}}
@@ -120,7 +120,7 @@ function jobsView(){const J=S.jobs;if(!J||!J.list.length)return `<div class="pag
   return `<div class="pagehead"><div><h1>${J.sacked?'Entlassen':'Jobangebote'}</h1><p>${J.sacked?'Du musst einen dieser Vereine übernehmen, bevor die neue Saison startet.':'Du kannst bleiben oder zu einem dieser Vereine wechseln. Die Angebote gelten bis zum Saisonstart.'}</p></div></div>
   <div class="grid">${J.list.map(id=>{const T=S.teams[id];if(!T)return'';const exp=expected(id);return `<section class="panel s4"><div class="lab"><span>${T.name}</span><span>${T.reg}</span></div>
    <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px">${crest(T,'lg')}<div><b style="font-size:18px">${prestigeOf(T)}</b><div class="muted" style="font-size:13px">Ruf ${T.rep} · Team-OVR ${teamOvr(T)}</div></div></div>
-   <div class="stat"><span class="muted">Budget zum Start</span><span>${eurK((T.rep-40)*20000)}</span></div><div class="stat"><span class="muted">Vorstandsziel</span><span>Platz ${exp}</span></div>
+   <div class="stat"><span class="muted">Philosophie</span><span>${PHIL[philOf(T)][0]}</span></div><div class="stat"><span class="muted">Budget zum Start</span><span>${eurK((T.rep-40)*20000)}</span></div><div class="stat"><span class="muted">Vorstandsziel</span><span>Platz ${exp}</span></div>
    <div class="stat"><span class="muted">Trainingszentrum</span><span>${iWord(iFrac('tc',aiInfra(T,'tc')))}</span></div>
    <div class="acts" style="margin-top:12px"><button class="btn sm" data-a="jobtake" data-v="${id}">Übernehmen</button></div></section>`}).join('')}
   ${J.sacked?'':`<section class="panel s12"><div class="acts"><button class="btn ghost sm" data-a="jobstay">Bei ${S.teams[S.user].name} bleiben</button></div></section>`}</div>`}
@@ -190,3 +190,45 @@ function hofView(){const C=S.career||[],R=S.recs||{},H=Object.values(S.hof||{}).
   <section class="panel s12"><div class="lab"><span>Hall of Fame</span><span>ab drei Saisons im Verein oder mit Titel</span></div>${H.length?`<div class="scroll"><table class="tbl"><thead><tr><th>Spieler</th><th></th><th>Verein</th><th class="r">Saisons</th><th class="r">Spiele</th><th class="r">MVP</th><th class="r">Titel</th><th class="r">Jahre</th></tr></thead><tbody>
    ${H.map(h=>`<tr><td class="nmcell">${h.name}</td><td><span class="chip">${h.role}</span></td><td>${S.teams[h.club]?S.teams[h.club].name:h.club}</td><td class="r">${h.seasons}</td><td class="r">${h.games}</td><td class="r">${h.mvp||0}</td><td class="r">${h.titles||0}</td><td class="r">${h.first}-${h.last}</td></tr>`).join('')}</tbody></table></div>`:'<p class="empty">Noch keine Vereinslegenden. Spieler kommen hier hinein, wenn sie drei Saisons für dich spielen oder einen Titel holen.</p>'}</section>
   ${careerPanel()}</div>`}
+
+/* ===== Vorstandsziele =====
+   Jeder Verein hat eine Philosophie. Daraus setzt der Vorstand zu Saisonbeginn Ziele mit Gewicht: Pflicht (3), Wichtig (2), Wunsch (1).
+   Jedes Ziel liefert einen Wert von -1 (klar verfehlt) bis +1 (klar erfüllt). Zum Saisonende ändert sich das Vertrauen um
+   3 + Summe(Gewicht x Wert x 4), höchstens -30 bis +25. Nach jedem Split zählt der Ligaplatz als Zwischenbilanz. Unter 25 % folgt die Entlassung. */
+const PHIL={titel:['Titelhunger','Der Verein will Trophäen und Auftritte auf der großen Bühne. Geld ist zweitrangig.'],aufbau:['Aufbau','Der Verein will Schritt für Schritt nach oben, ohne sich zu verschulden.'],
+  jugend:['Jugend','Der Verein setzt auf eigene Talente und will sie in der ersten Mannschaft sehen.'],wirtschaft:['Wirtschaft','Der Verein muss Geld verdienen. Sportlicher Erfolg zählt, aber nicht um jeden Preis.']};
+const GIMP=['','Wunsch','Wichtig','Pflicht'];
+function philOf(T){if(!T.phil)T.phil=T.rep>=82?'titel':['aufbau','jugend','wirtschaft'][hashId(T.id)%3];return T.phil}
+function genGoals(){const U=S.teams[S.user],ph=philOf(U),exp=expected(S.user),f=S.fin,G=[];
+  const lg=(imp,tgt)=>G.push({k:'liga',imp,tgt,txt:`Sommer-Split: Platz ${tgt} oder besser`});
+  const intlTgt=U.rep>=80?'WLD':U.rep>=70?'any':null;
+  if(ph==='titel'){lg(3,Math.min(exp,2));G.push({k:'intl',imp:3,tgt:'WLD',txt:'Worlds erreichen'});G.push({k:'fans',imp:1,tgt:5,txt:'Fans: +5% in der Saison'});G.push({k:'fin',imp:1,tgt:-.4,txt:'Kein Verlust über 40% des Kontos'})}
+  else if(ph==='aufbau'){lg(3,Math.max(1,exp-1));if(intlTgt)G.push({k:'intl',imp:2,tgt:intlTgt,txt:intlTgt==='WLD'?'Worlds erreichen':'Ein internationales Turnier erreichen'});G.push({k:'fin',imp:2,tgt:-.15,txt:'Kein Verlust über 15% des Kontos'})}
+  else if(ph==='jugend'){lg(2,exp);G.push({k:'jugend',imp:3,tgt:2,txt:'Zwei Talente bis 21 mit 20 Spielen im Profikader'});G.push({k:'fin',imp:2,tgt:-.2,txt:'Kein Verlust über 20% des Kontos'});if(intlTgt==='WLD')G.push({k:'intl',imp:1,tgt:'any',txt:'Ein internationales Turnier erreichen'})}
+  else{lg(2,exp);G.push({k:'fin',imp:3,tgt:0,txt:'Saison ohne Verlust abschließen'});G.push({k:'fans',imp:2,tgt:8,txt:'Fans: +8% in der Saison'});if(intlTgt)G.push({k:'intl',imp:1,tgt:'any',txt:'Ein internationales Turnier erreichen'})}
+  S.goals={year:S.year,team:S.user,phil:ph,bal0:f.balance,fans0:f.fans,list:G};return S.goals}
+function ensureGoals(){if(!S.goals||S.goals.year!==S.year||S.goals.team!==S.user)genGoals();return S.goals}
+/* Stand eines Ziels: st = Status, sc = -1..1, now = Text zum aktuellen Stand */
+function goalEval(g,final){const U=S.teams[S.user],G=S.goals,f=S.fin;
+  if(g.k==='liga'){const id=final?'S3':(currentSplit()?currentSplit().id:null),sp=id&&S.rec[id]?null:currentSplit();let place;
+    if(final&&S.rec.S3)place=S.rec.S3[U.reg].indexOf(S.user)+1;else if(sp){const t=tableOf(sp.reg[U.reg].ids,sp.reg[U.reg].res);place=t.findIndex(x=>x.id===S.user)+1}else{const last=['S3','S2','S1'].find(x=>S.rec[x]);place=last?S.rec[last][U.reg].indexOf(S.user)+1:0}
+    if(!place)return{st:'offen',sc:0,now:'noch kein Spiel'};const d=g.tgt-place;return{st:d>=0?(final?'erfüllt':'auf Kurs'):d>=-2?(final?'verfehlt':'gefährdet'):'verfehlt',sc:clamp(d>=0?.4+d*.2:d/3,-1,1),now:`aktuell Platz ${place}`}}
+  if(g.k==='intl'){const ids=g.tgt==='WLD'?['WLD']:['FS','MSI','DC','WLD'],hit=ids.some(id=>S.rec[id]&&S.rec[id].place&&S.rec[id].place[S.user]),cur=S.ev&&S.ev.type!=='split'&&ids.includes(S.ev.id)&&S.ev.teams.includes(S.user);
+    if(hit||cur)return{st:'erfüllt',sc:1,now:'qualifiziert'};const left=ids.some(id=>!S.rec[id]&&!(S.ev&&S.ev.id===id));return left&&!final?{st:'offen',sc:0,now:'Qualifikation läuft'}:{st:'verfehlt',sc:-1,now:'nicht qualifiziert'}}
+  if(g.k==='fin'){const b0=Math.max(100000,Math.abs(G.bal0)),end=final?f.balance:finState().proj,ch=(end-G.bal0)/b0,d=ch-g.tgt;
+    return{st:d>=0?(final?'erfüllt':'auf Kurs'):d>-.15?(final?'verfehlt':'gefährdet'):'verfehlt',sc:clamp(d*3,-1,1),now:`${final?'Saisonende':'Prognose'} ${ch>=0?'+':''}${Math.round(ch*100)}%`}}
+  if(g.k==='jugend'){const n=[...U.roster].map(i=>S.players[i]).filter(p=>p.age<=21&&!p.loan&&((p.st&&p.st.g)||0)>=PRAX_HI).length,pot=[...U.roster].map(i=>S.players[i]).filter(p=>p.age<=21&&!p.loan&&isStarter(p)).length;
+    return{st:n>=g.tgt?'erfüllt':final?'verfehlt':pot>=g.tgt?'auf Kurs':'gefährdet',sc:clamp((n-g.tgt)/2+(n>=g.tgt?.5:0),-1,1),now:`${n} von ${g.tgt}`}}
+  if(g.k==='fans'){const ch=(f.fans/Math.max(1,G.fans0)-1)*100,d=ch-g.tgt;return{st:d>=0?(final?'erfüllt':'auf Kurs'):d>-4?(final?'verfehlt':'gefährdet'):'verfehlt',sc:clamp(d/8,-1,1),now:`${ch>=0?'+':''}${ch.toFixed(1).replace('.',',')}%`}}
+  return{st:'offen',sc:0,now:''}}
+function boardSeason(){const G=ensureGoals(),res=G.list.map(g=>({g,e:goalEval(g,true)}));let d=3;for(const{g,e}of res)d+=g.imp*e.sc*4;d=clamp(d,-30,25);S.board=clamp(S.board+d,0,100);G.final=res.map(({g,e})=>({txt:g.txt,imp:g.imp,st:e.st,now:e.now}));G.delta=Math.round(d);return res}
+function boardSplit(id){const G=ensureGoals(),g=G.list.find(x=>x.k==='liga');if(!g||id==='S3')return;const U=S.teams[S.user],pl=S.rec[id][U.reg].indexOf(S.user)+1,d=g.tgt-pl,ch=clamp(d>=0?1+d*.5:d,-4,3)*(g.imp/2);
+  S.board=clamp(S.board+ch,0,100);if(S.board<35&&!G.warned){G.warned=true;mail('Ultimatum des Vorstands',`Das Vertrauen liegt bei ${Math.round(S.board)}%. ${goalLines(false)} Der Vorstand erwartet bis Saisonende eine klare Steigerung, sonst trennt er sich von dir.`)}}
+function goalLines(final){const G=ensureGoals();return G.list.map(g=>{const e=goalEval(g,final);return `${g.txt} (${GIMP[g.imp]}): ${e.st}, ${e.now}.`}).join(' ')}
+function goalsPanel(){const G=ensureGoals(),U=S.teams[S.user],ph=PHIL[G.phil];
+  const col=st=>st==='erfüllt'||st==='auf Kurs'?'good':st==='gefährdet'?'warn':st==='verfehlt'?'bad':'muted';
+  return `<section class="panel s12"><div class="lab"><span>Vorstand</span><span>Vertrauen ${Math.round(S.board)}%</span></div>${bar(S.board,barCol(S.board))}
+   <p class="muted" style="font-size:13px;margin:8px 0 12px">Philosophie: <b style="color:var(--fg)">${ph[0]}</b>. ${ph[1]} Unter ${SACK_AT}% Vertrauen zum Saisonende trennt sich der Vorstand von dir.</p>
+   <div class="scroll"><table class="tbl"><thead><tr><th>Ziel ${S.year}</th><th>Gewicht</th><th>Stand</th><th class="r">Status</th></tr></thead><tbody>
+   ${G.list.map(g=>{const e=goalEval(g,S.phase==='offseason');return `<tr><td>${g.txt}</td><td class="${g.imp===3?'warn':''}">${GIMP[g.imp]}</td><td class="muted">${e.now}</td><td class="r ${col(e.st)}">${e.st}</td></tr>`}).join('')}</tbody></table></div>
+   <p class="muted" style="font-size:12.5px;margin:10px 0 0">Zum Saisonende ändert sich das Vertrauen nach den Zielen: Pflicht wiegt dreifach, Wichtig doppelt. Nach jedem Split zählt der Tabellenplatz als Zwischenbilanz.${G.delta!=null&&S.phase==='offseason'?` Diese Saison: ${G.delta>=0?'+':''}${G.delta} Punkte.`:''}</p></section>`}
