@@ -153,9 +153,26 @@ function genPlayer(role,target,age,reg){
   derive(p);
   const o=ovr(p);
   p.pot=clamp(o+(age<=19?ri(6,18):age<=22?ri(2,10):ri(0,3)),o,96);
-  p.salary=salaryFor(o);genChamps(p);
+  p.salary=salaryFor(o);genChamps(p);p.dev=genDev();
   return p;
 }
+/* ===== Talententwicklung =====
+   Entwicklungstyp: f = Frühstarter (große Schritte bis 19, flacht ab 22 ab), n = normal, s = Spätstarter (langsam bis 19, legt von 22 bis 25 zu).
+   Im Schnitt gleicht sich das aus, damit das Wachstum über alle Talente gleich bleibt. */
+const DEVT={f:['Frühstarter','Macht früh große Schritte, flacht ab 22 ab.'],n:['Normale Entwicklung','Wächst gleichmäßig bis etwa 23.'],s:['Spätstarter','Braucht Zeit, legt aber bis 25 noch zu.']};
+function genDev(){const r=R();return r<.25?'f':r<.75?'n':'s'}
+function ageF(p){const a=p.age,b=a<=20?1.4:a<=23?1:a<=26?.6:.3,d=p.dev||'n';
+  if(d==='f')return b*(a<=19?1.3:a<=21?1:.7);if(d==='s')return b*(a<=19?.75:a<=21?1:a<=25?1.35:1);return b}
+function growLimit(p){return{f:21,n:23,s:25}[p.dev||'n']}
+/* Spielpraxis pro Saison: ab 20 Spielen Stammspieler, unter 5 fehlt die Praxis */
+const PRAX_HI=20,PRAX_LO=5;
+function praxis(p){const g=(p.st&&p.st.g)||0;return g>=PRAX_HI?'hi':g<PRAX_LO?'lo':'mid'}
+/* Potenzial so, wie der Verein es kennt: eigene Spieler exakt, sonst Spanne je nach Scouting-Wissen */
+function hashId(id){let h=7;for(const c of String(id))h=(h*31+c.charCodeAt(0))%9973;return h}
+function potEst(p){if(isMine(p))return[p.pot,p.pot];const k=kn(p);if(k<35)return null;if(k>=85)return[p.pot,p.pot];
+  const w=k<60?6:3,b=((hashId(p.id)%11)-5)*(k<60?1.1:.55),c=p.pot+b;return[clamp(Math.round(c-w),40,99),clamp(Math.round(c+w),40,99)]}
+function potMid(p){const e=potEst(p);return e?Math.round((e[0]+e[1])/2):null}
+function potTxt(p){const e=potEst(p);return !e?'?':e[0]===e[1]?String(e[0]):e[0]+'-'+e[1]}
 function sign(p,T,starter){if(S&&S.teams)p.gel=gelStart(p,T);p.team=T.id;T.roster.push(p.id);S.players[p.id]=p;S.fa=S.fa.filter(x=>x!==p.id);if(starter||!T.starters[p.role])T.starters[p.role]=p.id}
 function unsign(p){const T=S.teams[p.team];if(!T)return;T.roster=T.roster.filter(x=>x!==p.id);if(T.starters[p.role]===p.id){delete T.starters[p.role];const alt=T.roster.map(i=>S.players[i]).filter(x=>x.role===p.role).sort((a,b)=>ovr(b)-ovr(a))[0];if(alt)T.starters[p.role]=alt.id}p.team=null;p.listed=false}
 function toFA(p){unsign(p);p.contract=0;p.salary=salaryFor(ovr(p));if(!S.fa.includes(p.id))S.fa.push(p.id)}
@@ -187,7 +204,7 @@ function addMissingTeams(){const added=[];REGS.forEach((r,ri_)=>TEAMDATA[r].forE
     S.teams[id]=T;const base=Math.round(61+(rep-56)*.55);for(const ro of ROLES)sign(genPlayer(ro,base+ri(-4,4),undefined,r),T,true);for(let k=0;k<2;k++)sign(genPlayer(pick(ROLES),base-8+ri(-4,4),ri(17,20),r),T,false);added.push(name)}));
   if(added.length)mail('Neue Teams',`${added.length} Teams sind neu dabei (${added.join(', ')}). Sie steigen mit dem nächsten Split in ihre Ligen ein.`)}
 const DOM={mec:'mech',frm:'lane',lan:'lane',pre:'mech',pool:'mech',gs:'macro',dec:'macro',vis:'macro',ant:'macro',pos:'tf',tw:'tf',com:'comm',lead:'comm',nrv:'comm',rea:'mech'};
-function migrate(){addMissingTeams();for(const p of Object.values(S.players)){if(p.h&&p.h.tm==null)p.h.tm=ri(4,20);if(p.gel==null)p.gel=p.team?ri(60,90):40}
+function migrate(){addMissingTeams();for(const p of Object.values(S.players)){if(p.h&&p.h.tm==null)p.h.tm=ri(4,20);if(!p.dev)p.dev=genDev();if(p.gel==null)p.gel=p.team?ri(60,90):40}
   for(const p of Object.values(S.players)){if(!p.d){const av=ATTR.reduce((s,k)=>s+p.a[k],0)/5;p.d={};for(const x of DK)p.d[x]=clamp((DOM[x]?p.a[DOM[x]]:av)/5+gauss()*(DOM[x]?.8:2),1,20);p.h={pro:ri(4,20),amb:ri(4,20)};p.ifoc=null;derive(p);p.pot=Math.max(p.pot,ovr(p));p.o0=ovr(p)}if(p.o0==null)p.o0=ovr(p)}
   if(!TGROUP[S.training.focus])S.training.focus='bal';
   const f=S.fin;if(!f.slots){const keep={balance:f.balance,fans:f.fans,hist:f.hist||[f.balance],last:null};S.fin=Object.assign(newFin(0,0),keep);genOffers()}

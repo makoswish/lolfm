@@ -67,6 +67,9 @@ const ACT={
   faff(){FILT.afford=!FILT.afford;FILT.n=40;render()},
   fmore(){FILT.n+=40;render()},
   cfno(){MODAL=null;render()},
+  lendmenu(d){const p=S.players[d.id];if(!canLoan(p))return;MODAL={loan:p.id};render()},
+  lend(d){const e=loanOut(d.id,d.t);MODAL=null;if(e)loanErr(d.id,e);save();render()},
+  lendback(d){const r=loanBack(d.id);if(typeof r==='string')loanErr(d.id,r);else mail('Leihe beendet',`${S.players[d.id].name} ist zurück (${r.g} Spiele, OVR ${r.d>=0?'+':''}${r.d}).`);save();render()},
   slotpick(d){NEWSLOT=+d.v;render()},
   slotload(d){const n=+d.v;if(LIVE||!slotInfo(n))return;if(S)save();useSlot(n);S=null;NG=null;PV=null;MODAL=null;SIMREP=null;HKEY=null;load();if(S)S.view='home';window.scrollTo(0,0);render()},
   slotdel(d){const n=+d.v;if(S&&n===SLOT)return;
@@ -162,13 +165,14 @@ const ACT={
   staff(d){const lv=S.staff[d.v],cost=60000*lv;if(lv>=5||S.fin.balance<cost)return;book('Investitionen',-cost);S.staff[d.v]++;save();render()},
   reset(d){if(d.ok==='1'){try{localStorage.removeItem(SAVEKEY)}catch(e){}setMeta(SLOT,null);S=null;LIVE=null;MODAL=null}else if(d.ok==='0')MODAL=null;else MODAL='reset';render()}
 };
+function loanErr(id,msg){pmsg(id,msg,false);if(S.view!=='player'){PV.tab='vertrag';PV.back=S.view;S.view='player'}}
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-a]');if(!b||b.disabled)return;
   if(b.classList.contains('ov')&&e.target!==b)return;if(SIMRUN&&b.dataset.a!=='simhalt')return;
   const f=ACT[b.dataset.a];if(!f)return;if(b.dataset.a==='nav')ERR=null;try{f(b.dataset,b)}catch(err){ERR=err.message;render()}
 });
 document.addEventListener('change',e=>{const t=e.target;if(t&&t.id==='impfile'&&t.files&&t.files[0]){const r=new FileReader();r.onload=()=>doImport(String(r.result));r.readAsText(t.files[0])}});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&MODAL&&(MODAL.team||MODAL.cf)){MODAL=null;render()}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&MODAL&&(MODAL.team||MODAL.cf||MODAL.loan)){MODAL=null;render()}});
 /* Suche im Transfermarkt: bei jeder Eingabe neu zeichnen und den Cursor im Feld halten */
 document.addEventListener('input',e=>{const t=e.target;if(!t||t.id!=='tq'||e.isComposing)return;FILT.q=t.value;FILT.n=40;const pos=t.selectionStart;render();const n=$('#tq');if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(_){}}});
 document.addEventListener('change',e=>{const t=e.target;if(t&&t.id==='tsort'){FILT.sort=t.value;FILT.n=40;render()}});

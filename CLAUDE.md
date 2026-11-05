@@ -46,6 +46,8 @@ Die Reihenfolge in `index.html` ist wichtig: Code auf oberster Ebene (zum Beispi
 - **Verlauf:** `render()` schreibt Ansicht und Reiter per `history.pushState` mit (`histSync`). Die Zurück-Taste führt über `histPop` zur vorherigen Seite. Während Draft, Live-Spiel, Verhandlung und Simulation bleibt die Seite stehen.
 - **Klicks:** Buttons tragen `data-a="name"`. Ein globaler Listener ruft `ACT[name](dataset, element)` auf. Fehler fängt der Listener ab und zeigt eine Fehlerseite statt abzustürzen.
 - **Live-Spiel:** `LIVE` hält Serie, Draft und laufendes Spiel. Während Draft und Live ist die Navigation gesperrt.
+- **Talente:** Jeder Spieler hat einen Entwicklungstyp `p.dev` (f/n/s), der über `ageF()` das Training und über `growLimit()` das Saisonwachstum steuert. Talente bis 21 brauchen Spielpraxis: `youthSeason()` verschiebt zum Saisonende das Potenzial (ab 20 Spielen hoch, unter 5 runter). Fremde Spieler zeigen das Potenzial als Spanne (`potEst`, `potTxt`).
+- **Leihe:** `loanOut()` schickt junge Bankspieler als Stammspieler zu einem T2-Team, `p.loan` merkt den Herkunftsverein. Leihspieler zählen über `isLoanee()` als eigene (`isMine`), stehen aber im Kader des T2-Teams. `newSeason()` holt alle zuerst zurück (`loansReturn`). Die Aktionen heißen `lend*`, weil `ACT.loan` der Kredit ist.
 - **Simulation:** `simOne()` spielt eine Woche inklusive eigener Serie ohne Draft. Der Simulationsmodus ruft das in Häppchen per `setTimeout` auf.
 
 ## Balancing
@@ -54,6 +56,7 @@ Gemessen mit den Testläufen (Stand November 2026):
 
 - 1 Punkt Teamstärke ist etwa 5 bis 6 Prozent Siegchance pro Spiel. +3 ergibt rund 68 Prozent.
 - U23-Spieler wachsen etwa +3 OVR pro Saison, beim Nutzer und bei der KI gleich.
+- Talente bis 21 auf der Bank verlieren 1 bis 3 Potenzial pro Saison, Stammspieler gewinnen 0 bis 2 (selten ein Durchbruch mit +3 bis +6). Über alle U22 steigt das Potenzial im Schnitt um etwa 0,4 pro Saison.
 - Ablöse und Gehalt steigen ab 70 OVR überproportional. Spieler weit über dem Vereinsruf verhandeln nicht.
 - Teamchemie wirkt mit -4,5 bis +3 Teamstärke. Neue Spieler brauchen etwa einen Split, bis sie eingespielt sind.
 - Gegner stellen sich mit steigendem Ruf öfter auf den Spielstil des Nutzers ein.

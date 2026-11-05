@@ -184,8 +184,8 @@ function trainTeam(T,focus,intensity,coach,log){
   const grp=TGROUP[focus]||TGROUP.bal;
   for(const id of T.roster){const p=S.players[id],o=ovr(p),before=log?Object.assign({},p.d):null;
     if(focus==='rest'){p.form=clamp(p.form+6,30,100);p.morale=clamp(p.morale+2,20,100)}
-    else{const room=clamp((p.pot-o)/8,0,1),ageF=p.age<=20?1.4:p.age<=23?1:p.age<=26?.6:.3,prof=.7+p.h.pro/20*.6;
-      const G=(.1+coach*.035)*(log?1+.15*S.fin.infra.tc:1)*ageF*(intensity==='high'?1.45:1)*room*(.5+R())*prof,pts=G/5*2.6,kw=keyW(p.role);
+    else{const room=clamp((p.pot-o)/8,0,1),prof=.7+p.h.pro/20*.6;
+      const G=(.1+coach*.035)*(log?1+.15*S.fin.infra.tc:1)*ageF(p)*(intensity==='high'?1.45:1)*room*(.5+R())*prof,pts=G/5*2.6,kw=keyW(p.role);
       const tot=grp.a.reduce((s,x)=>s+kw[x]+.03,0);
       for(const x of grp.a)p.d[x]=clamp(p.d[x]+pts*(kw[x]+.03)/tot,1,20);
       if(p.ifoc&&p.d[p.ifoc]!=null)p.d[p.ifoc]=clamp(p.d[p.ifoc]+pts*.45,1,20);
@@ -214,8 +214,10 @@ function endSeason(){sponsorSeasonEnd();
   mail('Saison beendet',`Sommer-Split: Platz ${place} (Ziel: ${exp}). Worlds-Sieger: ${S.teams[S.rec.WLD.champ].name}. Starte die neue Saison, wenn du bereit bist.`);
 }
 function newSeason(){
+  loansReturn();youthSeason();
   for(const p of Object.values(S.players)){(p.hist=p.hist||[]).push(Object.assign({y:S.year,o:ovr(p),t:p.team},p.st||{}));if(p.hist.length>8)p.hist.shift();p.st={g:0,w:0,k:0,d:0,mvp:0};p.sg={};if(p.ch){for(const c of p.ch)if(p.age<=25)c[1]=clamp(c[1]+ri(0,2),1,20);if(p.age<=25&&R()<.4&&p.ch.length<8){const nw=CHR[p.role].filter(c=>!p.ch.some(x=>x[0]===c));if(nw.length)p.ch.push([pick(nw),ri(7,12)])}p.ch.sort((a,b)=>b[1]-a[1])}p.age++;const o=ovr(p),room=clamp((p.pot-o)/6,0,1);
-    for(const x of DK){if(p.age<=23)p.d[x]=clamp(p.d[x]+R()*.55*room,1,20);
+    const gl=growLimit(p),gf=p.dev==='s'&&p.age>=22?1.3:p.dev==='f'&&p.age<=19?1.25:1;
+    for(const x of DK){if(p.age<=gl)p.d[x]=clamp(p.d[x]+R()*.55*room*gf,1,20);
       else if(p.age>=27){if(['rea','mec','con'].includes(x))p.d[x]=clamp(p.d[x]-R()*(p.age>=29?.75:.45),1,20);else if(['gs','dec','lead','pos'].includes(x))p.d[x]=clamp(p.d[x]+R()*.15,1,20);else p.d[x]=clamp(p.d[x]-R()*.15,1,20)}}
     derive(p);
     if(ovr(p)>p.pot)p.pot=ovr(p);p.form=clamp(p.form+5,30,85);p.listed=false}
@@ -226,7 +228,7 @@ function newSeason(){
   S.fa=S.fa.filter(id=>{const p=S.players[id];if(p.age>=30&&R()<.6){delete S.players[id];return false}return true});
   for(let i=0;i<30;i++){const r=pick(REGS);const p=genPlayer(pick(ROLES),ri(45,63)+Math.max(0,REG[r].off),ri(17,19),r);p.contract=0;S.players[p.id]=p;S.fa.push(p.id)}
   for(const id in S.teams){if(id===S.user||id===acaId())continue;const T=S.teams[id];
-    if(T.tier!==2)for(const r of ROLES){if(R()<.25){const cur=S.players[T.starters[r]],tp=t2Of(T.reg).filter(t=>!t.academy).flatMap(t=>t.roster.map(i=>S.players[i])).filter(p=>p.role===r).sort((a,b)=>ovr(b)-ovr(a))[0];if(tp&&cur&&ovr(tp)>ovr(cur)-2&&T.roster.length<MAXR){const from=S.teams[tp.team];news(`${T.name} holt Talent ${tp.name} aus der T2-Szene (${from.name}).`,'transfer');unsign(tp);sign(tp,T,ovr(tp)>ovr(cur));tp.contract=2;tp.salary=salaryFor(ovr(tp));ensureRoles(from,false)}}}
+    if(T.tier!==2)for(const r of ROLES){if(R()<.25){const cur=S.players[T.starters[r]],tp=t2Of(T.reg).filter(t=>!t.academy).flatMap(t=>t.roster.map(i=>S.players[i])).filter(p=>p.role===r&&!p.loan).sort((a,b)=>ovr(b)-ovr(a))[0];if(tp&&cur&&ovr(tp)>ovr(cur)-2&&T.roster.length<MAXR){const from=S.teams[tp.team];news(`${T.name} holt Talent ${tp.name} aus der T2-Szene (${from.name}).`,'transfer');unsign(tp);sign(tp,T,ovr(tp)>ovr(cur));tp.contract=2;tp.salary=salaryFor(ovr(tp));ensureRoles(from,false)}}}
     for(const r of ROLES){const best=()=>S.fa.map(i=>S.players[i]).filter(p=>p.role===r&&ovr(p)<=T.rep+4).sort((a,b)=>ovr(b)-ovr(a))[0];
       const have=T.roster.map(i=>S.players[i]).filter(p=>p.role===r);
       if(!have.length){const b=best();if(b){b.contract=2;b.salary=salaryFor(ovr(b));sign(b,T,true)}}
