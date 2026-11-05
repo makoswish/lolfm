@@ -1,7 +1,7 @@
 /* ===== Aktionen ===== */
 const ACT={
   startreg(d){STARTREG=d.v;render()},
-  pickteam(d){const n=($('#mgr')||{}).value;newGame(d.id,(n||'').trim()||'Manager');render()},
+  pickteam(d){const n=($('#mgr')||{}).value;useSlot(NEWSLOT||freeSlot()||SLOT);NEWSLOT=null;newGame(d.id,(n||'').trim()||'Manager');render()},
   nav2(d){if(LIVE&&(LIVE.phase==='live'||LIVE.phase==='draft'))return;if(MODAL==='reset')MODAL=null;
     if(d.k==='KTAB')KTAB=d.t;else if(d.k==='TACTAB')TACTAB=d.t;else if(d.k==='TTAB')TTAB=d.t;else if(d.k==='LTAB')LTAB=d.t;else if(d.k==='CLUBTAB')CLUBTAB=d.t;
     if(d.v==='save'){EXP=null;IMPMSG=null}
@@ -46,7 +46,7 @@ const ACT={
   tedit(d){TACE=+d.v;render()},
   tact(d){S.tacA=+d.v;TACE=+d.v;applyTac();save();render()},
   tcopy(d){const i=+d.v,src=S.tacs[S.tacA],n=S.tacs[i].name;S.tacs[i]=JSON.parse(JSON.stringify(src));S.tacs[i].name=n;save();render()},
-  nego(d){if(startNego(d.t,d.id))window.scrollTo(0,0);render()},
+  nego(d){if(startNego(d.t,d.id))window.scrollTo(0,0);else if(S.view!=='player'&&PV&&PV.id===d.id){PV.tab='vertrag';PV.back=S.view;S.view='player';window.scrollTo(0,0)}render()},
   ngfee(d){NG.fee.amt=Math.max(0,NG.fee.amt+ +d.v);render()},
   ngpay(d){NG.fee.pay=d.v;render()},ngsell(d){NG.fee.sell=+d.v;render()},
   ngsend(){if(!NG.dead&&!NG.done)sendFee();save();render()},
@@ -62,8 +62,20 @@ const ACT={
     if(R()<(p&&p.listed?.65:.5)){m.fee=r1000(m.fee*1.2);m.body+=` Nach deinem Gegenangebot erhöht ${S.teams[m.from].name} auf ${eurK(m.fee)}.`}else{m.done=true;m.result='Verein hat das Angebot zurückgezogen'}save();render()},
   train(d){S.training.focus=d.v;save();render()},
   intens(d){S.training.intensity=d.v;save();render()},
-  frole(d){FILT.role=d.v;render()},
-  fsrc(d){FILT.src=d.v;render()},
+  frole(d){FILT.role=d.v;FILT.n=40;render()},
+  fsrc(d){FILT.src=d.v;FILT.n=40;render()},
+  faff(){FILT.afford=!FILT.afford;FILT.n=40;render()},
+  fmore(){FILT.n+=40;render()},
+  cfno(){MODAL=null;render()},
+  lendmenu(d){const p=S.players[d.id];if(!canLoan(p))return;MODAL={loan:p.id};render()},
+  lend(d){const e=loanOut(d.id,d.t);MODAL=null;if(e)loanErr(d.id,e);save();render()},
+  lendback(d){const r=loanBack(d.id);if(typeof r==='string')loanErr(d.id,r);else mail('Leihe beendet',`${S.players[d.id].name} ist zurück (${r.g} Spiele, OVR ${r.d>=0?'+':''}${r.d}).`);save();render()},
+  slotpick(d){NEWSLOT=+d.v;render()},
+  slotload(d){const n=+d.v;if(LIVE||!slotInfo(n))return;if(S)save();useSlot(n);S=null;NG=null;PV=null;MODAL=null;SIMREP=null;HKEY=null;load();if(S)S.view='home';window.scrollTo(0,0);render()},
+  slotdel(d){const n=+d.v;if(S&&n===SLOT)return;
+    if(d.ok!=='1'){const m=slotInfo(n);return askConfirm('slotdel',{v:n},`Platz ${n} löschen?`,`Der Spielstand mit ${m?esc(m.team)+', Saison '+m.year:'diesem Platz'} wird gelöscht. Das lässt sich nicht rückgängig machen.`,'Löschen')}
+    try{localStorage.removeItem(slotKey(n))}catch(e){}setMeta(n,null);if(NEWSLOT===n)NEWSLOT=null;MODAL=null;render()},
+  mainmenu(){if(LIVE)return;save();S=null;NG=null;PV=null;MODAL=null;SIMREP=null;NEWSLOT=null;window.scrollTo(0,0);render()},
   player(d){const back=S.view==='player'&&PV?PV.back:S.view;PV={id:d.id,tab:d.tab||'profil',back};MODAL=null;S.view='player';window.scrollTo(0,0);render()},
   ptab(d){PV.tab=d.v;PV.msg=null;render()},
   pback(){S.view=PV&&PV.back&&PV.back!=='player'?PV.back:'squad';PV=null;window.scrollTo(0,0);render()},
@@ -75,7 +87,9 @@ const ACT={
     if(dem-p.salary>wageFree()){pmsg(d.id,`Das Gehaltsbudget reicht nicht. Nötig: ${eurK(dem-p.salary)} mehr pro Woche, frei sind ${eurK(Math.max(0,wageFree()))}. Du kannst unter Verein > Finanzen umschichten.`,false);render();return}
     if(p.morale<45&&R()<.6){p.tried=wkKey();pmsg(d.id,`${p.name} ist unzufrieden und lehnt ab. Mehr Spielzeit oder Siege helfen.`,false)}
     else{p.salary=dem;p.contract=Math.min(4,p.contract+2);pmsg(d.id,`Verlängert bis ${S.year+p.contract-1} für ${eurK(dem)} pro Woche.`,true)}save();render()},
-  release(d){const p=S.players[d.id],U=S.teams[S.user];const wasA=p.team===acaId();book('Abfindungen',-p.salary*8);toFA(p);if(wasA)ensureRoles(aca(),false);else ensureRoles(U,true);S.view='squad';PV=null;save();render()},
+  release(d){const p=S.players[d.id],U=S.teams[S.user];if(!p)return;
+    if(d.ok!=='1')return askConfirm('release',{id:p.id},`${p.name} entlassen?`,`Er verlässt den Verein sofort. Die Abfindung von ${eurK(p.salary*8)} geht direkt vom Konto ab. Das lässt sich nicht rückgängig machen.`,`Entlassen für ${eurK(p.salary*8)}`);
+    MODAL=null;const wasA=p.team===acaId();book('Abfindungen',-p.salary*8);toFA(p);if(wasA)ensureRoles(aca(),false);else ensureRoles(U,true);S.view='squad';PV=null;save();render()},
   fa(d){const p=S.players[d.id],U=S.teams[S.user],f=+d.f,dem=salaryFor(ovr(p));
     if(U.roster.length>=MAXR){pmsg(d.id,`Dein Kader ist voll (${MAXR}). Entlasse oder verkaufe zuerst einen Spieler.`,false);render();return}
     if(Math.round(dem*f/100)*100>wageFree()){pmsg(d.id,`Das Gehaltsbudget reicht nicht. Frei sind ${eurK(Math.max(0,wageFree()))} pro Woche. Du kannst unter Verein > Finanzen umschichten.`,false);render();return}
@@ -116,7 +130,9 @@ const ACT={
     if(st.role==='hc'){for(const o of staffOf('hc')){S.staffs=S.staffs.filter(x=>x.id!==o.id);book('Abfindungen',-o.wage*6);mail('Head Coach entlassen',`${o.name} muss gehen.`)}}
     else if(staffOf(st.role).length>=SROLE[st.role][1])return;
     book('Investitionen',-st.fee);S.staffs.push(st);S.staffPool=S.staffPool.filter(x=>x.id!==st.id);syncStaff();mail('Neuer Trainer',`${st.name} ist neuer ${SROLE[st.role][0]} (${eurK(st.wage)} pro Woche).`);save();render()},
-  stfire(d){const st=S.staffs.find(x=>x.id===d.id);if(!st||(st.role==='hc'&&staffOf('hc').length<=1))return;S.staffs=S.staffs.filter(x=>x.id!==d.id);book('Abfindungen',-st.wage*6);syncStaff();save();render()},
+  stfire(d){const st=S.staffs.find(x=>String(x.id)===String(d.id));if(!st||(st.role==='hc'&&staffOf('hc').length<=1))return;
+    if(d.ok!=='1')return askConfirm('stfire',{id:st.id},`${st.name} entlassen?`,`${SROLE[st.role][0]} ${st.name} geht sofort. Die Abfindung von ${eurK(st.wage*6)} geht direkt vom Konto ab. Das lässt sich nicht rückgängig machen.`,`Entlassen für ${eurK(st.wage*6)}`);
+    MODAL=null;S.staffs=S.staffs.filter(x=>x.id!==d.id);book('Abfindungen',-st.wage*6);syncStaff();save();render()},
   ttab(d){TTAB=d.v;render()},ltab(d){LTAB=d.v;render()},
   promote(d){const e=promote(d.id);if(PV&&S.view==='player')pmsg(d.id,e||'Er gehört jetzt zum Profikader.',!e);else if(e)mail('Hochziehen nicht möglich',e);save();render()},
   demote(d){const e=demote(d.id);pmsg(d.id,e||'Er spielt jetzt in der Academy.',!e);save();render()},
@@ -147,13 +163,17 @@ const ACT={
   payloan(){const f=S.fin;if(!f.loan||f.balance<f.loan.left)return;book('Kredittilgung',-f.loan.left);f.loan=null;save();render()},
   repair(){if(LIVE){clearInterval(LIVE.timer);LIVE=null}restartEvent();ERR=null;S.view='home';save();render()},
   staff(d){const lv=S.staff[d.v],cost=60000*lv;if(lv>=5||S.fin.balance<cost)return;book('Investitionen',-cost);S.staff[d.v]++;save();render()},
-  reset(d){if(d.ok==='1'){try{localStorage.removeItem(SAVEKEY)}catch(e){}S=null;LIVE=null;MODAL=null}else if(d.ok==='0')MODAL=null;else MODAL='reset';render()}
+  reset(d){if(d.ok==='1'){try{localStorage.removeItem(SAVEKEY)}catch(e){}setMeta(SLOT,null);S=null;LIVE=null;MODAL=null}else if(d.ok==='0')MODAL=null;else MODAL='reset';render()}
 };
+function loanErr(id,msg){pmsg(id,msg,false);if(S.view!=='player'){PV.tab='vertrag';PV.back=S.view;S.view='player'}}
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-a]');if(!b||b.disabled)return;
   if(b.classList.contains('ov')&&e.target!==b)return;if(SIMRUN&&b.dataset.a!=='simhalt')return;
   const f=ACT[b.dataset.a];if(!f)return;if(b.dataset.a==='nav')ERR=null;try{f(b.dataset,b)}catch(err){ERR=err.message;render()}
 });
 document.addEventListener('change',e=>{const t=e.target;if(t&&t.id==='impfile'&&t.files&&t.files[0]){const r=new FileReader();r.onload=()=>doImport(String(r.result));r.readAsText(t.files[0])}});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&MODAL&&MODAL.team){MODAL=null;render()}});
-load();render();
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&MODAL&&(MODAL.team||MODAL.cf||MODAL.loan)){MODAL=null;render()}});
+/* Suche im Transfermarkt: bei jeder Eingabe neu zeichnen und den Cursor im Feld halten */
+document.addEventListener('input',e=>{const t=e.target;if(!t||t.id!=='tq'||e.isComposing)return;FILT.q=t.value;FILT.n=40;const pos=t.selectionStart;render();const n=$('#tq');if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(_){}}});
+document.addEventListener('change',e=>{const t=e.target;if(t&&t.id==='tsort'){FILT.sort=t.value;FILT.n=40;render()}});
+initSlot();load();render();

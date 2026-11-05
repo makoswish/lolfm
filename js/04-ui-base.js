@@ -44,6 +44,7 @@ function topBar(){
 function startView(){
   const list=TEAMDATA[STARTREG];
   return `<div class="start"><div class="mast"><b>Rift Manager</b><span>58 Teams · 6 Regionen</span></div>
+  ${[1,2,3].some(n=>slotInfo(n))?`<section class="panel" style="margin-bottom:26px"><div class="lab"><span>Spielstände</span><span>${[1,2,3].filter(n=>slotInfo(n)).length} von ${NSLOTS} belegt</span></div>${slotList()}</section>`:''}
   <div class="intro"><div><h1>Neues Spiel</h1>
   <p>Du übernimmst eine Organisation und führst sie durch drei Splits, First Stand, MSI, den Demacia Cup und Worlds. Kader, Training, Taktik und Transfers liegen bei dir. Alle Teams und Spieler sind erfunden.</p></div>
   <div class="field"><label for="mgr">Managername</label><input id="mgr" maxlength="24" value="Marc" autocomplete="off"></div></div>
@@ -121,10 +122,10 @@ function tableView(st,mini,cut){
 function playerRow(p,showTeam){
   const o=ovr(p),T=p.team?S.teams[p.team]:null,k=kn(p),hide=!isMine(p)&&k<60;
   return `<button class="row" data-a="player" data-id="${p.id}"><span>${chip(p.role)}</span>
-  <span style="min-width:0;display:flex;gap:10px;align-items:center">${avatar(p,'xs')}<span style="min-width:0"><div class="nm">${p.name}${p.listed?' <span class="warn" style="font-size:12px">· Transferliste</span>':''}</div><div class="sub">${p.rn?`<span class="hide-s">${p.rn} · </span>`:''}${!showTeam&&p.team===S.user?`<span class="show-s"><span style="color:${barCol(p.form)}">Form ${Math.round(p.form)}</span> · <span style="color:${barCol(p.morale)}">Moral ${Math.round(p.morale)}</span> · </span>`:''}${p.age} J. · ${p.nat}${showTeam?` · ${T?T.name+' ('+T.reg+(T.tier===2?' T2':'')+')':'vereinslos'}${isMine(p)?'':` · Wissen ${k}%`}`:` · Vertrag ${p.contract} ${p.contract===1?'Saison':'Saisons'}`}</div></span></span>
+  <span style="min-width:0;display:flex;gap:10px;align-items:center">${avatar(p,'xs')}<span style="min-width:0"><div class="nm">${p.name}${isLoanee(p)?' <span class="muted" style="font-size:12px">· verliehen</span>':''}${p.listed?' <span class="warn" style="font-size:12px">· Transferliste</span>':''}</div><div class="sub">${p.rn?`<span class="hide-s">${p.rn} · </span>`:''}${!showTeam&&p.team===S.user?`<span class="show-s"><span style="color:${barCol(p.form)}">Form ${Math.round(p.form)}</span> · <span style="color:${barCol(p.morale)}">Moral ${Math.round(p.morale)}</span> · </span>`:''}${p.age} J. · ${p.nat}${showTeam?` · ${T?T.name+' ('+T.reg+(T.tier===2?' T2':'')+')':'vereinslos'}${isMine(p)?'':` · Wissen ${k}%`}`:` · Vertrag ${p.contract} ${p.contract===1?'Saison':'Saisons'}`}</div></span></span>
   <span class="rt">${showTeam?`<span class="kv hide-s">Wert<b>${eurK(valueFor(p))}</b></span><span class="kv hide-s">Gehalt<b>${eurK(T?Math.round(Math.max(p.salary,salaryFor(o))*1.15/100)*100:salaryFor(o))}</b></span>`:
    `<span class="kv hide-s fm">Form${bar(p.form)}</span><span class="kv hide-s fm">Moral${bar(p.morale)}</span><span class="kv hide-s">Gehalt<b>${eurK(p.salary)}</b></span>`}
-   <span class="kv">${hide?(k>=40?'POT '+p.pot:'OVR'):'POT '+(k>=40?p.pot:'?')}<b class="ovr ${oc(o)}">${hide?'~'+Math.round(o/5)*5:o}</b></span></span></button>`;
+   <span class="kv">${hide?(potEst(p)?'POT '+potTxt(p):'OVR'):'POT '+potTxt(p)}<b class="ovr ${oc(o)}">${hide?'~'+Math.round(o/5)*5:o}</b></span></span></button>`;
 }
 function squadView(){
   const U=S.teams[S.user],ps=U.roster.map(i=>S.players[i]);
@@ -143,12 +144,13 @@ function squadView(){
     <p class="muted" style="font-size:13px;margin:10px 0 0">KDA = (Kills + Assists) / Tode. KP = Kill-Beteiligung. DPM = Schaden pro Minute.</p></section>`;
   else if(KTAB==='aca')body=acaTab();
   else if(KTAB==='chem')body=chemTab();
+  else if(KTAB==='vert')body=contractsTab();
   else if(KTAB==='mood')body=`<section class="panel s12"><div class="lab"><span>Stimmung</span><span>Ø Form ${avgF} · Ø Moral ${avgM}</span></div><div class="rows">${all.map(p=>`<button class="row" data-a="player" data-id="${p.id}" style="grid-template-columns:46px minmax(0,1fr)"><span>${chip(p.role)}</span><span style="min-width:0"><div class="nm">${p.name} <span class="muted" style="font-weight:500;font-size:13px">${formText(p.form)} · ${moodText(p.morale)}</span></div>
      <div class="mood2"><span>Form</span>${bar(p.form)}<span class="mono">${Math.round(p.form)}</span><span>Moral</span>${bar(p.morale)}<span class="mono">${Math.round(p.morale)}</span></div>
      <div class="sub" style="white-space:normal">${moodReasons(p).filter(x=>x[0]!=='good'||x[1].startsWith('Team')).map(x=>x[1]).join(' ')}</div></span></button>`).join('')}</div></section>`;
   else body=`${coachReport(U)}<section class="panel s12"><div class="lab"><span>Startaufstellung</span><span>Tippe einen Spieler für Details</span></div><div class="rows">${starters.map(p=>playerRow(p)).join('')}</div></section>
   <section class="panel s12"><div class="lab"><span>Bank</span><span>${bench.length} Spieler</span></div><div class="rows">${bench.map(p=>playerRow(p)).join('')||'<p class="empty">Keine Ersatzspieler. Auf dem Transfermarkt findest du Backups.</p>'}</div></section>`;
   return `<div class="pagehead"><div><h1>Kader</h1><p>Team-OVR ${teamOvr(U)} · Ø Form ${avgF} · Ø Moral ${avgM} · ${ps.length}/${MAXR} Spieler · ${eurK(sal)} Gehälter pro Woche</p></div></div>
-  <div class="seg" style="margin-bottom:16px">${[['depth','Kaderübersicht'],['list','Aufstellung'],['attr','Attribute'],['mood','Form & Moral'],['chem','Chemie'],['stats','Statistik'],['aca','Academy']].map(([k,l])=>`<button class="${KTAB===k?'on':''}" data-a="ktab" data-v="${k}">${l}</button>`).join('')}</div>
+  <div class="seg" style="margin-bottom:16px">${[['depth','Kaderübersicht'],['list','Aufstellung'],['attr','Attribute'],['mood','Form & Moral'],['chem','Chemie'],['stats','Statistik'],['aca','Academy'],['vert','Verträge']].map(([k,l])=>`<button class="${KTAB===k?'on':''}" data-a="ktab" data-v="${k}">${l}</button>`).join('')}</div>
   <div class="grid">${body}</div>`;
 }

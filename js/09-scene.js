@@ -4,7 +4,8 @@ const T2CITY={LCK:['Seoul','Busan','Daejeon','Incheon','Ulsan','Gwangju','Suwon'
 const T2SUF=['Rising','Next','Prospects','Rookies','Challengers','Ascend','Youth','Nova'];
 function acaId(){return S.user+'A'}
 function aca(){return S.teams[acaId()]}
-function isMine(p){return !!p&&(p.team===S.user||p.team===acaId())}
+function isMine(p){return !!p&&(p.team===S.user||p.team===acaId()||isLoanee(p))}
+function isLoanee(p){return !!(p&&p.loan&&(p.loan.from===S.user||p.loan.from===acaId()))}
 function t2Of(r){return Object.values(S.teams).filter(t=>t.tier===2&&t.reg===r)}
 function mkT2Team(id,name,reg,rep,color,academy){const T={id,name,reg,rep,color,tier:2,academy:!!academy,style:pick(SK),focus:pick(['TOP','MID','ADC']),roster:[],starters:{}};S.teams[id]=T;
   const base=Math.round(48+(rep-40)*.5);
@@ -18,14 +19,49 @@ function genT2(){const U=S.teams[S.user];
   t2Init()}
 function t2Init(){S.t2={};for(const r of REGS){const ids=t2Of(r).map(t=>t.id);const tab={};ids.forEach(i=>tab[i]={w:0,l:0,form:[]});S.t2[r]={sched:ids.length%2?[]:circle(shuffle(ids.slice())),round:0,tab,last:[]}}}
 function t2Week(){if(!S.t2)t2Init();
-  for(const r of REGS){const L=S.t2[r];if(!L||!L.sched.length)continue;const rd=L.sched[L.round%L.sched.length];L.round++;L.last=[];
+  for(const r of REGS){const L=S.t2[r];if(!L||!L.sched.length)continue;const rd=L.sched[L.round%L.sched.length];L.round++;L.last=[];const win=[];
     for(const[a,b]of rd){const A=S.teams[a],B=S.teams[b];if(!A||!B)continue;const w=R()<sig((teamOvr(A)-teamOvr(B)+gauss()*3)/4)?a:b,l=w===a?b:a;
       for(const[id,won]of[[w,1],[l,0]]){const e=L.tab[id]||(L.tab[id]={w:0,l:0,form:[]});won?e.w++:e.l++;e.form.push(won);if(e.form.length>5)e.form.shift()}
-      L.last.push({a,b,w});
-      for(const T of[A,B])for(const r2 of ROLES){const p=S.players[T.starters[r2]];if(!p)continue;const s=p.st||(p.st={g:0,w:0,k:0,d:0,mvp:0});s.g++;if(T.id===w)s.w++;p.form=clamp(p.form+(T.id===w?1:-1),30,100)}}}}
+      L.last.push({a,b,w});win.push(w);
+      for(const T of[A,B])for(const r2 of ROLES){const p=S.players[T.starters[r2]];if(!p)continue;const s=p.st||(p.st={g:0,w:0,k:0,d:0,mvp:0});s.g++;if(T.id===w)s.w++;p.form=clamp(p.form+(T.id===w?1:-1),30,100)}}
+    t2Star(r,L,win)}}
+/* Spieler der Woche: bester Auftritt eines Siegerteams. Junge Spieler mit Luft nach oben fallen eher auf. */
+function t2Star(r,L,win){const c=win.flatMap(id=>ROLES.map(x=>S.players[S.teams[id].starters[x]])).filter(Boolean);if(!c.length)return;
+  const p=c.map(p=>[p,ovr(p)+(p.pot-ovr(p))*.35+gauss()*4]).sort((a,b)=>b[1]-a[1])[0][0];
+  p.t2s=(p.t2s||0)+1;(L.stars=L.stars||[]).unshift({pid:p.id,tid:p.team,wk:S.step});if(L.stars.length>8)L.stars.length=8;
+  if(t2Watch(r)){S.kn=S.kn||{};S.kn[p.id]=clamp((S.kn[p.id]||0)+8,0,100)}}
+/* Schaut ein Scout gerade T2-Spiele in dieser Region? */
+function t2Watch(r){return(S.scouts||[]).some(sc=>(sc.reg==='ALL'||sc.reg===r)&&(sc.scope==='t2'||sc.scope==='u20'))}
 function t2Table(r){const L=S.t2&&S.t2[r];if(!L)return[];return Object.entries(L.tab).filter(([id])=>S.teams[id]).map(([id,e])=>({id,...e})).sort((a,b)=>b.w-a.w||a.l-b.l)}
 function promote(pid){const p=S.players[pid];p.fromAca=true;const U=S.teams[S.user],A=aca();if(U.roster.length>=MAXR)return 'Dein Profikader ist voll.';unsign(p);sign(p,U,false);ensureRoles(A,false);mail('Aus der Academy hochgezogen',`${p.name} (${RN[p.role]}) gehört jetzt zum Profikader.`);return null}
 function demote(pid){const p=S.players[pid],U=S.teams[S.user],A=aca();if(A.roster.length>=8)return 'Die Academy ist voll (8 Spieler).';if(!U.roster.some(i=>i!==pid&&S.players[i].role===p.role))return `Ohne ihn hättest du keinen ${RN[p.role]} mehr im Profikader.`;unsign(p);sign(p,A,false);p.promise=null;return null}
+/* ===== Leihe in die T2-Szene ===== */
+const LOANMAX=22;
+function canLoan(p){return !!p&&(p.team===S.user||p.team===acaId())&&p.age<=LOANMAX&&!isStarter(p)&&!p.loan}
+function loanTargets(p){const o=ovr(p),U=S.teams[S.user];
+  return Object.values(S.teams).filter(t=>t.tier===2&&!t.academy&&t.id!==acaId()).map(t=>{const cur=S.players[t.starters[p.role]];return{t,cur:cur?ovr(cur):0}})
+   .filter(x=>o>x.cur).sort((a,b)=>(b.t.reg===U.reg)-(a.t.reg===U.reg)||teamOvr(b.t)-teamOvr(a.t)).slice(0,4)}
+function loanOut(pid,tid){const p=S.players[pid],T=S.teams[tid];if(!canLoan(p)||!T||T.tier!==2||T.academy)return 'Leihe nicht möglich.';
+  if(!loanTargets(p).some(x=>x.t.id===tid))return `${p.name} wäre dort kein Stammspieler.`;
+  const from=p.team;unsign(p);sign(p,T,true);p.loan={from,s:S.season,g0:(p.st&&p.st.g)||0,o0:ovr(p)};
+  if(from===S.user)ensureRoles(S.teams[S.user],true);else ensureRoles(aca(),false);
+  mail('Leihe in die T2-Szene',`${p.name} spielt bis Saisonende für ${T.name} (${T.reg}) und ist dort Stammspieler. Das Gehalt zahlt ${T.name}. Zurückholen kannst du ihn jederzeit.`);return null}
+function loanBack(pid,force){const p=S.players[pid];if(!p||!p.loan)return 'Kein Leihspieler.';const T=S.teams[p.team],back=S.teams[p.loan.from]||S.teams[S.user];
+  if(!force&&back.id===S.user&&back.roster.length>=MAXR)return 'Dein Profikader ist voll.';if(!force&&back.id===acaId()&&back.roster.length>=8)return 'Die Academy ist voll (8 Spieler).';
+  const g=((p.st&&p.st.g)||0)-(p.loan.g0||0),d=ovr(p)-(p.loan.o0??ovr(p));delete p.loan;if(T)unsign(p);sign(p,back,false);if(T)ensureRoles(T,false);
+  return{g,d,back}}
+function loansReturn(){const L=Object.values(S.players).filter(p=>p.loan);const lines=[];
+  for(const p of L){const mine=isLoanee(p),r=loanBack(p.id,true);if(mine&&r&&r.back)lines.push(`${p.name}: ${r.g} Spiele, OVR ${r.d>=0?'+':''}${r.d}`)}
+  if(lines.length)mail('Leihspieler zurück',`Zum Saisonende kehren zurück: ${lines.join('; ')}.`)}
+/* Saisonbilanz der Talente bis 21: Spielpraxis und Persönlichkeit verschieben das Potenzial */
+function youthSeason(){const up=[],down=[];
+  for(const p of Object.values(S.players)){if(!p.team||p.age>21)continue;const o=ovr(p),pr=praxis(p),pro=p.h?p.h.pro:10,pot0=p.pot;
+    if(pr==='hi'){p.pot+=ri(0,2);if(R()<.06+pro/20*.08)p.pot+=ri(3,6)}
+    else if(pr==='lo')p.pot-=ri(1,3);
+    if(pro<=7&&R()<.15)p.pot-=ri(2,4);
+    p.pot=clamp(p.pot,o,96);
+    if(isMine(p)&&p.pot!==pot0)(p.pot>pot0?up:down).push(`${p.name} (${p.pot>pot0?'+':''}${p.pot-pot0})`)}
+  if(up.length||down.length)mail('Nachwuchs: Saisonbilanz',`${up.length?`Gestiegenes Potenzial: ${up.join(', ')}. `:''}${down.length?`Gesunkenes Potenzial: ${down.join(', ')}. `:''}Talente bis 21 brauchen mindestens ${PRAX_HI} Spiele pro Saison. Unter ${PRAX_LO} Spielen verkümmert das Potenzial.`)}
 function acaIntake(){const A=aca(),U=S.teams[S.user];if(!A)return;const lv=S.fin.infra.ac,n=1+lv;
   for(let i=0;i<n;i++){const p=genPlayer(pick(ROLES),ri(45,50)+lv*3,ri(16,17),U.reg);p.pot=clamp(ovr(p)+ri(14,24)+lv*2,ovr(p),96);p.contract=3;p.salary=350;p.o0=ovr(p);
     if(A.roster.length<8){sign(p,A,false);mail('Neues Academy-Talent',`${p.name} (${RN[p.role]}, 16-17 Jahre) kommt in deine Academy.`)}else{p.contract=0;S.players[p.id]=p;S.fa.push(p.id)}}}
@@ -51,6 +87,7 @@ function scoutWeek(){initScouting();
       S.reports.unshift({pid:c.id,sc:sc.name,lvl:sc.lvl,g:g[0],txt:g[1],when:shortLabel(),lo,hi:lo+w,ps:clamp(c.pot+gauss()*(5-sc.lvl),40,96),fee:r1000(valueFor(c)*(.85+R()*.3)),st:srt.slice(0,2),wk:srt.slice(-1)});
       if(g[0]==='A'&&R()<.5)mail(`Scouting: ${c.name}`,`${sc.name} empfiehlt ${c.name} (${RN[c.role]}, ${c.team?S.teams[c.team].name:'vereinslos'}): ${g[1]}.`)}}
   if(S.reports.length>40)S.reports.length=40;
+  for(const r of REGS)if(t2Watch(r))for(const t of t2Of(r))for(const x of ROLES){const p=S.players[t.starters[x]];if(p&&!isMine(p)&&(S.kn[p.id]||0)<60)S.kn[p.id]=Math.min(60,(S.kn[p.id]||0)+3)}
   if(S.scouts.length)for(const id of S.short)if(S.players[id])S.kn[id]=clamp((S.kn[id]||0)+6,0,100);
   const w=S.scouts.reduce((a,s)=>a+s.wage,0);if(w)book('Scouts',-w)}
 
@@ -71,12 +108,29 @@ function statsView(reg){
     ${rows.map(([t,e])=>`<tr class="${t.id===S.user?'me':''}"><td><button class="linkbtn" data-a="team" data-id="${t.id}" style="display:flex;gap:8px;align-items:center">${crest(t,'sm')}${t.name}</button></td><td class="r">${e.g}</td><td class="r">${pct(e.w/e.g)}</td><td class="r mono">${f1(e.len/e.g)}'</td><td class="r">${pct(e.fb/e.g)}</td><td class="r">${pct(e.ft/e.g)}</td><td class="r">${f1(e.dr/e.g)}</td><td class="r">${f1(e.bn/e.g,2)}</td><td class="r">${e.b[0]?pct(e.b[1]/e.b[0]):'-'}</td><td class="r">${e.r[0]?pct(e.r[1]/e.r[0]):'-'}</td></tr>`).join('')}</tbody></table></div>`:'<p class="empty">Noch keine Spiele in dieser Saison.</p>'}</section>`;
 }
 function t2View(reg){const tab=t2Table(reg),L=S.t2&&S.t2[reg];
-  const tal=t2Of(reg).flatMap(t=>t.roster.map(i=>S.players[i])).filter(p=>p.team!==acaId()).sort((a,b)=>b.pot-a.pot).slice(0,10);
+  const all=t2Of(reg).flatMap(t=>t.roster.map(i=>S.players[i])).filter(p=>p&&p.team!==acaId()&&!isLoanee(p)),kno=all.filter(p=>potEst(p)),tal=kno.slice().sort((a,b)=>potMid(b)-potMid(a)).slice(0,10),watch=t2Watch(reg);
+  const stars=(L&&L.stars||[]).filter(s=>S.players[s.pid]);
   return `<section class="panel s7"><div class="lab"><span>T2-Liga ${reg}</span><span>Academy- und Nachwuchsteams</span></div>
    <div class="scroll"><table class="tbl"><thead><tr><th>#</th><th>Team</th><th class="r">S</th><th class="r">N</th><th>Form</th></tr></thead><tbody>${tab.map((x,i)=>{const T=S.teams[x.id];return `<tr class="${x.id===acaId()?'me':''}"><td class="pos">${i+1}</td><td><button class="linkbtn" data-a="team" data-id="${T.id}" style="display:flex;gap:8px;align-items:center">${crest(T,'sm')}${T.name}</button></td><td class="r">${x.w}</td><td class="r">${x.l}</td><td>${formDots(x.form)}</td></tr>`}).join('')}</tbody></table></div>
    ${L&&L.last.length?`<div class="lab" style="margin-top:14px">Letzte Woche</div>${L.last.map(m=>`<div class="stat res ${meIn(m)?'me':''}"><span>${meIn(m)?wlPill(m)+' ':''}<span class="${isMyT(m.a)?'myid':m.w===m.a?'':'muted'}">${S.teams[m.a].name}</span> <span class="dim">vs</span> <span class="${isMyT(m.b)?'myid':m.w===m.b?'':'muted'}">${S.teams[m.b].name}</span></span><span>${m.w===m.a?'1:0':'0:1'}</span></div>`).join('')}`:''}</section>
-   <section class="panel s5"><div class="lab"><span>Größte Talente</span><span>nach Potenzial</span></div>${tal.map(p=>playerRow(p,true)).join('')}
-   <p class="muted" style="font-size:13px;margin:10px 0 0">T2-Spieler sind günstig, aber oft noch roh. Schick einen Scout in die T2-Szene, um ihr Potenzial einzuschätzen.</p></section>`}
+   <section class="panel s5"><div class="lab"><span>Spieler der Woche</span><span>${watch?'<span class="good">Scout vor Ort</span>':'kein Scout vor Ort'}</span></div>
+    ${stars.length?stars.map(s=>{const p=S.players[s.pid],T=S.teams[s.tid]||S.teams[p.team];return `<button class="lbrow" data-a="player" data-id="${p.id}"><span class="pos">W${s.wk}</span>${T?crest(T,'sm'):'<span></span>'}<span class="nmcell">${p.name} <small class="dim">${p.role} · ${p.age} J.</small></span><b class="mono">${p.t2s>1?p.t2s+'x':''}</b></button>`}).join(''):'<p class="empty">Noch keine Spielwoche.</p>'}
+    <p class="muted" style="font-size:13px;margin:10px 0 0">${watch?'Dein Scout sieht die Spiele: Jeder Spieler der Woche und alle Stammspieler werden mit der Zeit bekannter.':'Ein Scout mit dem Auftrag T2-Szene oder Talente U20 in dieser Region schaut die Spiele und lernt die Spieler kennen.'}</p></section>
+   <section class="panel s12"><div class="lab"><span>Größte Talente ${reg}</span><span>nach geschätztem Potenzial</span></div>${tal.length?`<div class="rows">${tal.map(p=>playerRow(p,true)).join('')}</div>`:'<p class="empty">Noch kein Spieler gescoutet.</p>'}
+   <p class="muted" style="font-size:13px;margin:10px 0 0">${all.length-kno.length} von ${all.length} T2-Spielern sind noch unbekannt. Das Potenzial siehst du als Spanne, die mit mehr Scouting-Wissen enger wird.</p></section>`}
+/* Nachwuchs-Kasten auf der Spielerseite */
+function youthBox(p,know){if(p.age>23&&!p.loan)return'';const g=(p.st&&p.st.g)||0,pr=praxis(p),T=p.team?S.teams[p.team]:null,dv=know?DEVT[p.dev||'n']:null,col=pr==='hi'?'var(--good)':pr==='lo'?'var(--bad)':'var(--warn)';
+  return `<div class="lab" style="margin-top:4px"><span>Nachwuchs</span><span>${p.age<=21?'Spielpraxis zählt':'Potenzial steht weitgehend'}</span></div>
+   <div class="stat"><span class="muted">Entwicklung</span><span>${dv?dv[0]:'unbekannt'}</span></div>${dv?`<p class="muted" style="font-size:12.5px;margin:2px 0 6px">${dv[1]}</p>`:''}
+   <div class="stat"><span class="muted">Spiele diese Saison</span><span style="color:${p.age<=21?col:'inherit'}">${g}</span></div>
+   ${p.age<=21?`<div style="margin-top:6px">${bar(Math.min(100,g/PRAX_HI*100),col)}</div><p class="muted" style="font-size:12.5px;margin:6px 0 10px">${pr==='hi'?'Genug Spielpraxis. Das Potenzial kann zum Saisonende steigen.':pr==='lo'?`Unter ${PRAX_LO} Spielen sinkt das Potenzial zum Saisonende.${isMine(p)&&!isStarter(p)&&!p.loan?' Setz ihn als Starter, schick ihn in die Academy oder verleih ihn.':''}`:`Ab ${PRAX_HI} Spielen kann das Potenzial steigen.`}</p>`:''}
+   ${p.loan?`<div class="stat"><span class="muted">Leihe bei</span><span>${T?T.name:'-'} · ${g-(p.loan.g0||0)} Spiele · OVR ${ovr(p)-(p.loan.o0??ovr(p))>=0?'+':''}${ovr(p)-(p.loan.o0??ovr(p))}</span></div>`:''}
+   ${p.t2s?`<div class="stat"><span class="muted">T2-Spieler der Woche</span><span>${p.t2s}x</span></div>`:''}`}
+function loanModal(){const p=S.players[MODAL.loan];if(!p)return'';const L=loanTargets(p);
+  return `<div class="ov" data-a="cfno"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="lnt" style="max-width:540px"><h2 id="lnt" style="font-size:24px">${p.name} verleihen</h2>
+  <p class="muted" style="margin:6px 0 14px">Er spielt bis Saisonende als Stammspieler in der T2-Szene und sammelt Spielpraxis. Das Gehalt zahlt der neue Verein. Trainiert wird er dort, nicht von deinem Stab. Zurückholen geht jederzeit.</p>
+  ${L.length?`<div class="rows">${L.map(({t,cur})=>{const rk=t2Table(t.reg).findIndex(x=>x.id===t.id)+1;return `<button class="row" data-a="lend" data-id="${p.id}" data-t="${t.id}" style="grid-template-columns:26px minmax(0,1fr) auto">${crest(t,'sm')}<span style="min-width:0"><div class="nm">${t.name}</div><div class="sub">T2 ${t.reg}${rk?` · Platz ${rk}`:''} · bisheriger ${p.role}: OVR ${cur||'-'}</div></span><span class="kv">Team<b>${teamOvr(t)}</b></span></button>`}).join('')}</div>`:'<p class="empty">Kein T2-Team, bei dem er Stammspieler wäre.</p>'}
+  <div class="acts" style="margin-top:14px"><button class="btn ghost" data-a="cfno">Abbrechen</button></div></div></div>`}
 function scoutTab(){initScouting();
   const reps=S.reports.filter(r=>S.players[r.pid]&&!isMine(S.players[r.pid]));
   return `<section class="panel s12"><div class="lab"><span>Deine Scouts</span><span>${S.scouts.length}/3 · je Woche 1-3 Berichte</span></div>
@@ -97,7 +151,12 @@ function shortTab(){const L=(S.short||[]).map(i=>S.players[i]).filter(p=>p&&!isM
   return `<section class="panel s12"><div class="lab"><span>Beobachtungsliste</span><span>${L.length} Spieler</span></div>${L.length?`<div class="rows">${L.map(p=>playerRow(p,true)).join('')}</div>`:'<p class="empty">Noch leer. Auf jeder Spielerseite kannst du Spieler zur Beobachtung hinzufügen.</p>'}</section>`}
 function acaTab(){const A=aca();if(!A)return'<section class="panel s12"><p class="empty">Keine Academy.</p></section>';
   const ps=A.roster.map(i=>S.players[i]).sort((a,b)=>ROLES.indexOf(a.role)-ROLES.indexOf(b.role)),tab=t2Table(A.reg),pos=tab.findIndex(x=>x.id===A.id)+1;
-  return `<section class="panel s8"><div class="lab"><span>${A.name}</span><span>${ps.length}/8 Spieler · spielt in der T2-Liga ${A.reg}</span></div>
+  const yt=[...squadAll(),...Object.values(S.players).filter(isLoanee).map(p=>[p,'loan'])].filter(([p])=>p.age<=21).sort((a,b)=>({lo:0,mid:1,hi:2}[praxis(a[0])]-{lo:0,mid:1,hi:2}[praxis(b[0])])||b[0].pot-a[0].pot);
+  const where=([p,k])=>k==='loan'?`Leihe: ${S.teams[p.team].name}`:k==='aca'?(isStarter(p)?'Academy, Starter':'Academy, Bank'):isStarter(p)?'Profis, Starter':'Profis, Bank';
+  const yrow=x=>{const p=x[0],pr=praxis(p),g=(p.st&&p.st.g)||0;return `<tr><td><span class="chip">${p.role}</span></td><td class="nmcell"><button class="linkbtn" data-a="player" data-id="${p.id}">${p.name}</button></td><td class="r">${p.age}</td><td>${where(x)}</td><td class="r mono">${ovr(p)}</td><td class="r mono">${p.pot}</td><td>${DEVT[p.dev||'n'][0]}</td><td class="r mono" style="color:${pr==='hi'?'var(--good)':pr==='lo'?'var(--bad)':'var(--warn)'}">${g}</td><td class="r">${isLoanee(p)?`<button class="btn ghost sm" data-a="lendback" data-id="${p.id}">Zurückholen</button>`:canLoan(p)?`<button class="btn ghost sm" data-a="lendmenu" data-id="${p.id}">Verleihen</button>`:''}</td></tr>`};
+  const youth=`<section class="panel s12"><div class="lab"><span>Talente bis 21</span><span>${yt.filter(x=>praxis(x[0])==='lo').length} ohne Spielpraxis</span></div>${yt.length?`<div class="scroll"><table class="tbl"><thead><tr><th></th><th>Spieler</th><th class="r">Alter</th><th>Spielt bei</th><th class="r">OVR</th><th class="r">POT</th><th>Entwicklung</th><th class="r">Spiele</th><th></th></tr></thead><tbody>${yt.map(yrow).join('')}</tbody></table></div>`:'<p class="empty">Keine Talente bis 21 im Verein.</p>'}
+   <p class="muted" style="font-size:13px;margin:10px 0 0">Talente bis 21 brauchen Spiele. Ab ${PRAX_HI} Spielen pro Saison kann das Potenzial steigen, unter ${PRAX_LO} Spielen sinkt es. Bankspieler im Profikader spielen nicht. Academy-Starter und Leihspieler spielen jede Woche in der T2-Liga.</p></section>`;
+  return youth+`<section class="panel s8"><div class="lab"><span>${A.name}</span><span>${ps.length}/8 Spieler · spielt in der T2-Liga ${A.reg}</span></div>
    <div class="scroll"><table class="tbl"><thead><tr><th></th><th>Spieler</th><th class="r">Alter</th><th class="r">OVR</th><th class="r">POT</th><th class="r">Form</th><th class="r">Gehalt</th><th></th></tr></thead><tbody>
    ${ps.map(p=>`<tr><td><span class="chip">${p.role}</span></td><td class="nmcell"><button class="linkbtn" data-a="player" data-id="${p.id}">${p.name}</button>${isStarter(p)?'':' <span class="dim" style="font-size:12px">Bank</span>'}</td><td class="r">${p.age}</td><td class="r ovr ${oc(ovr(p))}" style="font-size:14px">${ovr(p)}</td><td class="r mono">${p.pot}</td><td class="r mono" style="color:${barCol(p.form)}">${Math.round(p.form)}</td><td class="r mono">${eurK(p.salary)}</td><td class="r"><button class="btn sm" data-a="promote" data-id="${p.id}">Hochziehen</button></td></tr>`).join('')}</tbody></table></div>
    <p class="muted" style="font-size:13px;margin:10px 0 0">Academy-Spieler trainieren mit deinem Teamtraining, aber mit 70% des Coach-Effekts plus Bonus aus der Academy-Stufe (${S.fin.infra.ac}). Ihre Gehälter laufen nicht über das Gehaltsbudget. Zum Saisonstart kommen ${1+S.fin.infra.ac} neue Talente.</p></section>

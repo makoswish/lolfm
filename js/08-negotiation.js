@@ -7,6 +7,8 @@ function demandFor(p,renew){const U=S.teams[S.user],o=ovr(p);let d=salaryFor(o)*
   const want=o+p.h.amb/4;if(U.rep<want-6)d*=1+(want-6-U.rep)/40;
   if(renew){d=Math.max(d,p.salary*1.05);if(p.morale<50)d*=1.1}return r100(d)}
 function prefYears(p){if(p.age>=27)return 3;if(p.h.amb>=15&&ovr(p)>=75)return 2;return p.age<=21?3:2}
+function askFor(p){const U=S.teams[S.user],T=p.team?S.teams[p.team]:null;if(!T)return 0;return r1000(valueFor(p)*(isStarter(p)?1.35:1.05)*(1+.06*p.contract)*(T.rep>U.rep+5?1.1:1))}
+function canAfford(p){return fitPlan(askFor(p),demandFor(p,false)).ok}
 function startNego(type,pid){
   const p=S.players[pid],U=S.teams[S.user],o=ovr(p);
   if(type!=='renew'&&U.roster.length>=MAXR){pmsg(pid,`Dein Kader ist voll (${MAXR}). Gib zuerst einen Spieler ab.`,false);return false}
@@ -15,7 +17,7 @@ function startNego(type,pid){
   if(type!=='renew'){const need=Math.ceil(o+p.h.amb/4-13);if(U.rep<need){pmsg(pid,`${p.name} lehnt Gespräche ab. Er will zu einem Verein mit mehr Renommee (Ruf ab ${need}, deiner: ${U.rep}).`,false);return false}}
   NG={type,pid,stage:type==='buy'?'fee':'contract',pat,patMax:pat,log:[],dem:{sal:demandFor(p,type==='renew'),yrs:prefYears(p),role:expRole(p)},done:false,dead:false};
   NG.terms={sal:NG.dem.sal,yrs:NG.dem.yrs,role:NG.dem.role,sb:0,wb:0,cl:0};
-  if(type==='buy'){const T=S.teams[p.team],ask=r1000(valueFor(p)*(isStarter(p)?1.35:1.05)*(1+.06*p.contract)*(T.rep>U.rep+5?1.1:1));
+  if(type==='buy'){const T=S.teams[p.team],ask=askFor(p);
     NG.club={ask,min:r1000(ask*(.86+R()*.1)),pat:3,patMax:3};NG.fee={amt:r1000(ask*.8),pay:'now',sell:0};
     NG.log.push(['club',`${T.name}: Wir hören uns das an. Unsere Vorstellung liegt bei rund ${eurK(ask)}.`])}
   else NG.log.push(['agent',demandText()]);
