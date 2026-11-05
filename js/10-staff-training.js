@@ -28,12 +28,14 @@ function champTrain(p,G){if(!p.ch)return;for(const c of p.ch.slice(0,3))c[1]=cla
   if(R()<.08+G*.2&&p.ch.length<8){const pool=CHR[p.role].filter(c=>!p.ch.some(x=>x[0]===c)),meta=pool.filter(isMeta),nc=meta.length?pick(meta):pick(pool);if(nc!=null)p.ch.push([nc,7])}p.ch.sort((a,b)=>b[1]-a[1])}
 function trainUser(T,aca){const plan=S.training.plan,int=S.training.intensity,ups=[];if(!aca)S.trainLog=[];
   for(const id of T.roster){const p=S.players[id],o=ovr(p),before=Object.assign({},p.d);
+    if(isOut(p))continue;
     const room=clamp((p.pot-o)/8,0,1),prof=.7+p.h.pro/20*.6,mm=S.ment&&S.ment[id]&&S.players[S.ment[id]]?1+mentQ(S.players[S.ment[id]])/80:1,lf=1-Math.max(0,(p.load||0)-70)/100;
     let load=0,ptsTot=0;
     for(const ses of plan){const sd=SES[ses];load+=sd.load;if(ses==='rest'){p.form=clamp(p.form+3,30,100);p.morale=clamp(p.morale+1,20,100);continue}
       const G=(S.campBoost&&S.campBoost>=S.step&&!aca?1.3:1)*(.1+sesCoach(ses,aca)/4*.035)*(aca?1+.2*S.fin.infra.ac:tcF())*ageF(p)*hwF()*(!aca&&building('tc')?.9:1)*(int==='high'?1.45:1)*room*(.5+R())*prof*mm*lf/3,pts=G/5*2.6*DSCALE;ptsTot+=pts;
       if(ses==='champ'){champTrain(p,G);continue}
-      const kw=keyW(p.role),tot=sd.g.reduce((s,x)=>s+kw[x]+.03,0);for(const x of sd.g)p.d[x]=clamp(p.d[x]+pts*(kw[x]+.03)/tot,1,20)}
+      const Gs=ses==='scrim'&&!aca?scrimF():1;
+      const kw=keyW(p.role),tot=sd.g.reduce((s,x)=>s+kw[x]+.03,0);for(const x of sd.g)p.d[x]=clamp(p.d[x]+pts*Gs*(kw[x]+.03)/tot,1,20)}
     if(p.ifoc&&p.d[p.ifoc]!=null)p.d[p.ifoc]=clamp(p.d[p.ifoc]+ptsTot*.45,1,20);
     derive(p);
     const sf=1.3-p.d.sta/20*.6;p.load=clamp((p.load||20)+load*(int==='high'?1.4:1)*sf-(5+(p.load||20)*.15),0,100);
@@ -93,10 +95,10 @@ function contractsTab(){const all=[...squadAll(),...Object.values(S.players).fil
    ${st.map(s=>`<tr><td class="nmcell">${s.name}</td><td>${SROLE[s.role][0]}</td><td class="r">${eurK(s.wage)}</td><td class="r">${S.year+s.contract-1}${s.contract<=1?' <span class="warn">läuft aus</span>':''}</td></tr>`).join('')}</tbody></table></div>
    <p class="muted" style="font-size:13px;margin:10px 0 0">Trainer gehen am Vertragsende. Ersatz findest du unter Verein, Staff und Vorstand.</p></section>`:''}`}
 function depthCard(p,kind){const o=ovr(p),end=S.year+p.contract-1,st=kind==='pro'&&isStarter(p);
-  const tag=st?'<span class="dtag st">Starter</span>':kind==='aca'?'<span class="dtag ac">Academy</span>':'<span class="dtag">Bank</span>';
+  const tag=isOut(p)?`<span class="dtag" style="color:var(--bad)">${p.out.why==='Pause'?'Pause':'Ausfall'}</span>`:st?'<span class="dtag st">Starter</span>':kind==='aca'?'<span class="dtag ac">Academy</span>':'<span class="dtag">Bank</span>';
   return `<button class="dcard ${st?'is-st':''} ${kind==='aca'?'is-ac':''}" data-a="player" data-id="${p.id}">
    <div class="dch">${avatar(p,'sm')}<b>${p.name}</b>${tag}</div>
-   <div class="dsub">${p.age} J. · ${p.nat} · bis ${end}${p.contract<=1?' <span class="warn">läuft aus</span>':''}</div>
+   <div class="dsub">${p.age} J. · ${p.nat}${isImp(p,S.teams[S.user].reg)?' <span class="warn">Import</span>':''} · bis ${end}${p.contract<=1?' <span class="warn">läuft aus</span>':''}</div>
    <div class="dst"><span class="muted">Aktuell</span>${stars(o)}<span class="mono">${o}</span></div>
    <div class="dst"><span class="muted">Potenzial</span>${stars(p.pot)}<span class="mono">${p.pot}</span></div>
    <div class="dft"><span>${eurK(valueFor(p))}</span><span class="dim">${eurK(p.salary)}/Wo.</span><i style="background:${barCol(p.form)}" title="Form ${Math.round(p.form)}"></i></div></button>`}
@@ -155,9 +157,46 @@ function avatar(p,cls){const h=hsh(p.id+p.name),pk=(a,k)=>a[(h>>>k)%a.length],T=
    <path d="M${50-rx-3} 52 C${50-rx} 62 38 63 41 ${ey+14}" stroke="#20262E" stroke-width="1.8" fill="none"/><circle cx="41" cy="${ey+14}" r="1.9" fill="#20262E"/>
   </g></svg>`}
 /* ===== Transfer-Verlauf ===== */
-function txRec(r){S.txlog=S.txlog||[];r.id='tx'+(S.nextId++);S.txlog.unshift(r);if(S.txlog.length>12)S.txlog.length=12}
+function txRec(r){S.txlog=S.txlog||[];r.id='tx'+(S.nextId++);try{const p=S.players[r.pid];if(p&&(r.type==='buy'||r.type==='sell')&&r.fee)recNote(r.type,r.fee,`${p.name} ${r.type==='buy'?'von '+(S.teams[r.from]?S.teams[r.from].name:'?'):'an '+(S.teams[r.to]?S.teams[r.to].name:'?')}`)}catch(e){}S.txlog.unshift(r);if(S.txlog.length>12)S.txlog.length=12}
 function txText(r){const p=S.players[r.pid];if(!p)return'-';if(r.type==='buy')return `Kauf: ${p.name} von ${S.teams[r.from]?S.teams[r.from].name:'?'} für ${eurK(r.fee)}${r.sb?` + ${eurK(r.sb)} Handgeld`:''}`;
   if(r.type==='fa')return `Ablösefrei: ${p.name}${r.sb?` (${eurK(r.sb)} Handgeld)`:''}`;return `Verkauf: ${p.name} an ${S.teams[r.to]?S.teams[r.to].name:'?'} für ${eurK(r.fee)}`}
 function historyTab(){const L=(S.txlog||[]);
   return `<section class="panel s12"><div class="lab"><span>Transferverlauf</span><span>${L.length} Transfers</span></div>
    ${L.map(r=>`<div class="stat"><span>${txText(r)}</span><span class="dim" style="font-family:var(--f-body)">${r.when||''}</span></div>`).join('')||'<p class="empty">Noch keine Transfers.</p>'}</section>`}
+
+/* ===== Scrim-Partner =====
+   Partner aus der eigenen Region für vier Wochen. Stärkere Partner bringen mehr aus den Scrim-Einheiten, sagen aber kleineren Vereinen eher ab.
+   Wer mit dir scrimmt, kennt deinen Stil: Trefft ihr euch in dieser Zeit im Spiel, stellt er sich öfter darauf ein. Umgekehrt kennst du seinen Stil. */
+const SCRIMWK=4;
+function scrimCands(){const U=S.teams[S.user];return[...teamsOf(U.reg).filter(t=>t.id!==S.user),...t2Of(U.reg).filter(t=>!t.academy).sort((a,b)=>teamOvr(b)-teamOvr(a)).slice(0,2)].sort((a,b)=>teamOvr(b)-teamOvr(a))}
+function scrimP(T){const U=S.teams[S.user];if(T.tier===2)return 1;return clamp(sig((U.rep-T.rep+6)/4),.05,.97)}
+function scrimNow(){const s=S.scrim;return s&&S.teams[s.tid]&&S.step<s.until&&S.phase!=='offseason'?S.teams[s.tid]:null}
+function scrimF(){const P=scrimNow(),U=S.teams[S.user];if(!P)return 1;return clamp(1+(teamOvr(P)-teamOvr(U))*.025,.85,1.25)}
+function scrimKnows(tid){const s=S.scrim;return !!(s&&s.tid===tid&&S.step<s.until+2)}
+function scrimAsk(tid){const T=S.teams[tid];if(!T||!scrimCands().some(t=>t.id===tid))return 'Kein Scrim-Partner aus deiner Region.';if(S.scrimTry===wkKey())return 'Diese Woche hast du schon angefragt.';
+  S.scrimTry=wkKey();if(R()>=scrimP(T))return `${T.name} sagt ab. Für Scrims mit ihnen fehlt deinem Verein das Prestige.`;
+  S.scrim={tid,until:S.step+SCRIMWK};return null}
+function scrimPanel(){const U=S.teams[S.user],P=scrimNow(),L=scrimCands(),asked=S.scrimTry===wkKey(),n=(S.training.plan||[]).filter(x=>x==='scrim').length;
+  return `<section class="panel s12"><div class="lab"><span>Scrim-Partner</span><span>${P?`${P.name} bis Woche ${S.scrim.until}`:'kein fester Partner'}</span></div>
+   <p class="muted" style="font-size:13px;margin:0 0 10px">Wirkt auf die Scrim-Einheiten im Wochenplan (aktuell ${n}). Ohne Partner scrimmt das Team mit wechselnden Gegnern, ohne Bonus. Aktuell: ${Math.round((scrimF()-1)*100)>=0?'+':''}${Math.round((scrimF()-1)*100)}%. Wer mit dir scrimmt, kennt deinen Stil, und du kennst seinen.</p>
+   <div class="rows">${L.map(T=>{const p=scrimP(T),q=clamp(1+(teamOvr(T)-teamOvr(U))*.025,.85,1.25),cur=P&&P.id===T.id;
+    return `<div class="row" style="grid-template-columns:26px minmax(0,1fr) auto;cursor:default">${crest(T,'sm')}<span style="min-width:0"><div class="nm">${T.name}${T.tier===2?' <span class="dim" style="font-size:12px">T2</span>':''}</div><div class="sub">OVR ${teamOvr(T)} · Scrim-Wert ${q>=1?'+':''}${Math.round((q-1)*100)}% · ${p>=.8?'sagt sicher zu':p>=.45?'unsicher':'eher Absage'}</div></span>
+     <span class="rt">${cur?'<span class="good" style="font-size:13px">Partner</span>':`<button class="btn ghost sm" data-a="scrimask" data-v="${T.id}" ${asked||S.phase==='offseason'?'disabled':''}>Anfragen</button>`}</span></div>`}).join('')}</div>
+   ${asked&&!P?'<p class="dim" style="font-size:12.5px;margin:8px 0 0">Eine Anfrage pro Woche.</p>':''}</section>`}
+
+/* ===== Burnout und Pausen =====
+   Zwei Wochen am Stück mit Belastung ab 90 können zum Ausfall führen: zwei bis vier Wochen ohne Spiel und Training.
+   Eine Woche Pause baut Belastung stark ab, der Spieler fehlt aber in dieser Woche. */
+function isOut(p){return !!(p&&p.out&&S.step<p.out.until&&S.phase!=='offseason')}
+function burnWeek(){const U=S.teams[S.user];for(const id of [...U.roster,...(aca()?aca().roster:[])]){const p=S.players[id];if(!p)continue;
+  if(p.out&&!isOut(p)){const was=p.out.why;p.out=null;if(was==='Burnout'&&p.team===S.user)mail('Zurück nach Burnout',`${p.name} ist wieder einsatzbereit.`)}
+  if(isOut(p)){p.load=clamp((p.load||0)-(p.out.why==='Pause'?30:15),0,100);continue}
+  p.hiW=(p.load||0)>=90?(p.hiW||0)+1:0;
+  if(p.hiW>=2&&R()<.35){const wk=ri(2,4);p.out={until:S.step+wk,why:'Burnout'};p.hiW=0;p.morale=clamp(p.morale-6,20,100);p.form=clamp(p.form-10,30,100);
+    if(p.team===S.user)mail(`Burnout: ${p.name}`,`${p.name} fällt ${wk} Wochen aus. Die Belastung war zu lange zu hoch. Plane mehr Erholung ein.`)}}}
+function restWeek(pid){const p=S.players[pid];if(!p||!isMine(p)||p.loan)return 'Nicht möglich.';if(isOut(p))return 'Er fällt ohnehin aus.';if(S.phase==='offseason')return 'In der Saisonpause erholen sich alle.';
+  p.out={until:S.step+1,why:'Pause'};return null}
+/* Vor jeder Serie: Ausfälle durch den besten verfügbaren Spieler der Rolle ersetzen */
+function fixOut(T){const out=[];for(const r of ROLES){const p=S.players[T.starters[r]];if(!isOut(p))continue;
+  const alt=T.roster.map(i=>S.players[i]).filter(q=>q.role===r&&!isOut(q)&&q.id!==p.id&&impOk(q,T,p.id)).sort((a,b)=>ovr(b)-ovr(a))[0];
+  if(alt){T.starters[r]=alt.id;out.push([p,alt])}}return out}

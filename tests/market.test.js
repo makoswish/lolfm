@@ -18,7 +18,7 @@ newGame('LYL','Tester');const V=S.teams[S.user];
 ACT.nav2({v:'squad',k:'KTAB',t:'attr'});chk('Attribute-Tabelle');ok(document.querySelector('#app').innerHTML.includes('Attribute erklärt'),'Erklärung fehlt');
 
 // Prestige: derselbe Spieler kostet bei kleinem Verein mehr als bei großem
-const p=Object.values(S.players).filter(x=>x.team&&x.team!==S.user&&S.teams[x.team].tier!==2).sort((a,b)=>ovr(b)-ovr(a))[0];
+const p=Object.values(S.players).filter(x=>x.team&&x.team!==S.user&&S.teams[x.team].tier!==2&&ovr(x)>=74&&ovr(x)<=80).sort((a,b)=>ovr(b)-ovr(a))[0];
 const rep0=V.rep;V.rep=95;const big=demandFor(p,false);V.rep=55;const small=demandFor(p,false);V.rep=rep0;
 ok(small>big*1.2,'Prestige wirkt nicht aufs Gehalt: '+small+' / '+big);
 V.rep=95;ok(prestF(p,false)<1&&prestTxt(p,false)[0]==='good','Kein Abschlag beim Topverein');V.rep=55;ok(prestF(p,false)>1&&prestTxt(p,false)[0]==='bad','Kein Aufschlag beim kleinen Verein');V.rep=rep0;

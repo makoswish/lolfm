@@ -6,12 +6,12 @@ function gelStart(p,T){const mates=T.roster.map(i=>S.players[i]).filter(q=>q&&q.
 function isImport(p,T){return REGNAT[T.reg]&&!REGNAT[T.reg].includes(p.nat)&&!T.roster.some(i=>i!==p.id&&S.players[i]&&S.players[i].nat===p.nat)}
 function chemParts(T){const ps=ROLES.map(r=>S.players[T.starters[r]]).filter(Boolean);if(!ps.length)return null;
   const av=f=>ps.reduce((a,p)=>a+f(p),0)/ps.length,mine=T.id===S.user;
-  const gel=av(p=>p.gel??70),mor=av(p=>p.morale),tm=av(p=>p.h.tm??11),lp=ps.slice().sort((a,b)=>(b.d.lead||0)-(a.d.lead||0))[0],ld=lp.d.lead||8;
+  const gel=av(p=>p.gel??70),mor=av(p=>p.morale),tm=av(p=>p.h.tm??11),lp=shotcaller(T)||ps[0],ld=lp.d.lead||8;
   const ids=new Set(T.roster),st=new Set(ps.map(p=>p.id));
   const fe=mine?(S.feuds||[]).filter(f=>ids.has(f.a)&&ids.has(f.b)):[],bo=mine?(S.bonds||[]).filter(b=>st.has(b.a)&&st.has(b.b)):[];
   const un=mine?ps.filter(p=>p.wantRaise||p.wantAway):[];
   const parts=[['Eingespieltheit',gel*.5,'Ø der Starter, wächst jede Woche im Team'],['Stimmung',mor*.25,'Ø Moral der Starter'],['Teamgeist',tm,'Charakter der Spieler (Teamplayer oder Einzelgänger)'],
-    ['Shotcaller',ld>=15?4:ld>=12?2:0,`${lp.name}, Shotcalling ${Math.round(ld)}`],['Konflikte',-7*fe.length,fe.length?fe.map(f=>`${S.players[f.a].name} gegen ${S.players[f.b].name}`).join(', '):'keine'],
+    ['Shotcaller',ld>=15?4:ld>=12?2:0,`${lp.name}, Shotcalling ${Math.round(ld)}${mine&&!S.capt?' (vom Team bestimmt)':''}`],['Konflikte',-7*fe.length,fe.length?fe.map(f=>`${S.players[f.a].name} gegen ${S.players[f.b].name}`).join(', '):'keine'],
     ['Duos',3*bo.length,bo.length?bo.map(b=>`${S.players[b.a].name} & ${S.players[b.b].name}`).join(', '):'keine'],['Unzufriedene',-2.5*un.length,un.length?un.map(p=>p.name).join(', '):'keine'],['Lauf',T.cmod||0,'Siege, Niederlagen und Teamaktionen der letzten Wochen']];
   const v=clamp(Math.round(parts.reduce((a,x)=>a+x[1],0)),0,100);return{v,parts,gel,ld,leader:lp}}
 function chemOf(T){const c=chemParts(T);return c?c.v:65}
@@ -51,7 +51,7 @@ Object.assign(PEV,{
   duo:{t:(p,q)=>`${p.name} und ${q.name} verstehen sich blind`,b:(p,q)=>`${p.name} und ${q.name} spielen auch nach dem Training zusammen Ranked. Das Duo funktioniert.`,o:[
     ['Duo-Streams fördern',(p,q)=>{bond(p,q);S.fin.fans=Math.round(S.fin.fans*1.004);return 'Die beiden gelten jetzt als festes Duo. Die Chemie profitiert, solange beide spielen.'}],['Nichts unternehmen',()=>'Keine Änderung.']]},
   voice:{t:p=>`${p.name} will mehr Verantwortung`,b:p=>`${p.name} möchte im Spiel die Calls übernehmen und sieht sich als Führungsspieler.`,o:[
-    ['Zum Shotcaller machen',p=>{p.d.lead=clamp(p.d.lead+1.2,1,20);p.d.com=clamp(p.d.com+.6,1,20);derive(p);p.morale=clamp(p.morale+6,20,100);S.teams[S.user].cmod=clamp((S.teams[S.user].cmod||0)+2,-12,10);return 'Er blüht in der neuen Rolle auf. Führung und Kommunikation steigen.'}],
+    ['Zum Shotcaller machen',p=>{if(isStarter(p))S.capt=p.id;p.d.lead=clamp(p.d.lead+1.2,1,20);p.d.com=clamp(p.d.com+.6,1,20);derive(p);p.morale=clamp(p.morale+6,20,100);S.teams[S.user].cmod=clamp((S.teams[S.user].cmod||0)+2,-12,10);return 'Er blüht in der neuen Rolle auf. Führung und Kommunikation steigen.'}],
     ['Ablehnen',p=>{p.morale=clamp(p.morale-6,20,100);return 'Er ist enttäuscht.'}]]},
   newbie:{t:p=>`${p.name} fühlt sich noch fremd`,b:p=>`${p.name} ist neu und findet schwer Anschluss. Im Voice-Chat ist er still.`,o:[
     ['Paten zuweisen',p=>{p.gel=Math.min(100,(p.gel??30)+15);p.morale=clamp(p.morale+3,20,100);return 'Ein erfahrener Spieler kümmert sich um ihn. Er findet schneller rein.'}],['Zeit geben',p=>{p.morale=clamp(p.morale-2,20,100);return 'Er muss selbst klarkommen.'}]]}});
@@ -74,21 +74,21 @@ function poachBids(){const U=S.teams[S.user];const tops=U.roster.map(i=>S.player
 /* KI-Teams verstärken sich */
 /* Lücke nach einem Abgang füllen: zuerst der beste passende Vereinslose, dann ein T2-Spieler der Region, erst dann ein Nachwuchsspieler */
 function aiRefill(T,r){if(T.roster.some(i=>S.players[i].role===r))return;
-  const fa=S.fa.map(i=>S.players[i]).filter(p=>p&&p.role===r&&ovr(p)<=T.rep+4&&canJoinReg(p,T.reg)).sort((a,b)=>ovr(b)-ovr(a))[0];
+  const fa=S.fa.map(i=>S.players[i]).filter(p=>p&&p.role===r&&ovr(p)<=T.rep+4&&canJoinReg(p,T.reg)&&impOk(p,T)).sort((a,b)=>ovr(b)-ovr(a))[0];
   if(fa){fa.contract=2;fa.salary=salaryFor(ovr(fa));sign(fa,T,true);return}
   const t2=t2Of(T.reg).filter(t=>!t.academy).flatMap(t=>t.roster.map(i=>S.players[i])).filter(p=>p&&p.role===r&&!p.loan).sort((a,b)=>ovr(b)-ovr(a))[0];
   if(t2){const from=S.teams[t2.team];unsign(t2);sign(t2,T,true);t2.contract=2;t2.salary=salaryFor(ovr(t2));ensureRoles(from,false);return}
   ensureRoles(T,false)}
-function bestStarters(T){for(const r of ROLES){const b=T.roster.map(i=>S.players[i]).filter(p=>p.role===r).sort((x,y)=>ovr(y)-ovr(x))[0];if(b)T.starters[r]=b.id}}
+function bestStarters(T){for(const r of ROLES){const b=T.roster.map(i=>S.players[i]).filter(p=>p.role===r).sort((x,y)=>ovr(y)-ovr(x))[0];if(b)T.starters[r]=b.id}if(T.id!==S.user)fixImports(T)}
 function aiPoach(){for(const reg of REGS){const L=teamsOf(reg).filter(t=>t.id!==S.user&&!t.academy).sort((a,b)=>b.rep-a.rep).slice(0,4);
   for(const T of L){if(R()>.55)continue;const weak=ROLES.map(r=>[r,S.players[T.starters[r]]]).filter(x=>x[1]).sort((a,b)=>ovr(a[1])-ovr(b[1]))[0];if(!weak)continue;const[r,cur]=weak;
-    const c=Object.values(S.players).filter(p=>p.role===r&&p.team&&p.team!==S.user&&p.team!==T.id&&!S.teams[p.team].academy&&S.teams[p.team].tier!==2&&S.teams[p.team].id!==acaId()&&S.teams[p.team].rep<T.rep&&canJoinReg(p,T.reg)&&ovr(p)>ovr(cur)+3&&ovr(p)<=T.rep+6).sort((a,b)=>ovr(b)-ovr(a))[0];
+    const c=Object.values(S.players).filter(p=>p.role===r&&p.team&&p.team!==S.user&&p.team!==T.id&&!S.teams[p.team].academy&&S.teams[p.team].tier!==2&&S.teams[p.team].id!==acaId()&&S.teams[p.team].rep<T.rep&&canJoinReg(p,T.reg)&&impOk(p,T,cur.id)&&ovr(p)>ovr(cur)+3&&ovr(p)<=T.rep+6).sort((a,b)=>ovr(b)-ovr(a))[0];
     if(!c)continue;const from=S.teams[c.team];c.home=from.reg;unsign(c);aiRefill(from,r);bestStarters(from);c.contract=ri(2,3);c.salary=salaryFor(ovr(c));sign(c,T,true);
     if(T.roster.length>MAXR){const w=T.roster.map(i=>S.players[i]).filter(x=>!isStarter(x)).sort((a,b)=>ovr(a)-ovr(b))[0];if(w)toFA(w)}
     if(R()<.5||T.reg===S.teams[S.user].reg)news(`${T.name} holt ${c.name} von ${from.name}`,'transfer')}}}
 /* Anpassung der Gegner */
 function styleOf(T){if(LIVE&&LIVE.adapt===T.id){if(!LIVE.astyle){const us=S.teams[S.user].style;LIVE.astyle=SK.find(k=>COUNTER[k].vs===us)||T.style}return LIVE.astyle}return T.style}
-function adaptChance(O){const U=S.teams[S.user];return clamp(.12+(O.rep-55)/90+(U.rep-60)/90+Math.min(.1,S.trophies.length*.03),.08,.55)}
+function adaptChance(O){const U=S.teams[S.user];return clamp(.12+(O.rep-55)/90+(U.rep-60)/90+Math.min(.1,S.trophies.length*.03)+(scrimKnows(O.id)?.25:0),.08,.75)}
 /* Ansichten */
 function chemGauge(v){const l=chemLbl(v);return `<div class="chg"><div class="chg-n ${l[2]}">${v}</div><div style="flex:1;min-width:0"><b>${l[1]}</b>${bar(v,l[2]==='good'?'var(--good)':l[2]==='bad'?'var(--bad)':l[2]==='warn'?'var(--warn)':'var(--brass)')}</div></div>`}
 function powTxt(T){const pw=chemPow(T);return `${pw>=0?'+':'−'}${Math.abs(pw).toFixed(1).replace('.',',')} Teamstärke`}
@@ -108,3 +108,33 @@ function chemTab(){const U=S.teams[S.user],c=chemParts(U),all=U.roster.map(i=>S.
   <section class="panel s12"><div class="lab"><span>Spieler</span><span>Eingespieltheit · Charakter · Beziehungen</span></div>
    <div class="rows">${all.map(p=>`<button class="row chrow" data-a="player" data-id="${p.id}"><span style="min-width:0;display:flex;gap:10px;align-items:center">${avatar(p,'xs')}<span style="min-width:0"><div class="nm">${p.name} ${isStarter(p)?'':'<span class="dim" style="font-size:12px">Bank</span>'}</div><div class="sub">${RN[p.role]} · ${tmLbl(p.h.tm??11)}${rel(p)?' · '+rel(p):''}</div></span></span><span class="chbar"><small class="dim">${Math.round(p.gel??70)}</small>${bar(p.gel??70)}</span></button>`).join('')}</div></section>`}
 function chemPlayerBox(p){const T=S.teams[p.team];return `<div class="lab" style="margin-top:4px"><span>Eingespieltheit</span><span>${Math.round(p.gel??70)}/100</span></div>${bar(p.gel??70)}<p class="muted" style="font-size:12.5px;margin:6px 0 14px">Charakter: ${tmLbl(p.h.tm??11)}.${T&&isImport(p,T)?' Import ohne Landsmann im Team, gewöhnt sich langsamer ein.':''}${p.wantRaise?' Will einen besseren Vertrag.':''}${p.wantAway?' Will wechseln.':''}</p>`}
+
+/* ===== Import-Regel =====
+   Höchstens zwei Importspieler in der Startelf. Import ist, wer nicht aus der Region stammt.
+   Nach drei Saisons in einer Region zählt ein Spieler dort als Einheimischer. */
+const IMPMAX=2;
+const RESNAT={LCK:['KR'],LPL:['CN'],LEC:['DE','FR','ES','PL','DK','SE','NL','IT','CZ','GR','BE','UK','AT','SI','NO','FI','PT','HU','RO','HR','SK','BG','LT','IE','CH','RS'],LCS:['US','CA'],LCP:['TW','JP','VN','PH','AU','TH','HK','MY','SG','ID','NZ'],CBLOL:['BR','AR','CL','PE','UY','MX']};
+function resSeasons(p,r){return(p.hist||[]).filter(h=>h.t&&S.teams[h.t]&&S.teams[h.t].reg===r).length}
+function isImp(p,r){return !!p&&!(RESNAT[r]||[]).includes(p.nat)&&resSeasons(p,r)<3}
+function impCount(T,except){return ROLES.filter(x=>{const p=S.players[T.starters[x]];return p&&p.id!==except&&isImp(p,T.reg)}).length}
+/* Startelf an die Regel anpassen: überzählige Importe durch den besten Einheimischen der Rolle ersetzen */
+function fixImports(T){const out=[];let g=0;while(impCount(T)>IMPMAX&&g++<5){
+  const c=ROLES.map(x=>[x,S.players[T.starters[x]]]).filter(([,p])=>isImp(p,T.reg)).map(([x,p])=>{const alt=T.roster.map(i=>S.players[i]).filter(q=>q.role===x&&q.id!==p.id&&!isImp(q,T.reg)).sort((a,b)=>ovr(b)-ovr(a))[0];return{x,p,alt,loss:alt?ovr(p)-ovr(alt):99}}).filter(o=>o.alt).sort((a,b)=>a.loss-b.loss)[0];
+  if(!c)break;T.starters[c.x]=c.alt.id;out.push([c.p,c.alt])}return out}
+/* Beim Erzeugen eines Teams: überzählige Importe in der Startelf werden Einheimische */
+function genImports(T){if(T.tier===2)return;let n=0;for(const x of ROLES){const p=S.players[T.starters[x]];if(!p||!isImp(p,T.reg))continue;if(++n>IMPMAX){p.nat=pick(RESNAT[T.reg]);p.rn=genRealName(p.nat)}}}
+/* Darf T diesen Spieler als Starter holen, ohne die Regel zu brechen? */
+function impOk(p,T,replacing){return !isImp(p,T.reg)||impCount(T,replacing)<IMPMAX}
+function impWhy(p){const T=S.teams[S.user];if(!isImp(p,T.reg))return null;const n=impCount(T,p.id);return n>=IMPMAX?`Import-Regel: Es stehen schon ${IMPMAX} Importspieler in der Startelf.`:null}
+
+/* ===== Shotcaller =====
+   Ein Starter macht die Ansagen. Ohne Festlegung übernimmt der Starter mit dem besten Shotcalling, bei der KI immer.
+   Shotcalling über 12 hilft in der Mid-Game-Phase, darunter schadet es. */
+function shotcaller(T){if(T.id===S.user&&S.capt){const p=S.players[S.capt];if(p&&p.team===S.user&&isStarter(p))return p}
+  return ROLES.map(r=>S.players[T.starters[r]]).filter(Boolean).sort((a,b)=>(b.d.lead||0)-(a.d.lead||0))[0]}
+function capPow(T){const p=shotcaller(T);return p?clamp(((p.d.lead||10)-12)*.12,-.6,.8):0}
+function setCapt(pid){const p=S.players[pid],U=S.teams[S.user];if(!p||p.team!==S.user||!isStarter(p))return 'Nur Starter können Shotcaller sein.';
+  const prev=S.capt&&S.players[S.capt];if(prev&&prev.id!==pid&&prev.team===S.user)prev.morale=clamp(prev.morale-6,20,100);
+  S.capt=pid;p.morale=clamp(p.morale+5,20,100);
+  const pass=ROLES.map(r=>S.players[U.starters[r]]).filter(q=>q&&q.id!==pid&&q.h.amb>=15&&(q.d.lead||0)>=(p.d.lead||0));for(const q of pass)q.morale=clamp(q.morale-3,20,100);
+  return pass.length?`${p.name} macht die Ansagen. ${pass.map(q=>q.name).join(', ')} ${pass.length>1?'fühlen':'fühlt'} sich übergangen.`:`${p.name} macht ab sofort die Ansagen.`}

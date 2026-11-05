@@ -4,7 +4,7 @@ function tacticView(){const h=tacticViewFull(),g=h.indexOf('<div class="grid">')
   if(TACTAB==='train')return `<div class="pagehead"><div><h1>Training</h1><p>Wochenplan, Belastung, Mentoring und Einzeltraining.</p></div></div><div class="grid">`+h.slice(m+12);
   return h.slice(0,m)+'</div>'}
 const NAVG=[
- ['buero','Büro','home',[['Übersicht','home'],['Postfach','inbox'],['News','news'],['Spielstand','save']]],
+ ['buero','Büro','home',[['Übersicht','home'],['Postfach','inbox'],['News','news'],['Rekorde','hof'],['Spielstand','save']]],
  ['team','Team','squad',[['Kaderübersicht','squad','KTAB','depth'],['Aufstellung','squad','KTAB','list'],['Attribute','squad','KTAB','attr'],['Teamchemie','squad','KTAB','chem'],['Statistik','squad','KTAB','stats'],['Academy','squad','KTAB','aca'],['Verträge','squad','KTAB','vert'],['Taktik','tactic','TACTAB','tac'],['Training','tactic','TACTAB','train']]],
  ['markt','Markt','transfer',[['Transfermarkt','transfer','TTAB','markt'],['Scouting','transfer','TTAB','scout'],['Beobachtung','transfer','TTAB','short'],['Transferverlauf','transfer','TTAB','hist']]],
  ['comp','Wettbewerb','league',[['Turniere','league','LTAB','comp'],['Meine Spiele','league','LTAB','hist'],['Statistiken','league','LTAB','stats'],['Auszeichnungen','league','LTAB','awards'],['T2-Szene','league','LTAB','t2']]],
@@ -37,7 +37,7 @@ function render(){
   if((S.view==='prematch'||S.view==='live'||S.view==='draft')&&!LIVE)S.view='home';
   if(S.view==='nego'&&!NG)S.view='squad';
   if(S.view==='mh'&&!MHV)S.view='league';
-  const v={home:homeView,squad:squadView,tactic:tacticView,transfer:transferView,league:leagueView,club:clubView,prematch:preView,live:liveView,player:playerView,draft:draftView,nego:negoView,mh:mhView,inbox:inboxView,news:newsView,save:saveView}[S.view]||homeView;
+  const v={home:homeView,squad:squadView,tactic:tacticView,transfer:transferView,league:leagueView,club:clubView,prematch:preView,live:liveView,player:playerView,draft:draftView,nego:negoView,mh:mhView,inbox:inboxView,news:newsView,save:saveView,jobs:jobsView,cmp:cmpView,hof:hofView}[S.view]||homeView;
   try{app.innerHTML=`<div class="shell">${sideNav()}<div class="main">${topBar()}<main class="content">${ERR?errView():v()}</main></div></div>${MODAL&&MODAL.team?teamModal():''}${MODAL==='sim'&&!SIMRUN?simMenu():''}${SIMRUN?simOverlay():''}${SIMREP&&!SIMRUN?simReport():''}${MODAL&&MODAL.cf?confirmView():''}${MODAL&&MODAL.loan?loanModal():''}${MODAL&&MODAL.lin?loanInModal():''}`;histSync()}
   catch(e){ERR=e.message;try{app.innerHTML=`<main class="content">${errView()}</main>`}catch(_){app.innerHTML='<p style="padding:20px">Fehler im Spielstand.</p>'}}
 }

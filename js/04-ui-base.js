@@ -33,7 +33,7 @@ function topBar(){
   let btn='';
   if(LIVE&&LIVE.phase==='live')btn='';
   else if(LIVE&&S.view!=='live'&&S.view!=='prematch')btn=`<button class="btn" data-a="resume">Zum Spiel</button>`;
-  else if(!LIVE)btn=`${S.phase!=='offseason'?`<button class="btn ghost simbtn" data-a="simmenu" title="Mehrere Wochen simulieren" aria-label="Simulieren"><svg viewBox="0 0 24 24"><path d="M4 6l8 6-8 6zM12 6l8 6-8 6z"/></svg><span>Simulieren</span></button>`:''}<button class="btn" data-a="next">${S.phase==='offseason'?'Neue Saison':userPending()?'Zum Spiel':'Weiter'}</button>`;
+  else if(!LIVE)btn=`${S.phase!=='offseason'?`<button class="btn ghost simbtn" data-a="simmenu" title="Mehrere Wochen simulieren" aria-label="Simulieren"><svg viewBox="0 0 24 24"><path d="M4 6l8 6-8 6zM12 6l8 6-8 6z"/></svg><span>Simulieren</span></button>`:''}<button class="btn" data-a="next">${S.phase==='offseason'?(S.jobless?'Job wählen':'Neue Saison'):userPending()?'Zum Spiel':'Weiter'}</button>`;
   const pend=!LIVE&&S.phase!=='offseason'?userPending():null,opp=pend?S.teams[pend.a===S.user?pend.b:pend.a]:null;
   return `<header class="top"><div class="who">${crest(U)}<div style="min-width:0"><b>${U.name}</b><div class="meta">${lbl}</div></div></div>
   ${opp?`<div class="nextm hide-s"><span class="muted">Nächstes Spiel</span>${crest(opp,'sm')}<b>${opp.id}</b><span class="dim">Bo${pend.bo}</span></div>`:''}
@@ -65,7 +65,8 @@ function homeView(){
      <p class="muted" style="margin:6px 0 14px">Vorstandsziel war Platz ${s.exp}. ${s.place<=s.exp?'Der Vorstand ist zufrieden.':'Der Vorstand ist enttäuscht.'}</p>
      <div class="grid" style="margin-bottom:16px"><div class="s6">${s.splits.map(x=>`<div class="stat"><span class="muted">${x.name}</span><span>Platz ${x.place}</span></div>`).join('')}</div>
      <div class="s6">${s.intl.map(x=>`<div class="stat"><span class="muted">${x.name}</span><span style="font-family:var(--f-body)" class="${x.res==='Sieger'?'warn':x.res?'':'dim'}">${x.res||'nicht qualifiziert'}</span></div>`).join('')}</div></div>
-     <button class="btn" data-a="next">Saison ${S.year+1} starten</button></section>`}
+     ${S.jobs&&S.jobs.list.length?`<div class="note ${S.jobless?'bad':'good'}" style="margin:0 0 14px">${S.jobless?'Der Vorstand hat dich entlassen. Wähle einen neuen Verein.':`${S.jobs.list.length} ${S.jobs.list.length===1?'Verein will':'Vereine wollen'} dich als Manager.`} <button class="linkbtn" data-a="jobs">Angebote ansehen</button></div>`:''}
+     <button class="btn" data-a="next">${S.jobless?'Neuen Verein wählen':`Saison ${S.year+1} starten`}</button></section>`}
   else if(pend||LIVE){const m=LIVE?LIVE.series.m:pend,opp=S.teams[m.a===S.user?m.b:m.a];
     next=`<section class="panel s7"><div class="lab"><span>Nächstes Spiel</span><span>${m.label} · Bo${m.bo}</span></div>
      <div class="vs"><div class="t">${crest(U,'lg')}<b>${U.name}</b><span class="muted mono">${U.reg} · OVR ${teamOvr(U)}</span></div><div class="x">VS</div>
@@ -88,7 +89,7 @@ function homeView(){
   <section class="panel s7"><div class="lab"><span>Postfach <button class="linkbtn" data-a="nav2" data-v="inbox" style="font-size:12px;margin-left:6px">alle</button></span><span>${Object.entries(cats).map(([k,n])=>`<span class="mc" style="--mc:${MCAT[k][1]}">${MCAT[k][0]} ${n}</span>`).join(' ')}</span></div><div class="inbox">${S.inbox.slice(0,8).map(msgView).join('')||'<p class="empty">Keine Nachrichten.</p>'}</div></section>
   <section class="panel s5">${st?`<div class="lab"><span>${U.reg} · ${sp.name}</span><button class="btn ghost sm" data-a="nav" data-v="league">Alle</button></div>${tableView(st,true)}`:''}
    <div class="lab" style="margin-top:18px">Saisonkalender</div>${calendarList()}</section>
-  ${chemMini()}${newsPanel()}
+  ${chemMini()}${newsPanel()}${pressPanel()}${rivPanel()}
   </div>`;
 }
 function currentSplit(){if(S.ev&&S.ev.type==='split')return S.ev;for(const id of ['S3','S2','S1'])if(S.splits[id])return S.splits[id];return null}
@@ -109,6 +110,7 @@ function msgView(m){
   let acts='';
   if(m.type==='pev'){acts=m.done?`<span class="dim" style="font-size:13px">${m.result}</span>`:`<div class="acts">${PEV[m.k].o.map((o,i)=>`<button class="btn ${i?'ghost':''} sm" data-a="pev" data-id="${m.id}" data-v="${i}">${o[0]}</button>`).join('')}</div>`}
   if(m.type==='spreq'){acts=m.done?`<span class="dim" style="font-size:13px">${m.result}</span>`:`<div class="acts"><button class="btn sm" data-a="spreq" data-id="${m.id}" data-ok="1">Annehmen (${eurK(m.fee)})</button><button class="btn ghost sm" data-a="spreq" data-id="${m.id}" data-ok="0">Ablehnen</button></div>`}
+  if(m.type==='job'){acts=S.jobs&&S.jobs.list.length?`<div class="acts"><button class="btn sm" data-a="jobs">Angebote ansehen</button></div>`:'<span class="dim" style="font-size:13px">erledigt</span>'}
   if(m.type==='offer'){if(!m.done)acts=`<div class="acts"><button class="btn sm" data-a="offer" data-id="${m.id}" data-ok="1">Annehmen</button>${m.countered?'':`<button class="btn ghost sm" data-a="counter" data-id="${m.id}">+20% fordern</button>`}<button class="btn ghost sm" data-a="offer" data-id="${m.id}" data-ok="0">Ablehnen</button></div>`;else acts=`<span class="dim" style="font-size:13px">${m.result}</span>`}
   const c=MCAT[mailCat(m.title)];
   return `<div class="msg" style="--mc:${c[1]}"><span class="w"><span class="mc" style="--mc:${c[1]}">${c[0]}</span> ${m.when}</span><span class="t">${m.title}</span><p>${m.body}</p>${acts}</div>`;
@@ -122,7 +124,7 @@ function tableView(st,mini,cut){
 function playerRow(p,showTeam){
   const o=ovr(p),T=p.team?S.teams[p.team]:null,k=kn(p),hide=!isMine(p)&&k<60;
   return `<button class="row" data-a="player" data-id="${p.id}"><span>${chip(p.role)}</span>
-  <span style="min-width:0;display:flex;gap:10px;align-items:center">${avatar(p,'xs')}<span style="min-width:0"><div class="nm">${p.name}${isLoanee(p)?' <span class="muted" style="font-size:12px">· verliehen</span>':''}${isLoanIn(p)?' <span class="muted" style="font-size:12px">· Leihe</span>':''}${S.trials&&onTrial(p)?' <span class="good" style="font-size:12px">· Probetraining</span>':''}${p.listed?' <span class="warn" style="font-size:12px">· Transferliste</span>':''}</div><div class="sub">${p.rn?`<span class="hide-s">${p.rn} · </span>`:''}${!showTeam&&p.team===S.user?`<span class="show-s"><span style="color:${barCol(p.form)}">Form ${Math.round(p.form)}</span> · <span style="color:${barCol(p.morale)}">Moral ${Math.round(p.morale)}</span> · </span>`:''}${p.age} J. · ${p.nat}${showTeam?` · ${T?T.name+' ('+T.reg+(T.tier===2?' T2':'')+')':'vereinslos'}${isMine(p)?'':` · Wissen ${k}%`}`:` · Vertrag ${p.contract} ${p.contract===1?'Saison':'Saisons'}`}</div></span></span>
+  <span style="min-width:0;display:flex;gap:10px;align-items:center">${avatar(p,'xs')}<span style="min-width:0"><div class="nm">${p.name}${isLoanee(p)?' <span class="muted" style="font-size:12px">· verliehen</span>':''}${isLoanIn(p)?' <span class="muted" style="font-size:12px">· Leihe</span>':''}${S.trials&&onTrial(p)?' <span class="good" style="font-size:12px">· Probetraining</span>':''}${p.listed?' <span class="warn" style="font-size:12px">· Transferliste</span>':''}</div><div class="sub">${p.rn?`<span class="hide-s">${p.rn} · </span>`:''}${!showTeam&&p.team===S.user?`<span class="show-s"><span style="color:${barCol(p.form)}">Form ${Math.round(p.form)}</span> · <span style="color:${barCol(p.morale)}">Moral ${Math.round(p.morale)}</span> · </span>`:''}${p.age} J. · ${p.nat}${isImp(p,S.teams[S.user].reg)?' <span class="warn">Import</span>':''}${showTeam?` · ${T?T.name+' ('+T.reg+(T.tier===2?' T2':'')+')':'vereinslos'}${isMine(p)?'':` · Wissen ${k}%`}`:` · Vertrag ${p.contract} ${p.contract===1?'Saison':'Saisons'}`}</div></span></span>
   <span class="rt">${showTeam?`<span class="kv hide-s">Wert<b>${eurK(valueFor(p))}</b></span><span class="kv hide-s">Gehalt<b>${eurK(isMine(p)?p.salary:demandFor(p,false))}</b></span>${isMine(p)?'':`<span class="kv">Wechsel${signTag(p)}</span>`}`:
    `<span class="kv hide-s fm">Form${bar(p.form)}</span><span class="kv hide-s fm">Moral${bar(p.morale)}</span><span class="kv hide-s">Gehalt<b>${eurK(p.salary)}</b></span>`}
    <span class="kv">${hide?(potEst(p)?'POT '+potTxt(p):'OVR'):'POT '+potTxt(p)}<b class="ovr ${oc(o)}">${hide?'~'+Math.round(o/5)*5:o}</b></span></span></button>`;
@@ -150,7 +152,7 @@ function squadView(){
      <div class="sub" style="white-space:normal">${moodReasons(p).filter(x=>x[0]!=='good'||x[1].startsWith('Team')).map(x=>x[1]).join(' ')}</div></span></button>`).join('')}</div></section>`;
   else body=`${coachReport(U)}<section class="panel s12"><div class="lab"><span>Startaufstellung</span><span>Tippe einen Spieler für Details</span></div><div class="rows">${starters.map(p=>playerRow(p)).join('')}</div></section>
   <section class="panel s12"><div class="lab"><span>Bank</span><span>${bench.length} Spieler</span></div><div class="rows">${bench.map(p=>playerRow(p)).join('')||'<p class="empty">Keine Ersatzspieler. Auf dem Transfermarkt findest du Backups.</p>'}</div></section>`;
-  return `<div class="pagehead"><div><h1>Kader</h1><p>Team-OVR ${teamOvr(U)} · Ø Form ${avgF} · Ø Moral ${avgM} · ${ps.length}/${MAXR} Spieler · ${eurK(sal)} Gehälter pro Woche</p></div></div>
+  return `<div class="pagehead"><div><h1>Kader</h1><p>Team-OVR ${teamOvr(U)} · Ø Form ${avgF} · Ø Moral ${avgM} · ${ps.length}/${MAXR} Spieler · Importe in der Startelf ${impCount(U)}/${IMPMAX} · ${eurK(sal)} Gehälter pro Woche</p></div></div>
   <div class="seg" style="margin-bottom:16px">${[['depth','Kaderübersicht'],['list','Aufstellung'],['attr','Attribute'],['mood','Form & Moral'],['chem','Chemie'],['stats','Statistik'],['aca','Academy'],['vert','Verträge']].map(([k,l])=>`<button class="${KTAB===k?'on':''}" data-a="ktab" data-v="${k}">${l}</button>`).join('')}</div>
   <div class="grid">${body}</div>`;
 }

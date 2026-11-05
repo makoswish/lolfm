@@ -19,7 +19,7 @@ const ACT={
   tb(d){tbDo(d.v);render()},nwf(d){NWF=d.v;render()},
   nav(d){if(LIVE&&LIVE.phase==='live')return;if(d.v==='tactic')TACTAB='tac';if(MODAL==='reset')MODAL=null;S.view=d.v;window.scrollTo(0,0);render()},
   vreg(d){VIEWREG=d.v;render()},
-  next(){if(S.phase==='offseason'){newSeason();render();return}const p=userPending();if(p)openSeries(p);else{step();S.view='home'}window.scrollTo(0,0);render()},
+  next(){if(S.phase==='offseason'){if(S.jobless){S.view='jobs';render();return}S.jobs=null;newSeason();render();return}const p=userPending();if(p)openSeries(p);else{step();S.view='home'}window.scrollTo(0,0);render()},
   skipto(){let g=0;while(S.phase!=='offseason'&&!userPending()&&g++<80)step();S.view='home';render()},
   resume(){S.view=LIVE.phase==='pre'?'prematch':LIVE.phase==='draft'?'draft':'live';render()},
   kickoff(){startDraft();window.scrollTo(0,0);render()},
@@ -67,6 +67,18 @@ const ACT={
   faff(){FILT.afford=!FILT.afford;FILT.n=40;render()},
   fmore(){FILT.n+=40;render()},
   cfno(){MODAL=null;render()},
+  cmp(d){if(d.b){CMP=[d.id,d.b]}else if(CMP&&CMP.length===1&&CMP[0]!==d.id){CMP=[CMP[0],d.id]}else{CMP=[d.id];pmsg(d.id,'Gemerkt. Öffne einen zweiten Spieler und tippe dort auf Vergleichen.',true);render();return}S.view='cmp';window.scrollTo(0,0);render()},
+  cmpclose(){CMP=null;S.view='squad';render()},
+  capt(d){const m=setCapt(d.id);pmsg(d.id,m,!/Nur Starter/.test(m));save();render()},
+  rest(d){const e=restWeek(d.id);pmsg(d.id,e||'Er bekommt diese Woche frei und baut Belastung ab.',!e);if(!e){const U=S.teams[S.user],p=S.players[d.id];if(isStarter(p)){const fo=fixOut(U);if(!fo.length)pmsg(d.id,'Frei gegeben. Ohne Ersatz auf seiner Position spielt er trotzdem.',true)}}save();render()},
+  scrimask(d){const e=scrimAsk(d.v);mail(e?'Scrim-Absage':'Scrim-Partner gefunden',e||`${S.teams[d.v].name} scrimmt die nächsten ${SCRIMWK} Wochen mit euch.`);save();render()},
+  psub(d){if(!LIVE||LIVE.phase!=='pre')return;const U=S.teams[S.user],p=S.players[d.id];if(!p||p.team!==S.user||isOut(p))return;const cur=S.players[U.starters[p.role]];
+    if(impWhy(p)&&!(cur&&isImp(cur,U.reg)))return;U.starters[p.role]=p.id;if(cur){cur.morale=clamp(cur.morale-2,20,100)}p.morale=clamp(p.morale+2,20,100);
+    (LIVE.subs=LIVE.subs||[]).push([p.id,cur?cur.id:null]);render()},
+  jobs(){S.view='jobs';window.scrollTo(0,0);render()},
+  jobtake(d){if(d.ok!=='1'){const T=S.teams[d.v];return askConfirm('jobtake',{v:d.v},`${T.name} übernehmen?`,`Du verlässt ${S.teams[S.user].name}. Trainerstab, Scouts, Finanzen und Academy bleiben beim alten Verein. Dein Spielstand läuft mit ${T.name} weiter.`,'Übernehmen')}
+    MODAL=null;const e=switchTeam(d.v);if(e)mail('Wechsel nicht möglich',e);save();window.scrollTo(0,0);render()},
+  jobstay(){if(S.jobless)return;S.jobs=null;S.view='home';save();render()},
   trial(d){const e=startTrial(d.id);pmsg(d.id,e||'Er trainiert diese Woche bei euch mit. Der Bericht kommt nächste Woche.',!e);save();render()},
   linmenu(d){const p=S.players[d.id];if(!p)return;MODAL={lin:p.id};render()},
   linoffer(d){const e=loanIn(d.id,+d.v);MODAL=null;pmsg(d.id,e||'Leihe perfekt. Er gehört bis Saisonende zu deinem Kader.',!e);if(S.view!=='player'){PV.tab='vertrag';PV.back=S.view;S.view='player'}save();render()},
@@ -86,7 +98,7 @@ const ACT={
   pback(){S.view=PV&&PV.back&&PV.back!=='player'?PV.back:'squad';PV=null;window.scrollTo(0,0);render()},
   ifoc(d){const p=S.players[d.id];p.ifoc=d.v==='none'?null:d.v;save();render()},
   close(){MODAL=null;render()},
-  setstart(d){const p=S.players[d.id];S.teams[S.user].starters[p.role]=p.id;pmsg(d.id,`${p.name} startet ab sofort auf ${RN[p.role]}.`,true);save();render()},
+  setstart(d){const p=S.players[d.id];if(isOut(p)){pmsg(d.id,`Er fällt aus (${p.out.why}) bis Woche ${p.out.until}.`,false);render();return}const ie=impWhy(p),cur=S.players[S.teams[S.user].starters[p.role]];if(ie&&!(cur&&isImp(cur,S.teams[S.user].reg))){pmsg(d.id,ie,false);render();return}S.teams[S.user].starters[p.role]=p.id;pmsg(d.id,`${p.name} startet ab sofort auf ${RN[p.role]}.`,true);save();render()},
   list(d){const p=S.players[d.id];if(isLoanIn(p))return;p.listed=!p.listed;pmsg(d.id,p.listed?'Andere Teams wissen jetzt, dass er zu haben ist.':'Er steht nicht mehr zum Verkauf.');save();render()},
   renew(d){const p=S.players[d.id],dem=Math.round(salaryFor(ovr(p))*1.1/100)*100;
     if(dem-p.salary>wageFree()){pmsg(d.id,`Das Gehaltsbudget reicht nicht. Nötig: ${eurK(dem-p.salary)} mehr pro Woche, frei sind ${eurK(Math.max(0,wageFree()))}. Du kannst unter Verein > Finanzen umschichten.`,false);render();return}

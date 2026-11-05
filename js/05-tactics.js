@@ -67,7 +67,7 @@ function tacticViewFull(){
    <p class="muted" style="font-size:13px;margin:10px 0 0">Gute Eignung (ab 13) verstärkt die Wirkung der Rolle, schlechte Eignung (unter 10) dreht sie ins Negative.</p></section>
   <section class="panel s12"><div class="lab"><span>Patch ${S.year-2000}.${S.patch||1} · Meta</span><span>★ im Draft = Bonus</span></div>
    <div class="metagrid">${ROLES.map(r=>`<div><div class="lab" style="margin-bottom:4px">${RN[r]}</div>${CHR[r].filter(isMeta).map(c=>`<div style="font-size:14px">${CH[c][0]} <span class="tagc t-${CH[c][6]}">${CH[c][6]}</span></div>`).join('')||'<span class="dim" style="font-size:13px">keine</span>'}</div>`).join('')}</div></section>
-  <!--TRAIN-->${trainPanel()}${mentorPanel()}
+  <!--TRAIN-->${trainPanel()}${scrimPanel()}${mentorPanel()}
   <section class="panel s6"><div class="lab"><span>Einzeltraining</span><span>Tippe einen Spieler</span></div>
    ${U.roster.map(i=>S.players[i]).sort((a,b)=>ROLES.indexOf(a.role)-ROLES.indexOf(b.role)).map(p=>{const l=S.trainLog.find(x=>x.id===p.id);return `<button class="row" style="grid-template-columns:46px minmax(0,1fr) auto" data-a="player" data-id="${p.id}" data-tab="entw"><span>${chip(p.role)}</span><span style="min-width:0"><div class="nm">${p.name}</div><div class="sub">${p.ifoc?'Fokus: '+DN[p.ifoc]:'kein Einzelfokus'}${l&&l.gains&&l.gains.length?' · '+l.gains.map(([x,v])=>`${DN[x]} +${String(v).replace('.',',')}`).join(', '):''}</div></span><span class="mono ${l&&l.d>0?'good':'dim'}">${l&&l.d>0?'+'+l.d:''}</span></button>`}).join('')}</section></div>`;
 }

@@ -216,7 +216,7 @@ function finState(){const f=S.fin,w=f.weeks.slice(-8),avg=w.length?w.reduce((a,b
 function book(cat,amt){if(!amt)return;S.fin.balance+=amt;const t=amt>=0?S.fin.season.inc:S.fin.season.exp;t[cat]=(t[cat]||0)+Math.abs(amt)}
 function addMissingTeams(){const added=[];REGS.forEach((r,ri_)=>TEAMDATA[r].forEach(([id,name],i)=>{if(S.teams[id])return;
     const rep=repFor(i,TEAMDATA[r].length)+REG[r].off,T={id,name,reg:r,rep,color:`hsl(${(i*53+ri_*29+12)%360} 52% 66%)`,style:pick(SK),focus:pick(['TOP','MID','ADC']),roster:[],starters:{}};
-    S.teams[id]=T;const base=regBase(rep,r);for(const ro of ROLES)sign(genPlayer(ro,base+ri(-4,4),undefined,r),T,true);for(let k=0;k<2;k++)sign(genPlayer(pick(ROLES),base-8+ri(-4,4),ri(17,20),r),T,false);added.push(name)}));
+    S.teams[id]=T;const base=regBase(rep,r);for(const ro of ROLES)sign(genPlayer(ro,base+ri(-4,4),undefined,r),T,true);for(let k=0;k<2;k++)sign(genPlayer(pick(ROLES),base-8+ri(-4,4),ri(17,20),r),T,false);genImports(T);added.push(name)}));
   if(added.length)mail('Neue Teams',`${added.length} Teams sind neu dabei (${added.join(', ')}). Sie steigen mit dem nächsten Split in ihre Ligen ein.`)}
 /* Alte Stände: neue LoL-Attribute aus verwandten Werten ableiten, Potenzial nachziehen */
 const NEWD={wav:['frm','lan'],spc:['pos','mec'],obj:['gs','dec'],eng:['tw','lead']};
@@ -260,7 +260,7 @@ function newGame(teamId,mgr){
     const rep=repFor(i,TEAMDATA[r].length)+REG[r].off,T={id,name,reg:r,rep,color:`hsl(${(i*53+ri_*29+12)%360} 52% 66%)`,style:pick(SK),focus:pick(['TOP','MID','ADC']),roster:[],starters:{}};
     S.teams[id]=T;const base=regBase(rep,r);
     for(const ro of ROLES)sign(genPlayer(ro,base+ri(-4,4),undefined,r),T,true);
-    const subs=ri(2,3);for(let k=0;k<subs;k++)sign(genPlayer(pick(ROLES),base-8+ri(-4,4),ri(17,20),r),T,false);
+    const subs=ri(2,3);for(let k=0;k<subs;k++)sign(genPlayer(pick(ROLES),base-8+ri(-4,4),ri(17,20),r),T,false);genImports(T);
   }));
   for(let i=0;i<45;i++){const r=pick(REGS),p=genPlayer(ROLES[i%5],ri(46,70)+Math.round(REG[r].str),undefined,r);p.contract=0;S.players[p.id]=p;S.fa.push(p.id)}
   const U=S.teams[teamId];
@@ -269,7 +269,7 @@ function newGame(teamId,mgr){
   S.tacs=['A','B','C'].map(n=>defTac(U,n));S.tacs[1].style='SCL';S.tacs[2].style='AGG';S.tacA=0;applyTac();initKnow();for(const k in S.know)S.know[k]=tKeys(S.tacs[0]).some(x=>x[0]===k)?80:45;
   genT2();initScouting();initStaff();S.training.plan=PLANS.bal.slice();S.ment={};
   for(const p of Object.values(S.players)){p.o0=ovr(p);p.gel=p.team?ri(55,92):40}
-  S.ev=initEvent(CAL[0]);
+  S.ev=initEvent(CAL[0]);try{pressPreview()}catch(e){}
   mail('Willkommen im Büro',`Der Vorstand der ${U.name} erwartet im Sommer-Split Platz ${expected(teamId)} in der ${U.reg} oder besser. Budget: ${eurK(S.fin.balance)}. Wähle unter Verein deine Sponsoren, sonst unterschreibt der Vorstand nach der ersten Woche die Festbetrag-Angebote. Die Saison hat drei Splits (je eine Hin-Runde im Bo1 über 7 Wochen plus Top-4-Playoffs im Bo5) und vier internationale Turniere: First Stand, MSI, Demacia Cup und Worlds.`);
   save();
 }

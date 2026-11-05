@@ -87,3 +87,106 @@ function pevWeek(){if(R()>.09||S.inbox.some(m=>m.type==='pev'&&!m.done))return;c
   const[k,p,q]=pick(opts),E=PEV[k];mail(E.t(p,q),E.b(p,q),{type:'pev',k,pid:p&&p.id,qid:q&&q.id,done:false,exp:S.step+3})}
 function pevAnswer(m,i){const E=PEV[m.k],p=m.pid&&S.players[m.pid],q=m.qid&&S.players[m.qid];if((m.pid&&!p)||(m.qid&&!q)){m.done=true;m.result='Nicht mehr aktuell';return}
   m.result=`${E.o[i][0]}: ${E.o[i][1](p,q)}`;m.done=true}
+
+/* ===== Karriere: Entlassung und Jobangebote =====
+   Zum Saisonende prüft der Vorstand. Unter 25% Vertrauen wirst du entlassen und musst einen kleineren Verein übernehmen.
+   Bei Erfolg kommen Angebote von größeren Vereinen, auch aus anderen Regionen. Gewechselt wird nur in der Saisonpause. */
+const SACK_AT=25;
+function jobCands(up){const U=S.teams[S.user];return Object.values(S.teams).filter(t=>t.tier!==2&&!t.academy&&t.id!==S.user&&(up?t.rep>=U.rep+3&&t.rep<=U.rep+16:t.rep<=U.rep-3&&t.rep>=U.rep-22))}
+function genJobs(up){const L=jobCands(up),U=S.teams[S.user];if(!L.length)return[];
+  const w=t=>(t.reg===U.reg?3:1)*(up?1:1);const pool=L.slice(),out=[];
+  for(let i=0;i<(up?2:3)&&pool.length;i++){const tot=pool.reduce((a,t)=>a+w(t),0);let x=R()*tot,k=0;for(;k<pool.length-1;k++){x-=w(pool[k]);if(x<=0)break}out.push(pool.splice(k,1)[0].id)}return out}
+function careerSeason(){const s=S.summary;if(!s)return;S.career=S.career||[];S.career.unshift({year:S.year,team:S.user,place:s.place,exp:s.exp,board:Math.round(S.board),titles:S.trophies.filter(t=>t.year===S.year).length});
+  S.jobs=null;
+  if(S.board<SACK_AT){const L=genJobs(false);S.jobless=true;S.jobs={list:L.length?L:genJobs(true),sacked:true};
+    mail('Der Vorstand trennt sich von dir',`Nach Platz ${s.place} bei Ziel ${s.exp} und einem Vertrauen von ${Math.round(S.board)}% ist Schluss bei ${S.teams[S.user].name}. Es liegen ${S.jobs.list.length} Angebote vor. Du musst eins annehmen, bevor die neue Saison startet.`,{type:'job'});news(`${S.teams[S.user].name} trennt sich von ${S.manager}.`,'liga');return}
+  const good=s.place<=Math.max(1,s.exp-1)||S.trophies.some(t=>t.year===S.year);
+  if(good&&R()<.75){const L=genJobs(true);if(L.length){S.jobs={list:L,sacked:false};mail('Jobangebote',`${L.map(id=>S.teams[id].name).join(' und ')} ${L.length>1?'wollen':'will'} dich als Manager. Die Angebote gelten bis zum Start der neuen Saison.`,{type:'job'})}}}
+function switchTeam(tid){const T=S.teams[tid];if(!T||T.tier===2||T.academy||tid===S.user||LIVE)return 'Wechsel nicht möglich.';if(S.phase!=='offseason')return 'Gewechselt wird nur in der Saisonpause.';
+  const old=S.teams[S.user],oldA=aca();loansReturn();
+  if(oldA){for(const id of [...oldA.roster])toFA(S.players[id]);delete S.teams[oldA.id]}
+  old.tac=null;S.user=tid;S.jobless=false;S.jobs=null;
+  S.fin=newFin((T.rep-40)*20000,T.rep*2000);S.fin.lshare=1;S.fin.ibase=null;infraInit();genOffers();setBudgets();
+  S.staffs=null;S.staff={coach:1,analyst:1};initStaff();newStaffPool();syncStaff();S.scouts=null;initScouting();S.trials=[];S.ment={};
+  S.tacs=['A','B','C'].map(n=>defTac(T,n));S.tacs[1].style='SCL';S.tacs[2].style='AGG';S.tacA=0;applyTac();initKnow();
+  S.board=60;S.capt=null;S.scrim=null;VIEWREG=T.reg;KTAB='depth';
+  /* T2-Ligen ausgleichen: die neue Academy braucht in ihrer Region einen Platz */
+  const t2n=t2Of(T.reg).filter(t=>!t.academy);if(t2n.length>=8){const w=t2n.sort((a,b)=>teamOvr(a)-teamOvr(b))[0];for(const id of [...w.roster])toFA(S.players[id]);delete S.teams[w.id]}
+  for(const r of REGS){const n=t2Of(r).length+(r===T.reg?1:0);if(n<8){const used=new Set(Object.keys(S.teams));const L='ABCDEFGH'.split('').find(x=>!used.has(REGC[r]+'2'+x));if(L)mkT2Team(REGC[r]+'2'+L,`${pick(T2CITY[r])} ${pick(T2SUF)}`,r,clamp(46+REG[r].off+ri(-2,2),36,58),`hsl(${ri(0,359)} 30% 62%)`)}}
+  mkT2Team(acaId(),T.name+' Academy',T.reg,clamp(T.rep-30,38,56),T.color,true);t2Init();
+  mail(`Neuer Job: ${T.name}`,`Du übernimmst ${T.name} (${T.reg}, Ruf ${T.rep}, ${prestigeOf(T)}). Das Vorstandsziel für die neue Saison: Platz ${expected(tid)}. Trainerstab, Scouts und Finanzen gehören zum Verein, deine Taktik-Ideen musst du dem Team erst beibringen.`);
+  news(`${T.name} holt ${S.manager} als neuen Manager.`,'transfer');S.view='home';return null}
+function jobsView(){const J=S.jobs;if(!J||!J.list.length)return `<div class="pagehead"><div><h1>Jobangebote</h1><p>Aktuell keine Angebote.</p></div></div>`;
+  return `<div class="pagehead"><div><h1>${J.sacked?'Entlassen':'Jobangebote'}</h1><p>${J.sacked?'Du musst einen dieser Vereine übernehmen, bevor die neue Saison startet.':'Du kannst bleiben oder zu einem dieser Vereine wechseln. Die Angebote gelten bis zum Saisonstart.'}</p></div></div>
+  <div class="grid">${J.list.map(id=>{const T=S.teams[id];if(!T)return'';const exp=expected(id);return `<section class="panel s4"><div class="lab"><span>${T.name}</span><span>${T.reg}</span></div>
+   <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px">${crest(T,'lg')}<div><b style="font-size:18px">${prestigeOf(T)}</b><div class="muted" style="font-size:13px">Ruf ${T.rep} · Team-OVR ${teamOvr(T)}</div></div></div>
+   <div class="stat"><span class="muted">Budget zum Start</span><span>${eurK((T.rep-40)*20000)}</span></div><div class="stat"><span class="muted">Vorstandsziel</span><span>Platz ${exp}</span></div>
+   <div class="stat"><span class="muted">Trainingszentrum</span><span>${iWord(iFrac('tc',aiInfra(T,'tc')))}</span></div>
+   <div class="acts" style="margin-top:12px"><button class="btn sm" data-a="jobtake" data-v="${id}">Übernehmen</button></div></section>`}).join('')}
+  ${J.sacked?'':`<section class="panel s12"><div class="acts"><button class="btn ghost sm" data-a="jobstay">Bei ${S.teams[S.user].name} bleiben</button></div></section>`}</div>`}
+function careerPanel(){const C=S.career||[];if(!C.length)return'';return `<section class="panel s12"><div class="lab"><span>Karriere von ${S.manager}</span><span>${C.length} ${C.length===1?'Saison':'Saisons'}</span></div><div class="scroll"><table class="tbl"><thead><tr><th>Jahr</th><th>Verein</th><th class="r">Platz</th><th class="r">Ziel</th><th class="r">Titel</th><th class="r">Vorstand</th></tr></thead><tbody>
+  ${C.map(c=>`<tr><td>${c.year}</td><td>${S.teams[c.team]?S.teams[c.team].name:c.team}</td><td class="r">${c.place}</td><td class="r">${c.exp}</td><td class="r">${c.titles||'-'}</td><td class="r">${c.board}%</td></tr>`).join('')}</tbody></table></div></section>`}
+
+/* ===== Rivalitäten =====
+   Wichtige Serien gegen denselben Gegner bauen eine Rivalität auf: Playoffs und internationale Spiele zählen doppelt, enge Serien mehr.
+   Gegen Rivalen zählen Siege und Niederlagen mehr für Fans und Vorstand. */
+const RIVL=[[12,'Erzrivale'],[6,'Rivale']];
+function rivOf(tid){const r=(S.riv||{})[tid];return r||{p:0,w:0,l:0}}
+function rivLbl(tid){const p=rivOf(tid).p;const x=RIVL.find(x=>p>=x[0]);return x?x[1]:null}
+function rivRecord(m){if(!m||(m.a!==S.user&&m.b!==S.user))return;S.riv=S.riv||{};const o=m.a===S.user?m.b:m.a,O=S.teams[o];if(!O||O.tier===2)return;
+  const r=S.riv[o]||(S.riv[o]={p:0,w:0,l:0}),won=m.w===S.user,before=rivLbl(o),close=Math.abs(m.score[0]-m.score[1])<=1&&m.bo>1;
+  r.p+=(m.big?2:.5)+(close?1:0)+(O.rep>=S.teams[S.user].rep-5?.5:0);won?r.w++:r.l++;
+  const lb=rivLbl(o);if(lb){const k=lb==='Erzrivale'?2:1;S.board=clamp(S.board+(won?1.5:-1.5)*k,0,100);S.fin.fans=Math.round(S.fin.fans*(1+(won?.008:-.004)*k))}
+  if(lb&&lb!==before){mail(`${lb}: ${O.name}`,`Die Duelle mit ${O.name} haben Geschichte: ${r.w} Siege, ${r.l} Niederlagen. Ab jetzt zählen Spiele gegen sie mehr für Fans und Vorstand.`);news(`${S.teams[S.user].name} gegen ${O.name}: eine neue Rivalität.`,'liga')}}
+/* Rivalitäten verblassen langsam */
+function rivSeason(){for(const k in S.riv||{})S.riv[k].p=Math.max(0,S.riv[k].p*.7)}
+function rivPanel(){const L=Object.entries(S.riv||{}).filter(([id,r])=>S.teams[id]&&r.p>=3).sort((a,b)=>b[1].p-a[1].p).slice(0,5);if(!L.length)return'';
+  return `<section class="panel s5"><div class="lab"><span>Rivalen</span><span>Bilanz in Serien</span></div>${L.map(([id,r])=>`<div class="stat"><span class="rl">${crest(S.teams[id],'sm')} ${S.teams[id].name} ${rivLbl(id)?`<span class="warn" style="font-size:12px">${rivLbl(id)}</span>`:''}</span><span>${r.w}-${r.l}</span></div>`).join('')}</section>`}
+
+/* ===== Saisonvorschau der Presse =====
+   Vor jedem Split tippt die Presse die Tabelle: Kaderstärke plus etwas Ruf und Bauchgefühl.
+   Nach dem Split vergleicht sie mit dem Ergebnis. Wer die Prognose klar schlägt, gewinnt Vertrauen beim Vorstand. */
+function pressPreview(){const ev=S.ev;if(!ev||ev.type!=='split')return;pressEval();const U=S.teams[S.user],L=teamsOf(U.reg);
+  const sc=t=>teamOvr(t)+(t.rep-60)*.12+gauss()*1.2,order=L.map(t=>[t.id,sc(t)]).sort((a,b)=>b[1]-a[1]).map(x=>x[0]);
+  const rk=id=>order.indexOf(id)+1,byRep=L.slice().sort((a,b)=>b.rep-a.rep).map(t=>t.id),gap=id=>byRep.indexOf(id)+1-rk(id);
+  const tip=order.slice(3).sort((a,b)=>gap(b)-gap(a))[0]||order[3],shaky=order.slice(0,4).filter(id=>id!==order[0]).sort((a,b)=>gap(a)-gap(b))[0],me=rk(S.user);
+  S.press={ev:ev.id,year:S.year,reg:U.reg,order,me,tip,shaky};
+  const T=id=>S.teams[id].name;
+  mail(`Saisonvorschau: ${ev.name}`,`Die Presse tippt ${T(order[0])} als Favoriten, dahinter ${T(order[1])} und ${T(order[2])}. Geheimtipp: ${T(tip)}. Wackelkandidat: ${T(shaky)}. Für ${U.name} sehen die Experten Platz ${me}${me<=2?', also ein Titelanwärter':me<=4?', also einen Playoff-Platz':me>=L.length-1?', also den Tabellenkeller':''}. Das Vorstandsziel ist Platz ${expected(S.user)}.`)}
+function pressEval(){const P=S.press;if(!P||P.done)return;const R0=S.rec&&S.rec[P.ev]&&S.rec[P.ev][P.reg];if(!R0||P.year!==S.year&&P.ev!=='S3')return;
+  const place=R0.indexOf(S.user)+1;if(!place)return;P.done=true;const d=P.me-place;
+  if(d>=3){S.board=clamp(S.board+3,0,100);mail('Presse: Prognose übertroffen',`Getippt war Platz ${P.me}, geworden ist es Platz ${place}. Die Presse spricht von der Überraschung des Splits.`)}
+  else if(d<=-3){S.board=clamp(S.board-3,0,100);mail('Presse: Prognose verfehlt',`Getippt war Platz ${P.me}, geworden ist es Platz ${place}. Die Kritik wird lauter.`)}}
+function pressPanel(){const P=S.press;if(!P||!S.ev||S.ev.id!==P.ev||!S.teams[P.order[0]])return'';
+  return `<section class="panel s5"><div class="lab"><span>Presse-Prognose</span><span>${S.ev.name}</span></div>${P.order.slice(0,6).map((id,i)=>`<div class="stat ${id===S.user?'res me':''}"><span class="rl"><span class="pos">${i+1}</span>${crest(S.teams[id],'sm')} ${S.teams[id].name}${id===P.tip?' <span class="good" style="font-size:12px">Geheimtipp</span>':''}${id===P.shaky?' <span class="warn" style="font-size:12px">Wackelkandidat</span>':''}</span></div>`).join('')}
+   ${P.me>6?`<div class="stat res me"><span class="rl"><span class="pos">${P.me}</span>${crest(S.teams[S.user],'sm')} ${S.teams[S.user].name}</span></div>`:''}</section>`}
+
+/* ===== Rekorde und Hall of Fame =====
+   Rekorde gelten für deine Karriere als Manager. Vereinslegenden sind Spieler mit mindestens drei Saisons bei deinem Verein
+   oder einem Titel mit ihm. Sie werden jede Saison festgehalten, auch wenn sie später gehen oder aufhören. */
+function recNote(k,val,txt){S.recs=S.recs||{};const r=S.recs[k];if(!r||val>r.v){S.recs[k]={v:val,t:txt,year:S.year};return true}return false}
+function clubGames(p,tid){return(p.hist||[]).filter(h=>h.t===tid).reduce((a,h)=>a+(h.g||0),0)+(p.team===tid?(p.st&&p.st.g)||0:0)}
+function clubSeasons(p,tid){return(p.hist||[]).filter(h=>h.t===tid).length+(p.team===tid?1:0)}
+function clubMvp(p,tid){return(p.hist||[]).filter(h=>h.t===tid).reduce((a,h)=>a+(h.mvp||0),0)+(p.team===tid?(p.st&&p.st.mvp)||0:0)}
+function hofSeason(){S.hof=S.hof||{};const tid=S.user,ty=S.trophies.filter(t=>t.year===S.year).length;
+  for(const p of Object.values(S.players)){const se=clubSeasons(p,tid),won=p.team===tid&&isStarter(p)&&ty;if(se<3&&!won&&!S.hof[p.id])continue;
+    const h=S.hof[p.id]||(S.hof[p.id]={name:p.name,role:p.role,club:tid,titles:0,first:S.year});if(h.club!==tid)continue;
+    h.seasons=Math.max(h.seasons||0,se);h.games=Math.max(h.games||0,clubGames(p,tid));h.mvp=Math.max(h.mvp||0,clubMvp(p,tid));h.last=S.year;if(won)h.titles+=ty;h.awards=(p.awards||[]).length}}
+function hofView(){const C=S.career||[],R=S.recs||{},H=Object.values(S.hof||{}).filter(h=>h.seasons>=3||h.titles).sort((a,b)=>(b.titles-a.titles)||(b.games-a.games));
+  const best=C.length?C.slice().sort((a,b)=>a.place-b.place)[0]:null;
+  const cur=Object.values(S.players).filter(p=>(p.hist||[]).some(h=>h.t===S.user)||p.team===S.user).map(p=>[p,clubGames(p,S.user),clubMvp(p,S.user)]);
+  const most=cur.slice().sort((a,b)=>b[1]-a[1])[0],mvp=cur.slice().sort((a,b)=>b[2]-a[2])[0];
+  const rec=(l,v,s)=>`<div class="stat"><span class="muted">${l}</span><span style="text-align:right">${v}${s?` <span class="dim" style="font-size:12px">${s}</span>`:''}</span></div>`;
+  return `<div class="pagehead"><div><h1>Rekorde</h1><p>${S.manager} · ${S.trophies.length} ${S.trophies.length===1?'Titel':'Titel'} · ${C.length} ${C.length===1?'Saison':'Saisons'}</p></div></div>
+  <div class="grid"><section class="panel s6"><div class="lab"><span>Rekorde</span><span>Karriere</span></div>
+   ${rec('Titel',S.trophies.length,S.trophies.slice(0,3).map(t=>t.name+' '+t.year).join(', '))}
+   ${rec('Beste Platzierung im Sommer',best?`Platz ${best.place}`:'-',best?`${best.year}, ${S.teams[best.team]?S.teams[best.team].name:''}`:'')}
+   ${rec('Längste Siegesserie',`${S.bestStreak||0} Serien`)}
+   ${rec('Teuerster Einkauf',R.buy?eurK(R.buy.v):'-',R.buy?`${R.buy.t}, ${R.buy.year}`:'')}
+   ${rec('Teuerster Verkauf',R.sell?eurK(R.sell.v):'-',R.sell?`${R.sell.t}, ${R.sell.year}`:'')}
+   ${rec('Meiste Spiele für den Verein',most&&most[1]?`${most[1]}`:'-',most&&most[1]?most[0].name:'')}
+   ${rec('Meiste MVP-Auszeichnungen',mvp&&mvp[2]?`${mvp[2]}`:'-',mvp&&mvp[2]?mvp[0].name:'')}</section>
+  <section class="panel s6"><div class="lab"><span>Titel</span><span>${S.trophies.length}</span></div>${S.trophies.map(t=>`<div class="stat"><span>${t.name}</span><span>${t.year}</span></div>`).join('')||'<p class="empty">Noch kein Titel.</p>'}</section>
+  <section class="panel s12"><div class="lab"><span>Hall of Fame</span><span>ab drei Saisons im Verein oder mit Titel</span></div>${H.length?`<div class="scroll"><table class="tbl"><thead><tr><th>Spieler</th><th></th><th>Verein</th><th class="r">Saisons</th><th class="r">Spiele</th><th class="r">MVP</th><th class="r">Titel</th><th class="r">Jahre</th></tr></thead><tbody>
+   ${H.map(h=>`<tr><td class="nmcell">${h.name}</td><td><span class="chip">${h.role}</span></td><td>${S.teams[h.club]?S.teams[h.club].name:h.club}</td><td class="r">${h.seasons}</td><td class="r">${h.games}</td><td class="r">${h.mvp||0}</td><td class="r">${h.titles||0}</td><td class="r">${h.first}-${h.last}</td></tr>`).join('')}</tbody></table></div>`:'<p class="empty">Noch keine Vereinslegenden. Spieler kommen hier hinein, wenn sie drei Saisons für dich spielen oder einen Titel holen.</p>'}</section>
+  ${careerPanel()}</div>`}
