@@ -43,17 +43,14 @@ function topBar(){
 /* ===== Startbildschirm ===== */
 function startView(){
   const list=TEAMDATA[STARTREG];
-  return `<div class="start"><div class="hero"><h1>Rift<br><span>Manager</span></h1>
-  <p>Übernimm eine Organisation in einer von sechs Regionen mit insgesamt 58 Teams. Stell den Kader zusammen, plane Training und Spielstil, verhandle Transfers und führe dein Team durch drei Splits, First Stand, MSI, den Demacia Cup und Worlds. Kein Story-Modus, kein Game Over.</p></div>
-  <div class="field"><label for="mgr">Dein Managername</label><input id="mgr" maxlength="24" value="Marc" autocomplete="off"></div>
-  <div class="lab">Region</div>
-  <div class="seg" style="margin-bottom:18px">${REGS.map(r=>`<button class="${STARTREG===r?'on':''}" data-a="startreg" data-v="${r}">${r} <span style="opacity:.7;font-weight:500">${REG[r].full}</span></button>`).join('')}</div>
-  <div class="lab">Team wählen</div>
-  <div class="teams">${list.map(([id,name],i)=>{const rep=repFor(i,list.length)+REG[STARTREG].off;return `<button class="card" data-a="pickteam" data-id="${id}"><div class="teamcard">${crest({id,color:`hsl(${(i*53+REGS.indexOf(STARTREG)*29+12)%360} 52% 66%)`})}<div style="flex:1;min-width:0"><b>${name}</b>
-   <div class="stat"><span class="muted">Ruf</span><span>${rep}</span></div>
-   <div class="stat"><span class="muted">Budget</span><span>${eurK((rep-40)*20000)}</span></div>
-   <div class="stat"><span class="muted">Vorstandsziel</span><span>Platz ${i+1}</span></div></div></div>
-   <span class="tag">${i<2?'Titelfavorit':i<4?'Playoff-Kandidat':i<list.length*.7?'Mittelfeld':'Underdog'}</span></button>`}).join('')}</div>
+  return `<div class="start"><div class="mast"><b>Rift Manager</b><span>58 Teams · 6 Regionen</span></div>
+  <div class="intro"><div><h1>Neues Spiel</h1>
+  <p>Du übernimmst eine Organisation und führst sie durch drei Splits, First Stand, MSI, den Demacia Cup und Worlds. Kader, Training, Taktik und Transfers liegen bei dir. Alle Teams und Spieler sind erfunden.</p></div>
+  <div class="field"><label for="mgr">Managername</label><input id="mgr" maxlength="24" value="Marc" autocomplete="off"></div></div>
+  <div class="seg" style="margin-bottom:0">${REGS.map(r=>`<button class="${STARTREG===r?'on':''}" data-a="startreg" data-v="${r}">${r} <span style="opacity:.6;font-weight:500">${REG[r].full}</span></button>`).join('')}</div>
+  <div class="tlist"><div class="trow th"><span>#</span><span></span><span>Team</span><span class="r">Ruf</span><span class="r">Budget</span><span class="r xs-hide">Ziel</span><span class="xs-hide">Einschätzung</span></div>
+  ${list.map(([id,name],i)=>{const rep=repFor(i,list.length)+REG[STARTREG].off;return `<button class="trow" data-a="pickteam" data-id="${id}"><span class="dim">${i+1}</span>${crest({id,color:`hsl(${(i*53+REGS.indexOf(STARTREG)*29+12)%360} 52% 66%)`},'sm')}<b>${name}</b>
+   <span class="r">${rep}</span><span class="r">${eurK((rep-40)*20000)}</span><span class="r xs-hide">Platz ${i+1}</span><span class="muted xs-hide">${i<2?'Titelfavorit':i<4?'Playoff-Kandidat':i<list.length*.7?'Mittelfeld':'Außenseiter'}</span></button>`}).join('')}</div>
   <section class="panel" style="margin-top:28px;max-width:640px">${importBox()}</section></div>`;
 }
 
@@ -63,7 +60,7 @@ function homeView(){
   let next;
   if(S.phase==='offseason'){const s=S.summary;
     next=`<section class="panel s12"><div class="lab">Saisonbilanz ${S.year}</div>
-     <h2 style="font-size:40px;text-transform:uppercase">Sommer: Platz ${s.place}</h2>
+     <h2 style="font-size:36px">Sommer: Platz ${s.place}</h2>
      <p class="muted" style="margin:6px 0 14px">Vorstandsziel war Platz ${s.exp}. ${s.place<=s.exp?'Der Vorstand ist zufrieden.':'Der Vorstand ist enttäuscht.'}</p>
      <div class="grid" style="margin-bottom:16px"><div class="s6">${s.splits.map(x=>`<div class="stat"><span class="muted">${x.name}</span><span>Platz ${x.place}</span></div>`).join('')}</div>
      <div class="s6">${s.intl.map(x=>`<div class="stat"><span class="muted">${x.name}</span><span style="font-family:var(--f-body)" class="${x.res==='Sieger'?'warn':x.res?'':'dim'}">${x.res||'nicht qualifiziert'}</span></div>`).join('')}</div></div>

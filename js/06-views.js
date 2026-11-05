@@ -92,7 +92,7 @@ function clubView(){
     const b=f.budget,bill=wageBill(),fs=finState(),wk=f.weeks,months=[];for(let i=0;i<wk.length;i+=4)months.push(wk.slice(i,i+4).reduce((a,c)=>a+c,0));
     const mx=Math.max(1,...months.map(Math.abs)),bw=Math.max(14,Math.min(40,520/Math.max(1,13)));
     const ps=U.roster.map(i=>S.players[i]).sort((a,c)=>c.salary-a.salary);
-    body=`<section class="panel s5"><div class="lab">Finanzlage</div><div class="big ${fs.cls}" style="font-family:var(--f-disp);text-transform:uppercase">${fs.label}</div>
+    body=`<section class="panel s5"><div class="lab">Finanzlage</div><div class="big ${fs.cls}" style="font-family:var(--f-disp);font-stretch:78%;font-weight:800">${fs.label}</div>
       <div class="stat" style="margin-top:8px"><span class="muted">Kontostand</span><span>${eur(f.balance)}</span></div>
       <div class="stat"><span class="muted">Ø Saldo pro Woche (8 Wo.)</span><span class="${fs.avg>=0?'good':'bad'}">${fs.avg>=0?'+':''}${eur(fs.avg)}</span></div>
       <div class="stat"><span class="muted">Prognose Saisonende</span><span class="${fs.proj>=0?'':'bad'}">${eur(fs.proj)}</span></div>
