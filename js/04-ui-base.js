@@ -36,6 +36,7 @@ function topBar(){
   else if(!LIVE)btn=`${S.phase!=='offseason'?`<button class="btn ghost simbtn" data-a="simmenu" title="Mehrere Wochen simulieren" aria-label="Simulieren"><svg viewBox="0 0 24 24"><path d="M4 6l8 6-8 6zM12 6l8 6-8 6z"/></svg><span>Simulieren</span></button>`:''}<button class="btn" data-a="next">${S.phase==='offseason'?(S.jobless?'Job wählen':'Neue Saison'):userPending()?'Zum Spiel':'Weiter'}</button>`;
   const pend=!LIVE&&S.phase!=='offseason'?userPending():null,opp=pend?S.teams[pend.a===S.user?pend.b:pend.a]:null;
   return `<header class="top"><div class="who">${crest(U)}<div style="min-width:0"><b>${U.name}</b><div class="meta">${lbl}</div></div></div>
+  <button class="qs" data-a="qs" aria-label="Suchen" title="Suchen (Strg+K oder /)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><span>Suchen</span><kbd>Strg K</kbd></button>
   ${opp?`<div class="nextm hide-s"><span class="muted">Nächstes Spiel</span>${crest(opp,'sm')}<b>${opp.id}</b><span class="dim">Bo${pend.bo}</span></div>`:''}
   <div class="money ${S.fin.balance<0?'bad':''}" title="Kontostand"><span class="dim">Konto</span> ${eurK(S.fin.balance)}</div>${btn}<div class="tprog"><i style="width:${Math.min(100,S.step/52*100)}%"></i></div></header>`;
 }
@@ -67,31 +68,62 @@ function homeView(){
      <div class="s6">${s.intl.map(x=>`<div class="stat"><span class="muted">${x.name}</span><span style="font-family:var(--f-body)" class="${x.res==='Sieger'?'warn':x.res?'':'dim'}">${x.res||'nicht qualifiziert'}</span></div>`).join('')}</div></div>
      ${S.jobs&&S.jobs.list.length?`<div class="note ${S.jobless?'bad':'good'}" style="margin:0 0 14px">${S.jobless?'Der Vorstand hat dich entlassen. Wähle einen neuen Verein.':`${S.jobs.list.length} ${S.jobs.list.length===1?'Verein will':'Vereine wollen'} dich als Manager.`} <button class="linkbtn" data-a="jobs">Angebote ansehen</button></div>`:''}
      <button class="btn" data-a="next">${S.jobless?'Neuen Verein wählen':`Saison ${S.year+1} starten`}</button></section>`}
-  else if(pend||LIVE){const m=LIVE?LIVE.series.m:pend,opp=S.teams[m.a===S.user?m.b:m.a];
-    next=`<section class="panel s7"><div class="lab"><span>Nächstes Spiel</span><span>${m.label} · Bo${m.bo}</span></div>
-     <div class="vs"><div class="t">${crest(U,'lg')}<b>${U.name}</b><span class="muted mono">${U.reg} · OVR ${teamOvr(U)}</span></div><div class="x">VS</div>
-     <div class="t">${crest(opp,'lg')}<b>${opp.name}</b><span class="muted mono">${opp.reg} · OVR ${S.staff.analyst>=3?teamOvr(opp):'~'+(Math.round(teamOvr(opp)/5)*5)}</span></div></div>
-     <button class="btn" data-a="${LIVE?'resume':'next'}" style="width:100%">Zur Spielvorbereitung</button></section>`}
-  else next=`<section class="panel s7"><div class="lab"><span>Diese Woche</span><span>${evLabel(S.ev)}</span></div><p class="muted" style="margin:0 0 14px">Dein Team spielt diese Woche nicht. ${S.ev.type==='intl'?`Bei ${S.ev.name} bist du nicht (mehr) dabei.`:''}</p>
+  else if(pend||LIVE){const m=LIVE?LIVE.series.m:pend,opp=S.teams[m.a===S.user?m.b:m.a],fav=teamOvr(U)-teamOvr(opp),an=S.staff.analyst>=3;
+    next=`<section class="panel s8 nx"><div class="lab"><span>Nächstes Spiel</span><span>${m.label} · Bo${m.bo}${rivLbl(opp.id)?` · <span class="warn">${rivLbl(opp.id)}</span>`:''}</span></div>
+     <div class="nxrow"><div class="nxt">${crest(U,'lg')}<div><b>${U.name}</b><span class="muted">OVR ${teamOvr(U)}</span></div></div>
+      <div class="nxm"><span class="nxvs">VS</span><span class="nxf ${fav>2?'good':fav<-2?'bad':'muted'}">${fav>2?'Favorit':fav<-2?'Außenseiter':'Ausgeglichen'}</span></div>
+      <div class="nxt r"><div><b>${opp.name}</b><span class="muted">${opp.reg} · OVR ${an?teamOvr(opp):'~'+(Math.round(teamOvr(opp)/5)*5)}</span></div>${crest(opp,'lg')}</div></div>
+     <div class="acts" style="margin-top:14px"><button class="btn" data-a="${LIVE?'resume':'next'}">Zur Spielvorbereitung</button><button class="btn ghost" data-a="quick" ${LIVE?'disabled':''}>Serie simulieren</button></div></section>`}
+  else next=`<section class="panel s8 nx"><div class="lab"><span>Diese Woche</span><span>${evLabel(S.ev)}</span></div><p class="muted" style="margin:0 0 14px">Dein Team spielt diese Woche nicht. ${S.ev.type==='intl'?`Bei ${S.ev.name} bist du nicht (mehr) dabei.`:''}</p>
      <div class="acts"><button class="btn" data-a="next">Woche simulieren</button><button class="btn ghost" data-a="skipto">Bis zum nächsten eigenen Spiel</button></div></section>`;
-  const last=S.lastRound?`<section class="panel s5"><div class="lab"><span>Ergebnisse · ${S.lastRound.label}</span><button class="btn ghost sm" data-a="gohist">Meine Spiele</button></div>${resultList(S.lastRound.list)}</section>`:`<section class="panel s5"><div class="lab">Ergebnisse</div><p class="empty">Noch keine Spiele gespielt.</p></section>`;
   const sp=currentSplit(),st=sp?tableOf(sp.reg[U.reg].ids,sp.reg[U.reg].res):null,me=st?st.find(x=>x.id===S.user):null,pos=st?st.findIndex(x=>x.id===S.user)+1:0;
   const ps=U.roster.map(i=>S.players[i]),am=Math.round(ps.reduce((a,p)=>a+p.morale,0)/ps.length),af=Math.round(ps.reduce((a,p)=>a+p.form,0)/ps.length),fs=finState();
+  const goalSt=(()=>{const G=ensureGoals(),c={};for(const g of G.list){const x=goalEval(g,false).st;c[x]=(c[x]||0)+1}return ['auf Kurs','gefährdet','verfehlt','erfüllt','offen'].filter(k=>c[k]).map(k=>`${c[k]} ${k}`).join(' · ')})();
   const tiles=`<section class="s12 tiles">
-    <div class="tile"><span>Tabelle ${U.reg}</span><b>${pos?pos+'.':'-'}</b><small>${me?me.w+' S · '+me.l+' N':'noch keine Spiele'}</small></div>
-    <div class="tile"><span>Form</span><b style="color:${barCol(af)}">${af}</b><small>${me&&me.form.length?formDots(me.form):'Ø im Kader'}</small></div>
-    <div class="tile"><span>Moral</span><b style="color:${barCol(am)}">${am}</b><small>${moodText(am)}</small></div>
-    <div class="tile"><span>Konto</span><b class="${S.fin.balance<0?'bad':''}">${eurK(S.fin.balance)}</b><small class="${fs.cls}">${fs.label} · Prognose ${eurK(fs.proj)}</small></div>
-    <button class="tile tilebtn" data-a="nav2" data-v="club" data-k="CLUBTAB" data-t="staff"><span>Vorstand</span><b>${Math.round(S.board)}%</b><small>${(()=>{const G=ensureGoals(),c={};for(const g of G.list){const st=goalEval(g,false).st;c[st]=(c[st]||0)+1}return ['auf Kurs','gefährdet','verfehlt','erfüllt','offen'].filter(k=>c[k]).map(k=>`${c[k]} ${k}`).join(' · ')})()}</small></button></section>`;
-  const cats={};for(const m of S.inbox.slice(0,12))cats[mailCat(m.title)]=(cats[mailCat(m.title)]||0)+1;
+    <button class="tile tilebtn" data-a="nav" data-v="league"><span>${ICN.table}Tabelle ${U.reg}</span><b>${pos?pos+'.':'-'}</b><small>${me?me.w+' S · '+me.l+' N':'noch keine Spiele'}</small></button>
+    <button class="tile tilebtn" data-a="nav2" data-v="squad" data-k="KTAB" data-t="mood"><span>${ICN.form}Form</span><b style="color:${barCol(af)}">${af}</b><small>${me&&me.form.length?formDots(me.form):'Ø im Kader'}</small></button>
+    <button class="tile tilebtn" data-a="nav2" data-v="squad" data-k="KTAB" data-t="chem"><span>${ICN.mood}Moral</span><b style="color:${barCol(am)}">${am}</b><small>${moodText(am)}</small></button>
+    <button class="tile tilebtn" data-a="nav2" data-v="club" data-k="CLUBTAB" data-t="fin"><span>${ICN.money}Konto</span><b class="${S.fin.balance<0?'bad':''}">${eurK(S.fin.balance)}</b><small class="${fs.cls}">${fs.label} · Prognose ${eurK(fs.proj)}</small></button>
+    <button class="tile tilebtn" data-a="nav2" data-v="club" data-k="CLUBTAB" data-t="staff"><span>${ICN.board}Vorstand</span><b>${Math.round(S.board)}%</b><small>${goalSt}</small></button></section>`;
+  const todo=todoItems(),mail5=S.inbox.slice(0,5),open=S.inbox.filter(m=>['offer','spreq','pev','job'].includes(m.type)&&!m.done).length;
+  const around=st&&pos?(()=>{const a=Math.max(0,Math.min(pos-3,st.length-5)),rows=[];if(a>0)rows.push(0);for(let r=Math.max(a,a>0?1:0);r<Math.min(st.length,a+5);r++)rows.push(r);return rows})():[];
   return `<div class="pagehead"><div><h1>Übersicht</h1><p>${S.manager} · ${U.name} · ${S.ev?evLabel(S.ev):'Saisonpause'}</p></div></div>
-  <div class="grid">${tiles}${next}${S.phase==='offseason'?'':last}
-  <section class="panel s7"><div class="lab"><span>Postfach <button class="linkbtn" data-a="nav2" data-v="inbox" style="font-size:12px;margin-left:6px">alle</button></span><span>${Object.entries(cats).map(([k,n])=>`<span class="mc" style="--mc:${MCAT[k][1]}">${MCAT[k][0]} ${n}</span>`).join(' ')}</span></div><div class="inbox">${S.inbox.slice(0,8).map(msgView).join('')||'<p class="empty">Keine Nachrichten.</p>'}</div></section>
-  <section class="panel s5">${st?`<div class="lab"><span>${U.reg} · ${sp.name}</span><button class="btn ghost sm" data-a="nav" data-v="league">Alle</button></div>${tableView(st,true)}`:''}
-   <div class="lab" style="margin-top:18px">Saisonkalender</div>${calendarList()}</section>
-  ${chemMini()}${newsPanel()}${pressPanel()}${rivPanel()}
+  <div class="grid">${tiles}${next}${todoPanel(todo)}
+  <section class="panel s7"><div class="lab"><span>Postfach${open?` <span class="mc" style="--mc:var(--warn)">${open} offen</span>`:''}</span><button class="btn ghost sm" data-a="nav2" data-v="inbox">Alle ${S.inbox.length}</button></div>
+   <div class="mlist">${mail5.map(m=>{const c=MCAT[mailCat(m.title)],dec=['offer','spreq','pev','job'].includes(m.type)&&!m.done;return `<button class="mrow ${dec?'dec':''}" data-a="nav2" data-v="inbox"><span class="mc" style="--mc:${c[1]}">${c[0]}</span><span class="mt">${m.title}</span><span class="mw">${dec?'Entscheidung':m.when}</span></button>`}).join('')||'<p class="empty">Keine Nachrichten.</p>'}</div></section>
+  <section class="panel s5">${st?`<div class="lab"><span>${U.reg} · ${sp.name}</span><button class="btn ghost sm" data-a="nav" data-v="league">Tabelle</button></div><div class="scroll"><table class="tbl"><tbody>${around.map(i=>{const x=st[i],T=S.teams[x.id];return `<tr class="${x.id===S.user?'me':''}"><td class="pos">${i+1}</td><td><button class="linkbtn" data-a="team" data-id="${T.id}" style="display:flex;gap:8px;align-items:center">${crest(T,'sm')}${T.name}</button></td><td class="r">${x.w}-${x.l}</td></tr>`}).join('')}</tbody></table></div>`:`<div class="lab">Tabelle</div><p class="empty">Der Split hat noch nicht begonnen.</p>`}</section>
+  ${S.phase!=='offseason'&&S.lastRound?`<section class="panel s12"><div class="lab"><span>Ergebnisse · ${S.lastRound.label}</span><button class="btn ghost sm" data-a="gohist">Meine Spiele</button></div>${resultList(S.lastRound.list)}</section>`:''}
+  <details class="more s12"><summary>Mehr: Kalender, Teamchemie, News, Presse${rivPanel()?', Rivalen':''}</summary><div class="grid" style="margin-top:14px"><section class="panel s4"><div class="lab">Saisonkalender</div>${calendarList()}</section>${chemMini()}${newsPanel()}${pressPanel()}${rivPanel()}</div></details>
   </div>`;
 }
+/* Kleine Linien-Icons für Kennzahlen */
+const ICN={table:'<svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>',form:'<svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 8-9"/></svg>',mood:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M8.5 14c1 1.4 2.2 2 3.5 2s2.5-.6 3.5-2M9 10h.01M15 10h.01"/></svg>',money:'<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg>',board:'<svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg>'};
+/* Aufgabenliste: alles, was jetzt Aufmerksamkeit braucht, nach Dringlichkeit */
+function todoItems(){const U=S.teams[S.user],L=[],nav=(v,k,t)=>`data-a="nav2" data-v="${v}" data-k="${k||''}" data-t="${t||''}"`;
+  const add=(lvl,txt,attrs,btn)=>L.push({lvl,txt,attrs,btn});
+  if(S.phase==='offseason'&&S.jobs&&S.jobs.list.length)add(S.jobless?'bad':'info',S.jobless?'Du bist entlassen. Wähle einen neuen Verein.':`${S.jobs.list.length} Jobangebote`,'data-a="jobs"','Ansehen');
+  const dec=S.inbox.filter(m=>['offer','spreq','pev'].includes(m.type)&&!m.done);
+  if(dec.length)add('warn',`${dec.length} ${dec.length===1?'Entscheidung wartet':'Entscheidungen warten'} im Postfach`,nav('inbox'),'Postfach');
+  if(S.fin.balance<0)add('bad','Das Konto ist im Minus',nav('club','CLUBTAB','fin'),'Finanzen');
+  const out=ROLES.map(r=>S.players[U.starters[r]]).filter(p=>p&&isOut(p));
+  if(out.length)add('bad',`${out.map(p=>p.name).join(', ')} ${out.length>1?'fallen':'fällt'} aus`,nav('squad','KTAB','list'),'Kader');
+  const tired=U.roster.map(i=>S.players[i]).filter(p=>(p.load||0)>=80&&!isOut(p));
+  if(tired.length)add('warn',`${tired.length} ${tired.length===1?'Spieler ist':'Spieler sind'} überlastet`,nav('tactic','TACTAB','train'),'Training');
+  const ex=squadAll().filter(([p])=>p.contract<=1&&p.tried!==wkKey()&&!isLoanIn(p));
+  if(ex.length&&S.phase!=='offseason')add('warn',`${ex.length} ${ex.length===1?'Vertrag läuft':'Verträge laufen'} am Saisonende aus`,nav('squad','KTAB','vert'),'Verträge');
+  const un=U.roster.map(i=>S.players[i]).filter(p=>p.wantRaise||p.wantAway);
+  if(un.length)add('warn',`${un.map(p=>p.name).join(', ')} ${un.length>1?'sind':'ist'} unzufrieden`,nav('squad','KTAB','chem'),'Chemie');
+  const lo=squadAll().filter(([p])=>p.age<=21&&!p.loan&&praxis(p)==='lo'&&S.step>=20);
+  if(lo.length)add('info',`${lo.length} ${lo.length===1?'Talent hat':'Talente haben'} kaum Spielpraxis`,nav('squad','KTAB','aca'),'Talente');
+  const emp=SLOTS.filter(([k])=>!S.fin.slots[k]&&slotOpen(k)&&(S.fin.offers[k]||[]).length);
+  if(emp.length&&S.phase!=='offseason')add('info',`${emp.length===1?'Ein Sponsor-Slot ist':emp.length+' Sponsor-Slots sind'} frei`,nav('club','CLUBTAB','spons'),'Sponsoren');
+  if((S.training.plan||[]).includes('scrim')&&!scrimNow()&&S.phase!=='offseason')add('info','Kein Scrim-Partner für die Scrim-Einheiten',nav('tactic','TACTAB','train'),'Partner');
+  const rep=(S.reports||[]).filter(r=>r.g==='A'&&!r.seen&&S.players[r.pid]&&!isMine(S.players[r.pid])).length;
+  if(rep)add('info',`${rep} ${rep===1?'neuer Top-Bericht':'neue Top-Berichte'} der Scouts`,nav('transfer','TTAB','scout'),'Scouting');
+  return L}
+function todoPanel(L){const lv={bad:0,warn:1,info:2};L=L.slice().sort((a,b)=>lv[a.lvl]-lv[b.lvl]);const sh=L.slice(0,6);
+  return `<section class="panel s4"><div class="lab"><span>Zu erledigen</span><span class="${L.length?'':'good'}">${L.length?L.length:'alles erledigt'}</span></div>
+   ${sh.length?`<div class="todo">${sh.map(x=>`<button class="todoi ${x.lvl}" ${x.attrs}><i class="td"></i><span>${x.txt}</span><em>${x.btn} ›</em></button>`).join('')}</div>${L.length>6?`<p class="dim" style="font-size:12.5px;margin:8px 0 0">und ${L.length-6} weitere</p>`:''}`:'<p class="muted" style="font-size:14px;margin:0">Nichts offen. Du kannst die Woche spielen.</p>'}</section>`}
 function currentSplit(){if(S.ev&&S.ev.type==='split')return S.ev;for(const id of ['S3','S2','S1'])if(S.splits[id])return S.splits[id];return null}
 function calendarList(){
   const U=S.teams[S.user];

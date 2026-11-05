@@ -38,7 +38,7 @@ function render(){
   if(S.view==='nego'&&!NG)S.view='squad';
   if(S.view==='mh'&&!MHV)S.view='league';
   const v={home:homeView,squad:squadView,tactic:tacticView,transfer:transferView,league:leagueView,club:clubView,prematch:preView,live:liveView,player:playerView,draft:draftView,nego:negoView,mh:mhView,inbox:inboxView,news:newsView,save:saveView,jobs:jobsView,cmp:cmpView,hof:hofView}[S.view]||homeView;
-  try{app.innerHTML=`<div class="shell">${sideNav()}<div class="main">${topBar()}<main class="content">${ERR?errView():v()}</main></div></div>${MODAL&&MODAL.team?teamModal():''}${MODAL==='sim'&&!SIMRUN?simMenu():''}${SIMRUN?simOverlay():''}${SIMREP&&!SIMRUN?simReport():''}${MODAL&&MODAL.cf?confirmView():''}${MODAL&&MODAL.loan?loanModal():''}${MODAL&&MODAL.lin?loanInModal():''}`;histSync()}
+  try{app.innerHTML=`<div class="shell">${sideNav()}<div class="main">${topBar()}<main class="content">${ERR?errView():v()}</main></div></div>${MODAL&&MODAL.team?teamModal():''}${MODAL==='sim'&&!SIMRUN?simMenu():''}${SIMRUN?simOverlay():''}${SIMREP&&!SIMRUN?simReport():''}${MODAL&&MODAL.cf?confirmView():''}${MODAL&&MODAL.loan?loanModal():''}${MODAL&&MODAL.lin?loanInModal():''}${MODAL&&MODAL.qs?qsModal():''}`;histSync();if(MODAL&&MODAL.qs){const n=$('#qsin');if(n){n.focus();try{n.setSelectionRange(n.value.length,n.value.length)}catch(e){}}}}
   catch(e){ERR=e.message;try{app.innerHTML=`<main class="content">${errView()}</main>`}catch(_){app.innerHTML='<p style="padding:20px">Fehler im Spielstand.</p>'}}
 }
 function errView(){return `<section class="panel"><div class="lab">Fehler</div><p style="margin:0 0 6px">Hier ist etwas schiefgelaufen (${ERR}). Dein Spielstand ist gespeichert.</p><p class="muted" style="margin:0 0 12px;font-size:14px">"Phase neu starten" setzt die aktuelle Turnierphase neu auf. Die bisherigen Ergebnisse der Saison bleiben erhalten.</p><div class="acts"><button class="btn" data-a="repair">Phase neu starten</button><button class="btn ghost" data-a="nav" data-v="home">Zur Übersicht</button></div></section>`}
@@ -63,3 +63,28 @@ function histPop(st){if(!S)return;
   PV=st.v==='player'?Object.assign({},st.pv):PV;S.view=st.v;ERR=null;
   HKEY=JSON.stringify(histState());window.scrollTo(0,0);render()}
 if(typeof window!=='undefined'&&window.addEventListener)window.addEventListener('popstate',e=>histPop(e.state));
+
+/* ===== Schnellsuche (Strg+K oder /) =====
+   Springt zu Seiten, Spielern und Teams. Pfeiltasten wählen, Enter öffnet, Escape schließt. */
+let QS={q:'',i:0,items:[]};
+const QSTOP=['Übersicht','Postfach','Kaderübersicht','Aufstellung','Taktik','Training','Transfermarkt','Turniere','Finanzen','Verträge'];
+function qsPages(){const out=[];for(const g of NAVG)for(const[l,v,tk,tv]of g[3])out.push({k:'page',label:l,sub:g[1],v,tk:tk||'',tv:tv||''});if(S.jobs&&S.jobs.list.length)out.push({k:'page',label:'Jobangebote',sub:'Büro',v:'jobs',tk:'',tv:''});return out}
+function qsItems(q){q=(q||'').trim().toLowerCase();const P=qsPages();
+  if(!q)return QSTOP.map(l=>P.find(x=>x.label===l)).filter(Boolean);
+  const items=[],has=(s)=>String(s||'').toLowerCase().includes(q),sw=(s)=>String(s||'').toLowerCase().startsWith(q);
+  for(const p of P)if(has(p.label)||has(p.sub))items.push(Object.assign({r:sw(p.label)?0:2},p));
+  const pl=Object.values(S.players).filter(p=>(p.team||S.fa.includes(p.id))&&(has(p.name)||has(p.rn)));
+  pl.sort((a,b)=>(sw(b.name)-sw(a.name))||(isMine(b)-isMine(a))||(ovr(b)-ovr(a)));
+  for(const p of pl.slice(0,8)){const T=p.team?S.teams[p.team]:null;items.push({k:'player',id:p.id,label:p.name,sub:`${RN[p.role]} · ${p.age} J. · ${T?T.name:'vereinslos'}${p.rn&&has(p.rn)&&!has(p.name)?' · '+p.rn:''}`,r:isMine(p)?1:3})}
+  for(const T of Object.values(S.teams).filter(t=>!t.academy&&(has(t.name)||has(t.id))).sort((a,b)=>b.rep-a.rep).slice(0,5))items.push({k:'team',id:T.id,label:T.name,sub:`${T.reg}${T.tier===2?' · T2':' · '+prestigeOf(T)}`,r:4});
+  return items.sort((a,b)=>a.r-b.r).slice(0,14)}
+const QSK={page:'Seite',player:'Spieler',team:'Team'};
+function qsHtml(){QS.items=qsItems(QS.q);if(QS.i>=QS.items.length)QS.i=Math.max(0,QS.items.length-1);
+  if(!QS.items.length)return '<p class="empty" style="padding:14px 6px">Nichts gefunden. Suche nach Spielern, Teams oder Seiten.</p>';
+  return QS.items.map((x,i)=>`<button class="qsr ${i===QS.i?'on':''}" data-a="qsgo" data-i="${i}"><span class="qsk">${QSK[x.k]}</span><span class="qst"><b>${esc(x.label)}</b><small>${esc(x.sub||'')}</small></span><em>${i===QS.i?'Enter':''}</em></button>`).join('')}
+function qsModal(){return `<div class="ov qsov" data-a="cfno"><div class="qsbox" role="dialog" aria-modal="true" aria-label="Schnellsuche"><input id="qsin" class="inp qsin" type="search" placeholder="Spieler, Team oder Seite suchen" value="${esc(QS.q)}" autocomplete="off" spellcheck="false" aria-label="Suche"><div id="qsres" class="qsres">${qsHtml()}</div><div class="qsft"><span><kbd>↑</kbd><kbd>↓</kbd> wählen</span><span><kbd>Enter</kbd> öffnen</span><span><kbd>Esc</kbd> schließen</span></div></div></div>`}
+function qsOpen(){if(!S||SIMRUN||(LIVE&&(LIVE.phase==='live'||LIVE.phase==='draft'))||MODAL&&MODAL.qs)return;QS={q:'',i:0,items:[]};MODAL={qs:true};render()}
+function qsRefresh(){const r=$('#qsres');if(r)r.innerHTML=qsHtml()}
+function qsGo(i){const x=QS.items[i];if(!x)return;MODAL=null;
+  if(x.k==='page'){if(x.v==='jobs')ACT.jobs();else ACT.nav2({v:x.v,k:x.tk,t:x.tv})}
+  else if(x.k==='player')ACT.player({id:x.id});else{MODAL={team:x.id};render()}}
