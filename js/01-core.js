@@ -13,15 +13,23 @@ const STYLES={
 const SK=Object.keys(STYLES);
 const COUNTER={AGG:{vs:'SCL',ph:'e'},SCL:{vs:'TF',ph:'l'},TF:{vs:'OBJ',ph:'l'},OBJ:{vs:'AGG',ph:'m'}};
 const FOCUS={TOP:'Topside',MID:'Mid',ADC:'Botside'};
-const DA=[['mec','Mechanik','T'],['frm','Farmen','T'],['lan','Laning','T'],['pre','Präzision','T'],['pool','Championpool','T'],
-  ['gs','Spielverständnis','M'],['dec','Entscheidungen','M'],['vis','Vision','M'],['ant','Antizipation','M'],['pos','Positionierung','M'],['tw','Teamwork','M'],['com','Kommunikation','M'],['lead','Führung','M'],['nrv','Nervenstärke','M'],
-  ['rea','Reaktion','P'],['con','Konzentration','P'],['cns','Konstanz','P'],['sta','Belastbarkeit','P']];
-const DK=DA.map(x=>x[0]),DN=Object.fromEntries(DA.map(x=>[x[0],x[1]]));
-const DG={T:'Technik',M:'Mental',P:'Mindset'};
-const DSHORT={mec:'Mec',frm:'Frm',lan:'Lan',pre:'Prä',pool:'Pool',gs:'SpV',dec:'Ent',vis:'Vis',ant:'Ant',pos:'Pos',tw:'Tea',com:'Kom',lead:'Füh',nrv:'Nrv',rea:'Rea',con:'Kon',cns:'Kst',sta:'Bel'};
-const DINFO={pool:'Mehr Optionen im Draft. Wirkt ab Spiel 2 einer Serie.',nrv:'Leistung in Playoffs und internationalen Spielen.',cns:'Weniger Schwankung von Spiel zu Spiel.',con:'Weniger Fehler im Lategame.',sta:'Verliert weniger Form durch Training und Streaming.'};
-const COMP={mech:{mec:.4,rea:.25,pre:.25,pool:.1},lane:{lan:.4,frm:.3,mec:.15,ant:.15},macro:{gs:.35,vis:.25,dec:.25,ant:.15},tf:{pos:.35,tw:.25,pre:.15,dec:.15,rea:.1},comm:{com:.4,tw:.25,lead:.2,nrv:.15}};
-const TGROUP={bal:{n:'Ausgewogen',a:DK.filter(x=>x!=='cns')},tech:{n:'Technik',a:['mec','frm','lan','pre','pool']},mental:{n:'Spielverständnis',a:['gs','dec','vis','ant']},team:{n:'Teamplay',a:['pos','tw','com','lead']},mind:{n:'Mindset',a:['rea','con','sta','nrv']},rest:{n:'Erholung',a:[]}};
+/* Detail-Attribute (1-20). T = Technik, M = Spielverständnis, P = Mental.
+   Die fünf Kernwerte (ATTR) setzen sich über COMP daraus zusammen, die Rollen gewichten sie über W. */
+const DA=[['mec','Mechanik','T'],['frm','Farmen','T'],['lan','Trading','T'],['wav','Wellenkontrolle','T'],['pre','Skillshots','T'],['spc','Spacing','T'],['pool','Championpool','T'],
+  ['gs','Makro','M'],['vis','Vision-Kontrolle','M'],['ant','Tracking','M'],['obj','Objectives','M'],['dec','Entscheidungen','M'],['pos','Positionierung','M'],['eng','Engage','M'],['tw','Teamwork','M'],['com','Kommunikation','M'],['lead','Shotcalling','M'],
+  ['rea','Reaktion','P'],['nrv','Nervenstärke','P'],['con','Konzentration','P'],['cns','Konstanz','P'],['sta','Belastbarkeit','P']];
+/* DSCALE: Mit mehr Attributen verteilt das Training seine Punkte breiter. Der Faktor hält das OVR-Wachstum auf dem gemessenen Stand (U20 etwa +3,4 pro Saison). */
+const DK=DA.map(x=>x[0]),DSCALE=DK.length/17,DN=Object.fromEntries(DA.map(x=>[x[0],x[1]]));
+const DG={T:'Technik',M:'Spielverständnis',P:'Mental'};
+const DSHORT={mec:'Mec',frm:'CS',lan:'Trd',wav:'Wel',pre:'Sks',spc:'Spa',pool:'Pool',gs:'Mak',vis:'Vis',ant:'Trk',obj:'Obj',dec:'Ent',pos:'Pos',eng:'Eng',tw:'Tea',com:'Kom',lead:'Sho',rea:'Rea',nrv:'Nrv',con:'Kon',cns:'Kst',sta:'Bel'};
+const DINFO={mec:'Kombos, Animation-Cancels, saubere Ausführung unter Druck.',frm:'Last Hits, auch unter Turm und im Teamfight-Chaos.',lan:'Schaden in der Lane austeilen, ohne selbst zu kassieren.',
+  wav:'Wellen einfrieren, schieben oder langsam aufbauen, Recall-Timing.',pre:'Skillshots treffen und gegnerischen ausweichen.',spc:'Abstand halten und kiten, genau an der Reichweitengrenze spielen.',
+  pool:'Mehr Optionen im Draft. Wirkt ab Spiel 2 einer Serie.',gs:'Rotationen, Side-Lanes, Tempo und Kartenkontrolle.',vis:'Wards setzen, Sicht nehmen, die Karte für das Team ausleuchten.',
+  ant:'Weiß, wo der gegnerische Jungler ist, und sieht Ganks kommen.',obj:'Timing und Kontrolle bei Drachen, Herold und Baron, Smite-Duelle.',dec:'Richtige Wahl zwischen Kampf, Objective und Rückzug.',
+  pos:'Steht im Teamfight richtig, wird nicht erwischt.',eng:'Eröffnet Kämpfe im richtigen Moment und erzwingt Picks.',tw:'Spielt für das Team, schützt Carrys, folgt Ansagen.',com:'Klare Informationen im Voice-Chat.',lead:'Trifft Ansagen für das ganze Team und hält es in Drucksituationen zusammen.',
+  rea:'Reagiert schnell auf gegnerische Aktionen.',nrv:'Leistung in Playoffs und internationalen Spielen.',con:'Weniger Fehler im Lategame.',cns:'Weniger Schwankung von Spiel zu Spiel.',sta:'Verliert weniger Form durch Training und Streaming.'};
+const COMP={mech:{mec:.35,rea:.2,pre:.25,spc:.1,pool:.1},lane:{lan:.35,frm:.25,wav:.25,mec:.05,ant:.1},macro:{gs:.3,vis:.2,obj:.2,dec:.15,ant:.15},tf:{pos:.25,eng:.2,tw:.2,spc:.1,dec:.15,rea:.1},comm:{com:.4,lead:.25,tw:.2,nrv:.15}};
+const TGROUP={bal:{n:'Ausgewogen',a:DK.filter(x=>x!=='cns')},tech:{n:'Technik',a:['mec','frm','lan','wav','pre','spc','pool']},mental:{n:'Spielverständnis',a:['gs','vis','ant','obj','dec']},team:{n:'Teamplay',a:['pos','eng','tw','com','lead']},mind:{n:'Mental',a:['rea','con','sta','nrv']},rest:{n:'Erholung',a:[]}};
 const TRAIN={mech:'Mechanik',lane:'Laning',macro:'Makro',tf:'Teamfight',comm:'Kommunikation',rest:'Erholung'};
 
 const REGS=['LCK','LPL','LEC','LCS','LCP','CBLOL'];
@@ -105,7 +113,7 @@ const sgn=n=>n>0?'+'+n:n<0?String(n).replace('-','−'):'±0';
 
 let RFILT='ALL',CLUBTAB='fin',ERR=null,KTAB='depth',KSORT='value',KMODE='pos',PV=null,TACE=0,TTAB='markt',LTAB='comp';
 function pmsg(id,msg,ok){PV=Object.assign(PV||{tab:'vertrag',back:'squad'},{id,msg,ok})}
-let S=null,LIVE=null,MODAL=null,FILT={role:'ALL',src:'ALL',q:'',sort:'ovr',afford:false,n:40},VIEWREG=null,STARTREG='LEC';
+let S=null,LIVE=null,MODAL=null,FILT={role:'ALL',src:'ALL',q:'',sort:'ovr',afford:false,n:40,sgn:4},VIEWREG=null,STARTREG='LEC';
 
 /* ===== Spieler ===== */
 function ovr(p){const w=W[p.role];let s=0;for(const k in w)s+=p.a[k]*w[k];return Math.round(s)}
@@ -148,8 +156,8 @@ function ovrAs(p,role){let s=0;for(const k in W[role])s+=p.a[k]*W[role][k];retur
 function genPlayer(role,target,age,reg){
   age=age??pickAge();
   const nat0=pick(reg?REGNAT[reg]:NATS);const p={id:'p'+(S.nextId++),name:genName(),rn:genRealName(nat0),nat:nat0,role,age,a:{},d:{},h:{pro:ri(4,20),amb:ri(4,20),tm:ri(4,20)},ifoc:null,form:ri(68,82),morale:ri(62,78),contract:ri(1,3),team:null,listed:false,tried:''};
-  const t=target/5,kw=keyW(role);
-  for(const x of DK){let v=['con','cns','sta','nrv'].includes(x)?t+gauss()*2.2:t+gauss()*1.5+(kw[x]>=.08?.9:kw[x]<.02?-.6:0);if(age>=25&&['gs','dec','lead'].includes(x))v+=.6;p.d[x]=clamp(v,1,20)}
+  const t=target/5+.12,kw=keyW(role),key=keyAttrs(role);
+  for(const x of DK){let v=['con','cns','sta','nrv'].includes(x)?t+gauss()*2.2:t+gauss()*1.5+(key.includes(x)?.9:kw[x]<.02?-.6:0);if(age>=25&&['gs','dec','lead'].includes(x))v+=.6;p.d[x]=clamp(v,1,20)}
   derive(p);
   const o=ovr(p);
   p.pot=clamp(o+(age<=19?ri(6,18):age<=22?ri(2,10):ri(0,3)),o,96);
@@ -203,8 +211,11 @@ function addMissingTeams(){const added=[];REGS.forEach((r,ri_)=>TEAMDATA[r].forE
     const rep=repFor(i,TEAMDATA[r].length)+REG[r].off,T={id,name,reg:r,rep,color:`hsl(${(i*53+ri_*29+12)%360} 52% 66%)`,style:pick(SK),focus:pick(['TOP','MID','ADC']),roster:[],starters:{}};
     S.teams[id]=T;const base=Math.round(61+(rep-56)*.55);for(const ro of ROLES)sign(genPlayer(ro,base+ri(-4,4),undefined,r),T,true);for(let k=0;k<2;k++)sign(genPlayer(pick(ROLES),base-8+ri(-4,4),ri(17,20),r),T,false);added.push(name)}));
   if(added.length)mail('Neue Teams',`${added.length} Teams sind neu dabei (${added.join(', ')}). Sie steigen mit dem nächsten Split in ihre Ligen ein.`)}
-const DOM={mec:'mech',frm:'lane',lan:'lane',pre:'mech',pool:'mech',gs:'macro',dec:'macro',vis:'macro',ant:'macro',pos:'tf',tw:'tf',com:'comm',lead:'comm',nrv:'comm',rea:'mech'};
-function migrate(){addMissingTeams();for(const p of Object.values(S.players)){if(p.h&&p.h.tm==null)p.h.tm=ri(4,20);if(!p.dev)p.dev=genDev();if(p.gel==null)p.gel=p.team?ri(60,90):40}
+/* Alte Stände: neue LoL-Attribute aus verwandten Werten ableiten, Potenzial nachziehen */
+const NEWD={wav:['frm','lan'],spc:['pos','mec'],obj:['gs','dec'],eng:['tw','lead']};
+function attrMigrate(p){for(const[k,[a,b]]of Object.entries(NEWD))p.d[k]=clamp((p.d[a]+p.d[b])/2+gauss()*.8,1,20);derive(p);if(ovr(p)>p.pot)p.pot=ovr(p)}
+const DOM={mec:'mech',frm:'lane',lan:'lane',wav:'lane',pre:'mech',spc:'mech',pool:'mech',gs:'macro',dec:'macro',vis:'macro',ant:'macro',obj:'macro',pos:'tf',eng:'tf',tw:'tf',com:'comm',lead:'comm',nrv:'comm',rea:'mech'};
+function migrate(){addMissingTeams();for(const p of Object.values(S.players)){if(p.d&&p.d.wav==null)attrMigrate(p);if(p.h&&p.h.tm==null)p.h.tm=ri(4,20);if(!p.dev)p.dev=genDev();if(p.gel==null)p.gel=p.team?ri(60,90):40}
   for(const p of Object.values(S.players)){if(!p.d){const av=ATTR.reduce((s,k)=>s+p.a[k],0)/5;p.d={};for(const x of DK)p.d[x]=clamp((DOM[x]?p.a[DOM[x]]:av)/5+gauss()*(DOM[x]?.8:2),1,20);p.h={pro:ri(4,20),amb:ri(4,20)};p.ifoc=null;derive(p);p.pot=Math.max(p.pot,ovr(p));p.o0=ovr(p)}if(p.o0==null)p.o0=ovr(p)}
   if(!TGROUP[S.training.focus])S.training.focus='bal';
   const f=S.fin;if(!f.slots){const keep={balance:f.balance,fans:f.fans,hist:f.hist||[f.balance],last:null};S.fin=Object.assign(newFin(0,0),keep);genOffers()}

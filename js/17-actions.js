@@ -181,5 +181,5 @@ document.addEventListener('change',e=>{const t=e.target;if(t&&t.id==='impfile'&&
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&MODAL&&(MODAL.team||MODAL.cf||MODAL.loan||MODAL.lin)){MODAL=null;render()}});
 /* Suche im Transfermarkt: bei jeder Eingabe neu zeichnen und den Cursor im Feld halten */
 document.addEventListener('input',e=>{const t=e.target;if(!t||t.id!=='tq'||e.isComposing)return;FILT.q=t.value;FILT.n=40;const pos=t.selectionStart;render();const n=$('#tq');if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(_){}}});
-document.addEventListener('change',e=>{const t=e.target;if(t&&t.id==='tsort'){FILT.sort=t.value;FILT.n=40;render()}});
+document.addEventListener('change',e=>{const t=e.target;if(t&&t.id==='tsort'){FILT.sort=t.value;FILT.n=40;render()}if(t&&t.id==='tsgn'){FILT.sgn=+t.value;FILT.n=40;render()}});
 initSlot();load();render();

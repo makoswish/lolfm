@@ -58,7 +58,14 @@ ACT.nav2({v:'squad',k:'KTAB',t:'vert'});chk('Verträge mit Leihe');
 reload();ok(isLoanIn(S.players[cand.id]),'Leihe übersteht Neuladen nicht');
 let g=0;while(S.phase!=='offseason'&&g++<200){playWeek();chk('Woche')}
 ACT.next();chk('Neue Saison');
-const c2=S.players[cand.id];ok(c2&&c2.team===from&&!c2.loan,'Leihspieler nach Saisonende nicht zurück');
+const c2=S.players[cand.id];ok(!c2||(c2.team!==S.user&&!c2.loan),'Leihspieler nach Saisonende nicht zurück');
 ok(S.teams[S.user].roster.length>=5&&ROLES.every(r=>S.teams[S.user].starters[r]),'Startelf unvollständig nach Rückgabe');
 ok(S.fin.hw<100,'Hardware altert nicht');
+`;
+// Rückgabe an den alten Verein, ohne Zufall durch auslaufende Verträge
+module.exports+=`
+{const f=S.fin;f.balance=3e6;f.budget.transfer=2e6;f.budget.wage+=50000;while(S.teams[S.user].roster.length>=MAXR)toFA(S.teams[S.user].roster.map(i=>S.players[i]).find(p=>!isStarter(p)));
+ const c3=Object.values(S.players).find(p=>p.team&&p.team!==S.user&&!S.teams[p.team].academy&&S.teams[p.team].tier!==2&&!isStarter(p)&&p.team!==acaId()&&!loanInWhy(p));
+ const fr=c3.team;ok(loanIn(c3.id,100)===null,'Zweite Leihe klappt nicht');loansReturn();ok(c3.team===fr&&!c3.loan,'Rückgabe an falschen Verein');
+ ok(S.teams[fr].roster.includes(c3.id)&&!S.teams[S.user].roster.includes(c3.id),'Kader nach Rückgabe falsch')}
 `;

@@ -11,7 +11,7 @@ function chemParts(T){const ps=ROLES.map(r=>S.players[T.starters[r]]).filter(Boo
   const fe=mine?(S.feuds||[]).filter(f=>ids.has(f.a)&&ids.has(f.b)):[],bo=mine?(S.bonds||[]).filter(b=>st.has(b.a)&&st.has(b.b)):[];
   const un=mine?ps.filter(p=>p.wantRaise||p.wantAway):[];
   const parts=[['Eingespieltheit',gel*.5,'Ø der Starter, wächst jede Woche im Team'],['Stimmung',mor*.25,'Ø Moral der Starter'],['Teamgeist',tm,'Charakter der Spieler (Teamplayer oder Einzelgänger)'],
-    ['Führung',ld>=15?4:ld>=12?2:0,`${lp.name}, Führung ${Math.round(ld)}`],['Konflikte',-7*fe.length,fe.length?fe.map(f=>`${S.players[f.a].name} gegen ${S.players[f.b].name}`).join(', '):'keine'],
+    ['Shotcaller',ld>=15?4:ld>=12?2:0,`${lp.name}, Shotcalling ${Math.round(ld)}`],['Konflikte',-7*fe.length,fe.length?fe.map(f=>`${S.players[f.a].name} gegen ${S.players[f.b].name}`).join(', '):'keine'],
     ['Duos',3*bo.length,bo.length?bo.map(b=>`${S.players[b.a].name} & ${S.players[b.b].name}`).join(', '):'keine'],['Unzufriedene',-2.5*un.length,un.length?un.map(p=>p.name).join(', '):'keine'],['Lauf',T.cmod||0,'Siege, Niederlagen und Teamaktionen der letzten Wochen']];
   const v=clamp(Math.round(parts.reduce((a,x)=>a+x[1],0)),0,100);return{v,parts,gel,ld,leader:lp}}
 function chemOf(T){const c=chemParts(T);return c?c.v:65}
