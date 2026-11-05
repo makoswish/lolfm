@@ -108,6 +108,7 @@ function finishEvent(ev){
     const champ=S.teams[ev.reg[U.reg].order[0]];for(const r of REGS){const c=S.teams[ev.reg[r].order[0]];if(c)news(`${c.name} gewinnt den ${ev.name} der ${r}.`,'title')}
     mail(`${ev.name} beendet`,pl===1?`Dein Team gewinnt den ${ev.name} der ${U.reg}! Preisgeld ${eurK(pr)}.`:`${champ.name} gewinnt den ${ev.name}. Dein Team wird ${pl}. Preisgeld ${eurK(pr)}.`);
     if(pl===1){S.trophies.unshift({year:S.year,name:`${U.reg} ${ev.name}`});raiseDemands()}
+    try{boardSplit(ev.id)}catch(e){}
   }else{
     S.rec[ev.id]={champ:ev.champ,place:ev.place};
     for(const id in ev.place){const b=REPB[ev.place[id]]||0;if(b)S.teams[id].rep=clamp(S.teams[id].rep+b,45,95)}
@@ -120,7 +121,7 @@ function finishEvent(ev){
   }
   S.ci++;
   if(S.ci>=CAL.length){S.ev=null;endSeason();return}
-  S.ev=initEvent(CAL[S.ci]);if(S.ev.type==='split')budgetReview();startMail(S.ev);
+  S.ev=initEvent(CAL[S.ci]);if(S.ev.type==='split'){budgetReview();try{pressPreview()}catch(e){}}startMail(S.ev);
 }
 
 /* ===== Wochenablauf ===== */
@@ -156,7 +157,7 @@ function weekTick(){
   {const A=aca();if(A)L['Academy-Gehälter']=-A.roster.reduce((x,i)=>x+S.players[i].salary,0)}
   if(f.loan){const pay=Math.min(f.loan.weekly,f.loan.left);L.Kreditrate=-pay;f.loan.left-=pay;if(f.loan.left<=0){f.loan=null;mail('Kredit abbezahlt','Der Kredit ist vollständig zurückgezahlt.')}}
   for(const k in L)book(k,L[k]);
-  infraWeek();trialWeek();
+  infraWeek();trialWeek();burnWeek();
   f.last=L;f.weeks.push(netW());f.hist.push(f.balance);
   {const fs=finState();if(fs.proj<0&&f.balance>=0&&S.step%8===4)mail('Finanzen: Warnung',`Die Prognose fürs Saisonende liegt bei ${eurK(fs.proj)}. Mögliche Hebel: Spieler verkaufen, Content-Team oder Infrastruktur zurückfahren, Merch-Preise anpassen, einen Sponsor-Vorschuss nehmen oder Gehälter beim nächsten Vertrag drücken.`)}
   if(f.balance<-50000&&!f.bail){f.bail=true;const amt=r1000(150000+U.rep*1500);book('Vorstandshilfe',amt);S.board=clamp(S.board-12,0,100);mail('Der Vorstand springt ein',`Das Konto lag deutlich im Minus. Der Vorstand schießt einmalig ${eurK(amt)} nach, das Vertrauen sinkt deutlich. Ein zweites Mal gibt es diese Saison nicht.`)}
@@ -203,8 +204,7 @@ function endSeason(){sponsorSeasonEnd();
   for(const r of REGS){const o=S.rec.S3[r],ranks=teamsOf(r).sort((a,b)=>b.rep-a.rep).map(t=>t.id);
     o.forEach((id,i)=>{const T=S.teams[id];T.rep=clamp(Math.round(T.rep+(ranks.indexOf(id)-i)*1.2),45,95)})}
   const intl=['FS','MSI','DC','WLD'].map(id=>({id,name:CAL.find(c=>c.id===id).name,res:S.rec[id]&&S.rec[id].place[S.user]||null,champ:S.rec[id]&&S.rec[id].champ}));
-  const wbonus=intl.find(x=>x.id==='WLD').res?6:0;
-  S.board=clamp(S.board+(exp-place)*7+4+wbonus,0,100);
+  boardSeason();
   S.fin.fans=Math.round(S.fin.fans*(1+(4.5-place)*.03));
   const splits=['S1','S2','S3'].map(id=>({id,name:CAL.find(c=>c.id===id).name,place:S.rec[id][U.reg].indexOf(S.user)+1}));
   S.summary={place,exp,splits,intl};
@@ -213,9 +213,10 @@ function endSeason(){sponsorSeasonEnd();
   S.history.unshift({year:S.year,splits:splits.map(s=>s.place),intl:intl.map(x=>x.res),worlds:S.teams[S.rec.WLD.champ].name});
   S.phase='offseason';
   mail('Saison beendet',`Sommer-Split: Platz ${place} (Ziel: ${exp}). Worlds-Sieger: ${S.teams[S.rec.WLD.champ].name}. Starte die neue Saison, wenn du bereit bist.`);
+  try{pressEval()}catch(e){}try{hofSeason()}catch(e){}try{careerSeason()}catch(e){}
 }
 function newSeason(){
-  loansReturn();youthSeason();infraSeason();trialsEnd();
+  loansReturn();youthSeason();infraSeason();trialsEnd();rivSeason();
   for(const p of Object.values(S.players)){(p.hist=p.hist||[]).push(Object.assign({y:S.year,o:ovr(p),t:p.team},p.st||{}));if(p.hist.length>8)p.hist.shift();p.st={g:0,w:0,k:0,d:0,mvp:0};p.sg={};if(p.ch){for(const c of p.ch)if(p.age<=25)c[1]=clamp(c[1]+ri(0,2),1,20);if(p.age<=25&&R()<.4&&p.ch.length<8){const nw=CHR[p.role].filter(c=>!p.ch.some(x=>x[0]===c));if(nw.length)p.ch.push([pick(nw),ri(7,12)])}p.ch.sort((a,b)=>b[1]-a[1])}p.age++;const o=ovr(p),room=clamp((p.pot-o)/6,0,1);
     const gl=growLimit(p),gf=p.dev==='s'&&p.age>=22?1.3:p.dev==='f'&&p.age<=19?1.25:1;
     for(const x of DK){if(p.age<=gl)p.d[x]=clamp(p.d[x]+R()*.55*room*gf,1,20);
@@ -227,16 +228,16 @@ function newSeason(){
       if(p.contract<=0){if(id===S.user||id===acaId()){toFA(p);mail('Spieler verlässt das Team',`Der Vertrag von ${p.name} ist ausgelaufen. Er ist jetzt vereinslos.`)}
         else if(R()<.75){p.contract=2;p.salary=salaryFor(ovr(p))}else toFA(p)}}}
   S.fa=S.fa.filter(id=>{const p=S.players[id];if(p.age>=30&&R()<.6){delete S.players[id];return false}return true});
-  for(let i=0;i<30;i++){const r=pick(REGS);const p=genPlayer(pick(ROLES),ri(45,63)+Math.max(0,REG[r].off),ri(17,19),r);p.contract=0;S.players[p.id]=p;S.fa.push(p.id)}
+  for(let i=0;i<30;i++){const r=pick(REGS);const p=genPlayer(pick(ROLES),ri(45,63)+Math.max(0,REG[r].off)+Math.round(REG[r].str),ri(17,19),r);p.contract=0;S.players[p.id]=p;S.fa.push(p.id)}
   for(const id in S.teams){if(id===S.user||id===acaId())continue;const T=S.teams[id];
     if(T.tier!==2)for(const r of ROLES){if(R()<.25){const cur=S.players[T.starters[r]],tp=t2Of(T.reg).filter(t=>!t.academy).flatMap(t=>t.roster.map(i=>S.players[i])).filter(p=>p.role===r&&!p.loan).sort((a,b)=>ovr(b)-ovr(a))[0];if(tp&&cur&&ovr(tp)>ovr(cur)-2&&T.roster.length<MAXR){const from=S.teams[tp.team];news(`${T.name} holt Talent ${tp.name} aus der T2-Szene (${from.name}).`,'transfer');unsign(tp);sign(tp,T,ovr(tp)>ovr(cur));tp.contract=2;tp.salary=salaryFor(ovr(tp));ensureRoles(from,false)}}}
-    for(const r of ROLES){const best=()=>S.fa.map(i=>S.players[i]).filter(p=>p.role===r&&ovr(p)<=T.rep+4).sort((a,b)=>ovr(b)-ovr(a))[0];
+    for(const r of ROLES){const best=()=>S.fa.map(i=>S.players[i]).filter(p=>p.role===r&&ovr(p)<=T.rep+4&&canJoinReg(p,T.reg)&&impOk(p,T,T.starters[r])).sort((a,b)=>ovr(b)-ovr(a))[0];
       const have=T.roster.map(i=>S.players[i]).filter(p=>p.role===r);
       if(!have.length){const b=best();if(b){b.contract=2;b.salary=salaryFor(ovr(b));sign(b,T,true)}}
       else if(R()<.35){const b=best(),cur=S.players[T.starters[r]];if(b&&cur&&ovr(b)>ovr(cur)+3){b.contract=2;b.salary=salaryFor(ovr(b));sign(b,T,true);if(T.roster.length>8){const worst=T.roster.map(i=>S.players[i]).filter(p=>p.id!==b.id).sort((x,y)=>ovr(x)-ovr(y))[0];toFA(worst)}}}
     }
     ensureRoles(T,false);
-    for(const r of ROLES){const b=T.roster.map(i=>S.players[i]).filter(p=>p.role===r).sort((x,y)=>ovr(y)-ovr(x))[0];if(b)T.starters[r]=b.id}
+    for(const r of ROLES){const b=T.roster.map(i=>S.players[i]).filter(p=>p.role===r).sort((x,y)=>ovr(y)-ovr(x))[0];if(b)T.starters[r]=b.id}fixImports(T);
     T.style=pick(SK);T.focus=pick(['TOP','MID','ADC']);
   }
   aiPoach();for(const p of Object.values(S.players))p.wantAway=false;
@@ -249,10 +250,10 @@ function newSeason(){
   setBudgets();
   if(S.fin.debts){for(const x of S.fin.debts.filter(x=>x.season<=S.season)){book('Ablöse-Raten',-x.amt);S.fin.budget.transfer=Math.max(0,S.fin.budget.transfer-x.amt);mail('Ablöse-Rate fällig',`${eurK(x.amt)} gehen als zweite Rate an ${x.to}.`)}S.fin.debts=S.fin.debts.filter(x=>x.season>S.season)}
   for(const id in S.teams)S.teams[id].tac=null;
-  S.ev=initEvent(CAL[0]);
+  S.ev=initEvent(CAL[0]);try{pressPreview()}catch(e){}
   mail(`Budgets ${S.year}`,`Transferbudget ${eurK(S.fin.budget.transfer)}, Gehaltsbudget ${eurK(S.fin.budget.wage)} pro Woche (aktuell genutzt: ${eurK(wageBill())}). ${S.fin.budget.salePct}% der Verkaufserlöse fließen ins Transferbudget.`);
   poachBids();
-  mail(`Saison ${S.year} startet`,`Die Sponsorverträge sind ausgelaufen. Unter Verein warten neue Angebote. Vorstandsziel: Platz ${expected(S.user)} im Sommer-Split.`);
+  genGoals();mail(`Saison ${S.year} startet`,`Die Sponsorverträge sind ausgelaufen. Unter Verein warten neue Angebote. Die Ziele des Vorstands (${PHIL[S.goals.phil][0]}): ${S.goals.list.map(g=>`${g.txt} (${GIMP[g.imp]})`).join(', ')}.`);
   S.view='home';save();
 }
 

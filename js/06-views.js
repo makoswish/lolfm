@@ -140,9 +140,8 @@ function clubView(){
   }else if(CLUBTAB==='infra'){
     body=infraTab();
   }else{
-    body=`${staffTab()}
-    <section class="panel s6"><div class="lab">Vorstand</div>${bar(S.board,barCol(S.board))}<p class="muted" style="font-size:13px">Vertrauen ${Math.round(S.board)}%. Steigt mit guten Platzierungen im Sommer-Split und einer Worlds-Teilnahme. Ziel: Platz ${expected(S.user)}.</p>
-     <div class="lab" style="margin-top:16px">Spielstand</div>
+    body=`${goalsPanel()}${staffTab()}${careerPanel()}
+    <section class="panel s6"><div class="lab">Spielstand</div>
      <p class="muted" style="font-size:13px;margin:0 0 8px">Hängt ein Turnier fest, startet "Phase neu starten" die aktuelle Turnierphase neu. Bisherige Ergebnisse bleiben.</p>
      <div class="acts"><button class="btn ghost sm" data-a="repair">Phase neu starten</button>${MODAL==='reset'?`<button class="btn danger sm" data-a="reset" data-ok="1">Ja, alles löschen</button><button class="btn ghost sm" data-a="reset" data-ok="0">Abbrechen</button>`:`<button class="btn ghost sm" data-a="reset">Neue Karriere</button>`}</div></section>`;
   }
@@ -204,7 +203,7 @@ function playerView(){
   const st=p.st||{g:0,w:0,k:0,d:0,mvp:0},ka=keyAttrs(p.role),tab=PV.tab||'profil',an=mine?4:knLv(p);
   const ovrTxt=ex||an>=3?o:'~'+Math.round(o/5)*5,pTxt=potTxt(p),pM=potMid(p);
   const head=`<section class="panel s12 phead"><div class="pav">${avatar(p,'xl')}${T?crest(T,'sm'):''}</div>
-    <div class="pinfo"><div class="acts" style="gap:6px">${chip(RN[p.role])}${isStarter(p)?'<span class="chip" style="color:var(--good)">Starter</span>':T?'<span class="chip">Bank</span>':''}${p.listed?'<span class="chip" style="color:var(--warn)">Transferliste</span>':''}</div>
+    <div class="pinfo"><div class="acts" style="gap:6px">${chip(RN[p.role])}${isStarter(p)?'<span class="chip" style="color:var(--good)">Starter</span>':T?'<span class="chip">Bank</span>':''}${p.listed?'<span class="chip" style="color:var(--warn)">Transferliste</span>':''}${p.team===S.user&&shotcaller(S.teams[S.user])===p?`<span class="chip" style="color:var(--brass2)">Shotcaller</span>`:''}${isOut(p)?`<span class="chip" style="color:var(--bad)">${p.out.why==='Pause'?'Pause':'Burnout'} bis Woche ${p.out.until}</span>`:''}${isImp(p,S.teams[S.user].reg)?`<span class="chip" style="color:var(--warn)" title="Höchstens ${IMPMAX} Importspieler in der Startelf. Nach drei Saisons in der ${S.teams[S.user].reg} zählt er als Einheimischer.">Import</span>`:''}</div>
      <h1 class="pname">${p.name}</h1>${mine?'':`<div class="acts" style="gap:8px;margin:2px 0 6px"><span class="chip" style="min-width:0">Scouting-Wissen ${K}%</span><button class="btn ghost sm" data-a="short" data-id="${p.id}">${shl?'Von Beobachtung entfernen':'Beobachten'}</button></div>`}<p style="margin:0 0 2px;font-size:15px">„${p.name}“ · ${p.rn||''}</p><p class="muted" style="margin:0">${p.age} Jahre · ${p.nat} · ${T?`<button class="linkbtn" data-a="team" data-id="${T.id}">${T.name}</button> (${T.reg})`:'vereinslos'}</p></div>
     <div class="pab"><div><span class="muted">Aktuell</span>${stars(ex||an>=3?o:Math.round(o/5)*5)}<b class="ovr ${oc(o)}">${ovrTxt}</b></div><div><span class="muted">Potenzial</span>${pTxt==='?'?'<span class="dimstar">★★★★★</span>':stars(pM)}<b class="ovr">${pTxt}</b></div></div>
     <div class="pkpi"><div><span>Marktwert</span><b>${eurK(val)}</b></div><div><span>${mine?'Gehalt':'Forderung'}</span><b>${eurK(mine?p.salary:demand)}/Wo.</b></div><div><span>Vertrag</span><b>${p.team?`bis ${S.year+p.contract-1}`:'-'}</b></div>
@@ -250,7 +249,7 @@ function playerView(){
     if(isLoanee(p)){acts=`<button class="btn" data-a="lendback" data-id="${p.id}">Zurückholen</button>${p.contract<=2?`<button class="btn ghost" data-a="nego" data-t="renew" data-id="${p.id}">Vertrag verhandeln</button>`:''}`}
     else if(isLoanIn(p)){acts=`${!isStarter(p)?`<button class="btn" data-a="setstart" data-id="${p.id}">Als Starter setzen</button>`:''}<button class="btn danger" data-a="linend" data-id="${p.id}">Leihe beenden</button>`}
     else if(inAca){acts=`${lb}<button class="btn" data-a="promote" data-id="${p.id}">In den Profikader holen</button>${p.contract<=2?`<button class="btn ghost" data-a="nego" data-t="renew" data-id="${p.id}">Vertrag verhandeln</button>`:''}<button class="btn danger" data-a="release" data-id="${p.id}">Entlassen (${eurK(p.salary*8)})</button>`}
-    else if(main){acts=`${!isStarter(p)?`<button class="btn" data-a="setstart" data-id="${p.id}">Als Starter setzen</button>`:''}<button class="btn ghost" data-a="demote" data-id="${p.id}">In die Academy schicken</button>${lb}
+    else if(main){acts=`${!isStarter(p)?`<button class="btn" data-a="setstart" data-id="${p.id}">Als Starter setzen</button>`:S.capt!==p.id?`<button class="btn ghost" data-a="capt" data-id="${p.id}">Zum Shotcaller machen</button>`:''}<button class="btn ghost" data-a="demote" data-id="${p.id}">In die Academy schicken</button>${lb}${!isOut(p)&&S.phase!=='offseason'?`<button class="btn ghost" data-a="rest" data-id="${p.id}">Eine Woche Pause</button>`:''}
       ${p.contract<=2?`<button class="btn ghost" data-a="nego" data-t="renew" data-id="${p.id}">Vertrag verhandeln</button>`:''}
       <button class="btn ghost" data-a="list" data-id="${p.id}">${p.listed?'Von Transferliste nehmen':'Auf Transferliste'}</button>
       <button class="btn danger" data-a="release" data-id="${p.id}">Entlassen (${eurK(p.salary*8)})</button>`}
@@ -282,7 +281,8 @@ function playerView(){
       <div class="stat" style="margin-top:10px"><span class="muted">Prestige deines Vereins</span><span>${prestigeOf(U)} (Ruf ${U.rep})</span></div>
       <div class="stat"><span class="muted">Wirkung aufs Gehalt</span><span class="${pt[0]}">${pt[1]}</span></div></section>`})()}`;
   }
-  return `<div class="pagehead"><button class="btn ghost sm" data-a="pback">Zurück</button></div><div class="grid">${head}${tabs}${body}</div>`;
+  const mySt=S.players[S.teams[S.user].starters[p.role]],cb=`<div class="acts">${mySt&&mySt.id!==p.id?`<button class="btn ghost sm" data-a="cmp" data-id="${mySt.id}" data-b="${p.id}">Mit ${mySt.name} vergleichen</button>`:''}<button class="btn ghost sm" data-a="cmp" data-id="${p.id}">${CMP&&CMP.length===1&&CMP[0]!==p.id?`Mit ${S.players[CMP[0]]?S.players[CMP[0]].name:'Spieler'} vergleichen`:'Vergleichen'}</button></div>`;
+  return `<div class="pagehead"><button class="btn ghost sm" data-a="pback">Zurück</button>${cb}</div><div class="grid">${head}${tabs}${body}</div>`;
 }
 
 /* ===== Co-Trainer ===== */
@@ -308,7 +308,7 @@ function teamModal(){
   const ps=T.roster.map(i=>S.players[i]).sort((a,b)=>(isStarter(b)-isStarter(a))||ROLES.indexOf(a.role)-ROLES.indexOf(b.role));
   const sp=currentSplit(),row=sp&&sp.reg[T.reg]?tableOf(sp.reg[T.reg].ids,sp.reg[T.reg].res).findIndex(x=>x.id===T.id)+1:0;
   return `<div class="ov" data-a="close"><div class="sheet wide" role="dialog" aria-modal="true" aria-label="${T.name}">
-  <div style="display:flex;gap:12px;align-items:center">${crest(T,'lg')}<div style="min-width:0"><h2>${T.name}</h2><p class="muted" style="margin:2px 0 0">${T.reg} · Ruf ${T.rep} · ${T.tier===2?'T2':prestigeOf(T)}${row?` · Platz ${row} im ${sp.name}`:''}</p></div></div>
+  <div style="display:flex;gap:12px;align-items:center">${crest(T,'lg')}<div style="min-width:0"><h2>${T.name}</h2><p class="muted" style="margin:2px 0 0">${T.reg} · Ruf ${T.rep} · ${T.tier===2?'T2':prestigeOf(T)}${rivLbl(T.id)?` · <span class="warn">${rivLbl(T.id)} (${rivOf(T.id).w}-${rivOf(T.id).l})</span>`:''}${row?` · Platz ${row} im ${sp.name}`:''}</p></div></div>
   <div style="margin-top:14px">
    <div class="stat"><span class="muted">Team-OVR</span><span>${mine||an>=3?teamOvr(T):'~'+Math.round(teamOvr(T)/5)*5}</span></div>
    <div class="stat"><span class="muted">Spielstil</span><span style="font-family:var(--f-body)">${mine||an>=2?STYLES[T.style].n:'Analyst Level 2 nötig'}</span></div>
@@ -316,3 +316,22 @@ function teamModal(){
   <div class="lab" style="margin-top:16px">Kader</div><div class="rows">${ps.map(p=>playerRow(p,!mine)).join('')}</div>
   <div class="acts" style="margin-top:16px"><button class="btn ghost" data-a="close">Schließen</button></div></div></div>`;
 }
+
+/* ===== Spielervergleich =====
+   Zwei Spieler nebeneinander. Fremde Werte erscheinen nur so genau, wie das Scouting-Wissen reicht. */
+let CMP=null;
+function cmpView(){const[a,b]=(CMP||[]).map(id=>S.players[id]);if(!a||!b)return `<div class="pagehead"><div><h1>Vergleich</h1><p>Wähle zwei Spieler über ihre Spielerseite.</p></div></div>`;
+  const ex=p=>seeExact(p),num=(p,v)=>ex(p)?v:null,cell=(p,v,o,txt)=>{const w=v!=null&&o!=null&&v>o;return `<td class="r ${w?'good':''}" style="${w?'font-weight:700':''}">${txt??(v??'?')}</td>`};
+  const row=(lbl,fa,fb,ta,tb,key)=>`<tr class="${key?'':'benchrow'}"><td class="nmcell">${lbl}</td>${cell(a,fa,fb,ta)}${cell(b,fb,fa,tb)}</tr>`;
+  const head=p=>`<th class="r" style="min-width:120px"><button class="linkbtn" data-a="player" data-id="${p.id}" style="display:inline-flex;gap:8px;align-items:center">${avatar(p,'xs')}${p.name}</button><div class="dim" style="font-weight:500;font-size:11.5px">${p.role} · ${p.age} J. · ${p.team?S.teams[p.team].id:'vereinslos'}</div></th>`;
+  const ka=keyAttrs(a.role);
+  const oa=num(a,ovr(a)),ob=num(b,ovr(b)),pa=potMid(a),pb=potMid(b);
+  return `<div class="pagehead"><div><h1>Vergleich</h1><p>${a.name} gegen ${b.name}${a.role!==b.role?' · verschiedene Rollen':''}</p></div><button class="btn ghost sm" data-a="cmpclose">Schließen</button></div>
+  <div class="grid"><section class="panel s12"><div class="scroll"><table class="tbl"><thead><tr><th></th>${head(a)}${head(b)}</tr></thead><tbody>
+   ${row('OVR',oa,ob,oa??'~'+Math.round(ovr(a)/5)*5,ob??'~'+Math.round(ovr(b)/5)*5,true)}${row('Potenzial',pa,pb,potTxt(a),potTxt(b),true)}
+   ${row('Marktwert',valueFor(a),valueFor(b),eurK(valueFor(a)),eurK(valueFor(b)),true)}${row('Gehalt / Forderung',null,null,eurK(isMine(a)?a.salary:demandFor(a,false)),eurK(isMine(b)?b.salary:demandFor(b,false)),true)}
+   ${row('Form',Math.round(a.form),Math.round(b.form),null,null,true)}${row('Spiele diese Saison',(a.st&&a.st.g)||0,(b.st&&b.st.g)||0,null,null,true)}
+   <tr><td colspan="3" class="lab" style="padding-top:14px">Kernwerte</td></tr>
+   ${ATTR.map(k=>row(AN[k],num(a,Math.round(a.a[k])),num(b,Math.round(b.a[k])),null,null,true)).join('')}
+   ${Object.entries(DG).map(([g,gn])=>`<tr><td colspan="3" class="lab" style="padding-top:14px">${gn}</td></tr>${DA.filter(x=>x[2]===g).map(([x,n])=>row(n+(ka.includes(x)?' •':''),num(a,Math.round(a.d[x])),num(b,Math.round(b.d[x])),null,null,ka.includes(x))).join('')}`).join('')}
+  </tbody></table></div><p class="muted" style="font-size:13px;margin:10px 0 0">Grün ist der bessere Wert. Mit • markiert: wichtig für ${RN[a.role]}. Fragezeichen heißen zu wenig Scouting-Wissen.</p></section></div>`}

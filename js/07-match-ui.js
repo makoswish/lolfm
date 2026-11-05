@@ -1,5 +1,5 @@
 /* ===== Spielvorbereitung ===== */
-function openSeries(m){LIVE={series:{m,a:m.a,b:m.b,bo:m.bo,wins:[0,0],games:[],done:false},talk:null,phase:'pre',sim:null,t:0,speed:1,timer:null};const O=S.teams[m.a===S.user?m.b:m.a];if(O&&R()<adaptChance(O))LIVE.adapt=O.id;S.view='prematch'}
+function openSeries(m){{const U=S.teams[S.user],fo=fixOut(U);if(fo.length)mail('Ausfall',fo.map(([a,b])=>`${a.name} fehlt (${a.out.why}), ${b.name} spielt`).join('. ')+'.');const ch=fixImports(U);if(ch.length)mail('Import-Regel',`Für die Startelf gilt: höchstens ${IMPMAX} Importspieler. ${ch.map(([a,b])=>`${b.name} spielt für ${a.name}`).join(', ')}.`)}LIVE={series:{m,a:m.a,b:m.b,bo:m.bo,wins:[0,0],games:[],done:false},talk:null,phase:'pre',sim:null,t:0,speed:1,timer:null};const O=S.teams[m.a===S.user?m.b:m.a];if(O&&R()<adaptChance(O))LIVE.adapt=O.id;S.view='prematch'}
 function preView(){
   const s=LIVE.series,U=S.teams[S.user],O=S.teams[s.a===S.user?s.b:s.a],an=S.staff.analyst;
   const gi=s.wins[0]+s.wins[1]+1,myS=s.a===S.user?0:1;
@@ -9,9 +9,11 @@ function preView(){
   return `<div class="pagehead"><div><h1>${s.m.label.split(' · ').slice(-1)[0]}</h1><p>${s.m.label.split(' · ')[0]} · ${s.bo>1?`Spiel ${gi} · Serie ${s.wins[myS]}:${s.wins[1-myS]} · Bo${s.bo}`:'Best of 1'}</p></div>
    <div class="acts"><button class="btn ghost" data-a="quick">${s.bo>1?'Serie':'Spiel'} simulieren</button><button class="btn" data-a="kickoff">Zum Draft (Spiel ${gi})</button></div></div>
   <div class="grid"><section class="panel s7"><div class="lab"><span>${U.name}</span><span>${O.name} · ${O.reg}</span></div><div class="lineup">${lines}</div>
-   <p class="muted" style="font-size:13px;margin:12px 0 0">Starter änderst du im Kader. ${fav>2?'Dein Team ist auf dem Papier Favorit.':fav<-2?'Dein Team ist Außenseiter.':'Die Teams sind etwa gleich stark.'}</p></section>
+   ${subBox(U,gi)}
+   ${rivLbl(O.id)?`<div class="note warn" style="margin-top:12px">${rivLbl(O.id)}: Bilanz ${rivOf(O.id).w}-${rivOf(O.id).l}. Dieses Duell zählt mehr für Fans und Vorstand.</div>`:''}
+   <p class="muted" style="font-size:13px;margin:12px 0 0">${fav>2?'Dein Team ist auf dem Papier Favorit.':fav<-2?'Dein Team ist Außenseiter.':'Die Teams sind etwa gleich stark.'}</p></section>
   <section class="panel s5"><div class="lab">Scouting-Bericht</div>
-   <div class="stat"><span class="muted">Spielstil</span><span style="font-family:var(--f-body)">${an>=2?STYLES[O.style].n:'Analyst Level 2 nötig'}</span></div>
+   <div class="stat"><span class="muted">Spielstil</span><span style="font-family:var(--f-body)">${an>=2||scrimKnows(O.id)?STYLES[O.style].n+(an<2?' (aus Scrims)':''):'Analyst Level 2 nötig'}</span></div>
    <div class="stat"><span class="muted">Jungle-Fokus</span><span style="font-family:var(--f-body)">${an>=3?FOCUS[O.focus]:'Analyst Level 3 nötig'}</span></div>
    ${(()=>{const cmp=(x,lbl,show)=>{if(!show)return'';const a=avgD(U,x),b=avgD(O,x),df=a-b;return `<div class="stat"><span class="muted">${lbl}</span><span style="font-family:var(--f-body)" class="${an<2?'dim':df>.5?'good':df<-.5?'bad':''}">${an<2?'unbekannt':df>.5?'Vorteil für dich':df<-.5?'Vorteil Gegner':'ausgeglichen'}</span></div>`};
      return cmp('nrv','Nervenstärke',s.m.big)+cmp('pool','Championpool',s.bo>1)+cmp('cns','Konstanz',true)})()}
@@ -24,6 +26,11 @@ function preView(){
    ${LIVE.talk?`<div class="note">${LIVE.talk}</div>`:`<div class="seg"><button data-a="talk" data-v="calm">Ruhig bleiben</button><button data-a="talk" data-v="hype">Volle Attacke</button><button data-a="talk" data-v="fav">Wir sind besser</button></div>`}
   </section></div>`;
 }
+/* Wechsel vor jedem Spiel einer Serie: Bankspieler der Rolle direkt einsetzen */
+function subBox(U,gi){const opts=ROLES.map(r=>[r,U.roster.map(i=>S.players[i]).filter(p=>p.role===r&&!isStarter(p))]).filter(x=>x[1].length);
+  if(!opts.length)return '<p class="dim" style="font-size:13px;margin:12px 0 0">Keine Ersatzspieler im Kader. Für Wechsel in Serien brauchst du Backups.</p>';
+  return `<div class="lab" style="margin-top:14px"><span>Wechsel für Spiel ${gi}</span><span>${(LIVE.subs||[]).length?`${LIVE.subs.length} in dieser Serie`:'Bank'}</span></div>
+   <div class="subs">${opts.map(([r,L])=>`<div class="subr">${chip(r)}${L.map(p=>{const ie=impWhy(p)&&!isImp(S.players[U.starters[r]],U.reg),o=isOut(p);return `<button class="btn ghost sm" data-a="psub" data-id="${p.id}" ${ie||o?`disabled title="${o?'fällt aus':impWhy(p)}"`:''}>${p.name} <span class="dim">${o?'fällt aus':ovr(p)}</span></button>`}).join('')}</div>`).join('')}</div>`}
 function doTalk(v){
   const U=S.teams[S.user],O=S.teams[LIVE.series.a===S.user?LIVE.series.b:LIVE.series.a],fav=teamOvr(U)-teamOvr(O);
   let d,txt;
@@ -41,7 +48,7 @@ function seriesOver(){const s=LIVE.series,need=Math.ceil(s.bo/2);return s.wins[0
 function commitSeries(){
   const s=LIVE.series;s.done=true;const m=s.m,k=[0,0];for(const x of s.games){k[0]+=x.kills[0];k[1]+=x.kills[1]}
   m.w=s.wins[0]>s.wins[1]?s.a:s.b;m.score=[...s.wins];m.k=k;m.mvp=S.players[s.games[s.games.length-1].mvp].name;
-  mhDone();S.streak=m.w===S.user?(S.streak||0)+1:0;if(m.w===S.user)ach('firstwin');if(S.streak>=5)ach('streak5');if(S.streak>=10)ach('streak10');
+  mhDone();try{rivRecord(m)}catch(e){}S.streak=m.w===S.user?(S.streak||0)+1:0;if(m.w===S.user)ach('firstwin');S.bestStreak=Math.max(S.bestStreak||0,S.streak);if(S.streak>=5)ach('streak5');if(S.streak>=10)ach('streak10');
   S.fin.fans=Math.round(S.fin.fans*(m.w===S.user?1.012:.995));if(m.w===S.user){sponsorBonus('perWin');const wb=S.teams[S.user].roster.reduce((a,i)=>a+(S.players[i].wb||0),0);if(wb)book('Siegprämien',-wb)}save();
 }
 /* ===== Draft ===== */

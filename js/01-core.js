@@ -33,7 +33,14 @@ const TGROUP={bal:{n:'Ausgewogen',a:DK.filter(x=>x!=='cns')},tech:{n:'Technik',a
 const TRAIN={mech:'Mechanik',lane:'Laning',macro:'Makro',tf:'Teamfight',comm:'Kommunikation',rest:'Erholung'};
 
 const REGS=['LCK','LPL','LEC','LCS','LCP','CBLOL'];
-const REG={LCK:{full:'Korea',off:4},LPL:{full:'China',off:4},LEC:{full:'Europa',off:0},LCS:{full:'Nordamerika',off:-4},LCP:{full:'Asien-Pazifik',off:-5},CBLOL:{full:'Brasilien',off:-7}};
+/* off: Ruf-Abstand der Region (Budget, Sponsoren, Vorstand). str: Spielstärke zusätzlich zum Ruf, wirkt nur bei der Erzeugung von Spielern.
+   Ziel Team-OVR im Schnitt: LCK 76, LPL 75, LEC 71, LCS 67, LCP 66, CBLOL 63. */
+const REG={LCK:{full:'Korea',off:4,str:2},LPL:{full:'China',off:4,str:1.5},LEC:{full:'Europa',off:0,str:-.5},LCS:{full:'Nordamerika',off:-4,str:-2},LCP:{full:'Asien-Pazifik',off:-5,str:-3},CBLOL:{full:'Brasilien',off:-7,str:-5}};
+/* Vereinslose Spieler wechseln nur in gleich starke oder stärkere Regionen (ein Stärke-Punkt Spielraum).
+   Sonst landen freie Profis aus Korea in Brasilien und die Regionen gleichen sich über die Saisons an. */
+function homeReg(p){if(p.home&&REG[p.home])return p.home;if(p.team&&S.teams[p.team])return S.teams[p.team].reg;return REGS.find(r=>REGNAT[r][0]===p.nat)||REGS.find(r=>REGNAT[r].includes(p.nat))||'LEC'}
+function canJoinReg(p,r){return(REG[r].str||0)>=(REG[homeReg(p)].str||0)-1}
+function regBase(rep,r){return Math.round(61+(rep-56)*.55+(REG[r].str||0))}
 const REGNAT={LCK:['KR'],LPL:['CN','CN','CN','KR'],LEC:['DE','DE','FR','ES','PL','DK','SE','NL','IT','CZ','GR','BE','UK','AT','SI'],LCS:['US','US','US','CA','KR','DK'],LCP:['TW','JP','VN','PH','AU','TH','VN','KR'],CBLOL:['BR','BR','BR','BR','KR','AR']};
 const TEAMDATA={
   LCK:[['HBD','Hanbit Dragons'],['SRV','Seoul Ravens'],['BSB','Busan Breakers'],['ICP','Incheon Phantoms'],['DGS','Daegu Sentinels'],['GJS','Gwangju Spark'],['UST','Ulsan Titans'],['SWW','Suwon Wolves'],['JJH','Jeonju Hawks'],['CWM','Changwon Mariners']],
@@ -161,7 +168,7 @@ function genPlayer(role,target,age,reg){
   derive(p);
   const o=ovr(p);
   p.pot=clamp(o+(age<=19?ri(6,18):age<=22?ri(2,10):ri(0,3)),o,96);
-  p.salary=salaryFor(o);genChamps(p);p.dev=genDev();
+  p.salary=salaryFor(o);genChamps(p);p.dev=genDev();if(reg)p.home=reg;
   return p;
 }
 /* ===== Talententwicklung =====
@@ -183,7 +190,7 @@ function potMid(p){const e=potEst(p);return e?Math.round((e[0]+e[1])/2):null}
 function potTxt(p){const e=potEst(p);return !e?'?':e[0]===e[1]?String(e[0]):e[0]+'-'+e[1]}
 function sign(p,T,starter){if(S&&S.teams)p.gel=gelStart(p,T);p.team=T.id;T.roster.push(p.id);S.players[p.id]=p;S.fa=S.fa.filter(x=>x!==p.id);if(starter||!T.starters[p.role])T.starters[p.role]=p.id}
 function unsign(p){const T=S.teams[p.team];if(!T)return;T.roster=T.roster.filter(x=>x!==p.id);if(T.starters[p.role]===p.id){delete T.starters[p.role];const alt=T.roster.map(i=>S.players[i]).filter(x=>x.role===p.role).sort((a,b)=>ovr(b)-ovr(a))[0];if(alt)T.starters[p.role]=alt.id}p.team=null;p.listed=false}
-function toFA(p){unsign(p);p.contract=0;p.salary=salaryFor(ovr(p));if(!S.fa.includes(p.id))S.fa.push(p.id)}
+function toFA(p){{const T=S.teams[p.team];if(T)p.home=T.reg}unsign(p);p.contract=0;p.salary=salaryFor(ovr(p));if(!S.fa.includes(p.id))S.fa.push(p.id)}
 function teamOvr(T){let s=0;for(const r of ROLES)s+=ovr(S.players[T.starters[r]]);return Math.round(s/5)}
 function ensureRoles(T,notify){for(const r of ROLES){if(!T.starters[r]){if(T.id===S.user&&S.teams[acaId()]){const A=S.teams[acaId()],c=A.roster.map(i=>S.players[i]).filter(p=>p.role===r).sort((x,y)=>ovr(y)-ovr(x))[0];if(c){c.fromAca=true;unsign(c);sign(c,T,true);if(notify)mail('Aus der Academy hochgezogen',`${c.name} (${RN[r]}) springt aus der Academy ein, weil dir ein ${RN[r]} fehlte.`);continue}}const p=genPlayer(r,ri(44,52),ri(17,19),T.reg);p.contract=1;p.salary=800;sign(p,T,true);if(notify)mail('Academy-Spieler hochgezogen',`${p.name} (${RN[r]}) rückt aus der Academy nach, weil dir ein Spieler auf dieser Position fehlte.`)}}}
 function wkKey(){return S.season+'-'+S.step}
@@ -209,7 +216,7 @@ function finState(){const f=S.fin,w=f.weeks.slice(-8),avg=w.length?w.reduce((a,b
 function book(cat,amt){if(!amt)return;S.fin.balance+=amt;const t=amt>=0?S.fin.season.inc:S.fin.season.exp;t[cat]=(t[cat]||0)+Math.abs(amt)}
 function addMissingTeams(){const added=[];REGS.forEach((r,ri_)=>TEAMDATA[r].forEach(([id,name],i)=>{if(S.teams[id])return;
     const rep=repFor(i,TEAMDATA[r].length)+REG[r].off,T={id,name,reg:r,rep,color:`hsl(${(i*53+ri_*29+12)%360} 52% 66%)`,style:pick(SK),focus:pick(['TOP','MID','ADC']),roster:[],starters:{}};
-    S.teams[id]=T;const base=Math.round(61+(rep-56)*.55);for(const ro of ROLES)sign(genPlayer(ro,base+ri(-4,4),undefined,r),T,true);for(let k=0;k<2;k++)sign(genPlayer(pick(ROLES),base-8+ri(-4,4),ri(17,20),r),T,false);added.push(name)}));
+    S.teams[id]=T;const base=regBase(rep,r);for(const ro of ROLES)sign(genPlayer(ro,base+ri(-4,4),undefined,r),T,true);for(let k=0;k<2;k++)sign(genPlayer(pick(ROLES),base-8+ri(-4,4),ri(17,20),r),T,false);genImports(T);added.push(name)}));
   if(added.length)mail('Neue Teams',`${added.length} Teams sind neu dabei (${added.join(', ')}). Sie steigen mit dem nächsten Split in ihre Ligen ein.`)}
 /* Alte Stände: neue LoL-Attribute aus verwandten Werten ableiten, Potenzial nachziehen */
 const NEWD={wav:['frm','lan'],spc:['pos','mec'],obj:['gs','dec'],eng:['tw','lead']};
@@ -251,18 +258,19 @@ function newGame(teamId,mgr){
      board:60,history:[],trophies:[],lastRound:null,summary:null,trainLog:[],mailId:1};
   REGS.forEach((r,ri_)=>TEAMDATA[r].forEach(([id,name],i)=>{
     const rep=repFor(i,TEAMDATA[r].length)+REG[r].off,T={id,name,reg:r,rep,color:`hsl(${(i*53+ri_*29+12)%360} 52% 66%)`,style:pick(SK),focus:pick(['TOP','MID','ADC']),roster:[],starters:{}};
-    S.teams[id]=T;const base=Math.round(61+(rep-56)*.55);
+    S.teams[id]=T;const base=regBase(rep,r);
     for(const ro of ROLES)sign(genPlayer(ro,base+ri(-4,4),undefined,r),T,true);
-    const subs=ri(2,3);for(let k=0;k<subs;k++)sign(genPlayer(pick(ROLES),base-8+ri(-4,4),ri(17,20),r),T,false);
+    const subs=ri(2,3);for(let k=0;k<subs;k++)sign(genPlayer(pick(ROLES),base-8+ri(-4,4),ri(17,20),r),T,false);genImports(T);
   }));
-  for(let i=0;i<45;i++){const p=genPlayer(ROLES[i%5],ri(46,70),undefined,pick(REGS));p.contract=0;S.players[p.id]=p;S.fa.push(p.id)}
+  for(let i=0;i<45;i++){const r=pick(REGS),p=genPlayer(ROLES[i%5],ri(46,70)+Math.round(REG[r].str),undefined,r);p.contract=0;S.players[p.id]=p;S.fa.push(p.id)}
   const U=S.teams[teamId];
   S.fin=newFin((U.rep-40)*20000,U.rep*2000);S.fin.lshare=1;S.trials=[];infraInit();genOffers();setBudgets();
   VIEWREG=U.reg;
   S.tacs=['A','B','C'].map(n=>defTac(U,n));S.tacs[1].style='SCL';S.tacs[2].style='AGG';S.tacA=0;applyTac();initKnow();for(const k in S.know)S.know[k]=tKeys(S.tacs[0]).some(x=>x[0]===k)?80:45;
   genT2();initScouting();initStaff();S.training.plan=PLANS.bal.slice();S.ment={};
   for(const p of Object.values(S.players)){p.o0=ovr(p);p.gel=p.team?ri(55,92):40}
-  S.ev=initEvent(CAL[0]);
+  S.ev=initEvent(CAL[0]);try{pressPreview()}catch(e){}
+  genGoals();
   mail('Willkommen im Büro',`Der Vorstand der ${U.name} erwartet im Sommer-Split Platz ${expected(teamId)} in der ${U.reg} oder besser. Budget: ${eurK(S.fin.balance)}. Wähle unter Verein deine Sponsoren, sonst unterschreibt der Vorstand nach der ersten Woche die Festbetrag-Angebote. Die Saison hat drei Splits (je eine Hin-Runde im Bo1 über 7 Wochen plus Top-4-Playoffs im Bo5) und vier internationale Turniere: First Stand, MSI, Demacia Cup und Worlds.`);
   save();
 }

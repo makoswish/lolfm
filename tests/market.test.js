@@ -18,7 +18,7 @@ newGame('LYL','Tester');const V=S.teams[S.user];
 ACT.nav2({v:'squad',k:'KTAB',t:'attr'});chk('Attribute-Tabelle');ok(document.querySelector('#app').innerHTML.includes('Attribute erklärt'),'Erklärung fehlt');
 
 // Prestige: derselbe Spieler kostet bei kleinem Verein mehr als bei großem
-const p=Object.values(S.players).filter(x=>x.team&&x.team!==S.user&&S.teams[x.team].tier!==2).sort((a,b)=>ovr(b)-ovr(a))[0];
+const p=Object.values(S.players).filter(x=>x.team&&x.team!==S.user&&S.teams[x.team].tier!==2&&ovr(x)>=74&&ovr(x)<=80).sort((a,b)=>ovr(b)-ovr(a))[0];
 const rep0=V.rep;V.rep=95;const big=demandFor(p,false);V.rep=55;const small=demandFor(p,false);V.rep=rep0;
 ok(small>big*1.2,'Prestige wirkt nicht aufs Gehalt: '+small+' / '+big);
 V.rep=95;ok(prestF(p,false)<1&&prestTxt(p,false)[0]==='good','Kein Abschlag beim Topverein');V.rep=55;ok(prestF(p,false)>1&&prestTxt(p,false)[0]==='bad','Kein Aufschlag beim kleinen Verein');V.rep=rep0;
@@ -35,4 +35,15 @@ for(const v of [3,2,1,0]){FILT.sgn=v;render();chk('Filter '+v);
   ok(ids.every(id=>signDiff(S.players[id]).lv<=v),'Filter zeigt zu schwere Spieler bei '+v)}
 FILT.sgn=4;FILT.sort='easy';render();chk('Sortierung leicht');FILT.sort='ovr';
 ACT.player({id:p.id,tab:'vertrag'});chk('Spielerseite Bereitschaft');ok(document.querySelector('#app').innerHTML.includes('Wechselbereitschaft'),'Bereitschaft fehlt auf Spielerseite');
+`;
+// Regionen: Reihenfolge, Wechselrichtung, Auffüllen nach Abgängen
+module.exports+=`
+newGame('LYL','Tester');
+{const avg=r=>teamsOf(r).reduce((a,t)=>a+teamOvr(t),0)/teamsOf(r).length;
+ ok(avg('LCK')>avg('LEC')+3&&avg('LPL')>avg('LEC')+3,'LCK und LPL nicht klar vor LEC');ok(avg('LEC')>avg('LCS')&&avg('LCS')>avg('CBLOL')+2,'Reihenfolge der Regionen falsch');
+ const kr=genPlayer('MID',70,24,'LCK'),br=genPlayer('MID',70,24,'CBLOL');
+ ok(canJoinReg(kr,'LPL')&&!canJoinReg(kr,'CBLOL'),'LCK-Spieler darf nach Brasilien');ok(canJoinReg(br,'LCK')&&canJoinReg(br,'CBLOL'),'CBLOL-Spieler darf nicht aufsteigen');
+ const T=teamsOf('LEC').find(t=>t.id!==S.user),r='MID',gone=T.roster.filter(i=>S.players[i].role===r);for(const i of gone)toFA(S.players[i]);
+ aiRefill(T,r);const st=S.players[T.starters[r]];
+ ok(st&&st.role===r&&ovr(st)>=55,'Lücke mit Nachwuchsspieler statt Vereinslosem gefüllt: '+(st&&ovr(st)))}
 `;
