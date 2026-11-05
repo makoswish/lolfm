@@ -75,10 +75,21 @@ const MERCH={low:{n:'Günstig',m:.7,f:.35},normal:{n:'Normal',m:1,f:0},high:{n:'
 const LOANS=[250000,500000,1000000];
 const LSHARE={LCK:6000,LPL:6000,LEC:4500,LCS:4500,LCP:3500,CBLOL:3000};
 const r100=x=>Math.round(x/100)*100,r1000=x=>Math.round(x/1000)*1000;
-const SAVEKEY='riftmgr_v2';
+let SAVEKEY='riftmgr_v2',SLOT=1,NEWSLOT=null;
+/* Drei Speicherplätze. Platz 1 nutzt den alten Schlüssel, damit bestehende Spielstände dort bleiben. */
+const NSLOTS=3;
+function slotKey(n){return n===1?'riftmgr_v2':'riftmgr_v2_s'+n}
+function useSlot(n){SLOT=n;SAVEKEY=slotKey(n);try{localStorage.setItem('riftmgr_slot',String(n))}catch(e){}}
+function initSlot(){let n=1;try{n=+localStorage.getItem('riftmgr_slot')||1}catch(e){}if(!(n>=1&&n<=NSLOTS))n=1;SLOT=n;SAVEKEY=slotKey(n)}
+function slotMeta(){try{return JSON.parse(localStorage.getItem('riftmgr_meta')||'{}')||{}}catch(e){return{}}}
+function setMeta(n,i){const m=slotMeta();if(i)m[n]=i;else delete m[n];try{localStorage.setItem('riftmgr_meta',JSON.stringify(m))}catch(e){}}
+function metaOf(o){const T=o.teams&&o.teams[o.user];return{team:T?T.name:'?',id:o.user,color:T?T.color:'#888',reg:T?T.reg:'',year:o.year,step:o.step,mgr:o.manager,when:Date.now()}}
+function slotInfo(n){const m=slotMeta()[n];if(m)return m;try{const t=localStorage.getItem(slotKey(n));if(!t)return null;const i=metaOf(JSON.parse(t));setMeta(n,i);return i}catch(e){return null}}
+function freeSlot(){for(let n=1;n<=NSLOTS;n++)if(!slotInfo(n))return n;return null}
 
 /* ===== Helfer ===== */
 const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
 const R=Math.random;
 const ri=(a,b)=>Math.floor(R()*(b-a+1))+a;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -94,7 +105,7 @@ const sgn=n=>n>0?'+'+n:n<0?String(n).replace('-','−'):'±0';
 
 let RFILT='ALL',CLUBTAB='fin',ERR=null,KTAB='depth',KSORT='value',KMODE='pos',PV=null,TACE=0,TTAB='markt',LTAB='comp';
 function pmsg(id,msg,ok){PV=Object.assign(PV||{tab:'vertrag',back:'squad'},{id,msg,ok})}
-let S=null,LIVE=null,MODAL=null,FILT={role:'ALL',src:'ALL'},VIEWREG=null,STARTREG='LEC';
+let S=null,LIVE=null,MODAL=null,FILT={role:'ALL',src:'ALL',q:'',sort:'ovr',afford:false,n:40},VIEWREG=null,STARTREG='LEC';
 
 /* ===== Spieler ===== */
 function ovr(p){const w=W[p.role];let s=0;for(const k in w)s+=p.a[k]*w[k];return Math.round(s)}

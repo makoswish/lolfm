@@ -4,7 +4,10 @@ function transferView(){
   let list=Object.values(S.players).filter(p=>!isMine(p)&&(p.team||S.fa.includes(p.id)));
   if(FILT.role!=='ALL')list=list.filter(p=>p.role===FILT.role);
   if(FILT.src==='FA')list=list.filter(p=>!p.team);else if(FILT.src==='T2')list=list.filter(p=>p.team&&S.teams[p.team].tier===2);else if(FILT.src==='SC')list=list.filter(p=>kn(p)>=35);else if(FILT.src!=='ALL')list=list.filter(p=>p.team&&S.teams[p.team].reg===FILT.src);
-  list.sort((a,b)=>ovr(b)-ovr(a));
+  const q=FILT.q.trim().toLowerCase();
+  if(q)list=list.filter(p=>[p.name,p.rn,p.team&&S.teams[p.team].name,p.team].some(x=>x&&String(x).toLowerCase().includes(q)));
+  if(FILT.afford)list=list.filter(canAfford);
+  const sk=MSORT[FILT.sort]||MSORT.ovr;list.sort((a,b)=>sk[1](b)-sk[1](a)||ovr(b)-ovr(a));
   const tabs=`<div class="seg" style="margin-bottom:16px">${[['markt','Markt'],['scout','Scouting'],['short','Beobachtung'],['hist','Verlauf']].map(([k,l])=>`<button class="${TTAB===k?'on':''}" data-a="ttab" data-v="${k}">${l}</button>`).join('')}</div>`;
   const rl=releasable();const head=`<div class="pagehead"><div><h1>Transfers</h1><p>Transferbudget ${eurK(S.fin.budget.transfer)} · Gehalt frei ${eurK(Math.max(0,wageFree()))}/Wo. · Kader ${U.roster.length}/${MAXR}</p></div>${rl>=25000?`<button class="btn ghost sm" data-a="gobudget">${eurK(rl)} freigeben</button>`:''}</div>${tabs}`;
   if(TTAB==='scout')return head+`<div class="grid">${scoutTab()}</div>`;
@@ -12,9 +15,14 @@ function transferView(){
   if(TTAB==='hist')return head+`<div class="grid">${historyTab()}</div>`;
   return head+`<div class="grid"><section class="panel s12"><div class="seg" style="margin-bottom:8px">${['ALL',...ROLES].map(r=>`<button class="${FILT.role===r?'on':''}" data-a="frole" data-v="${r}">${r==='ALL'?'Alle Rollen':RN[r]}</button>`).join('')}</div>
   <div class="seg" style="margin-bottom:14px">${[['ALL','Alle'],['SC','Gescoutet'],['FA','Vereinslos'],['T2','T2-Szene'],...REGS.map(r=>[r,r])].map(([k,l])=>`<button class="${FILT.src===k?'on':''}" data-a="fsrc" data-v="${k}">${l}</button>`).join('')}</div>
-  <div class="rows">${list.slice(0,40).map(p=>playerRow(p,true)).join('')||'<p class="empty">Keine Spieler für diesen Filter.</p>'}</div>
-  ${list.length>40?`<p class="muted" style="font-size:13px;margin:10px 0 0">Die 40 stärksten von ${list.length} Spielern. Filter grenzen die Liste ein.</p>`:''}</section></div>`;
+  <div class="mktbar"><input id="tq" class="inp" type="search" placeholder="Spieler oder Team suchen" value="${esc(FILT.q)}" autocomplete="off" spellcheck="false" aria-label="Suche">
+   <label class="mksort"><span class="muted">Sortieren</span><select id="tsort" class="inp">${Object.entries(MSORT).map(([k,[l]])=>`<option value="${k}" ${FILT.sort===k?'selected':''}>${l}</option>`).join('')}</select></label>
+   <button class="tog ${FILT.afford?'on':''}" data-a="faff" title="Ablöse und Gehalt passen ins Budget, notfalls mit Umschichtung vom Konto"><span class="tbox">${FILT.afford?'✓':''}</span><span>Nur bezahlbar</span></button></div>
+  <div class="rows">${list.slice(0,FILT.n).map(p=>playerRow(p,true)).join('')||'<p class="empty">Keine Spieler für diese Suche.</p>'}</div>
+  <div class="mkfoot"><span class="muted">${list.length>FILT.n?`${FILT.n} von ${list.length} Spielern`:`${list.length} Spieler`}</span>${list.length>FILT.n?`<button class="btn ghost sm" data-a="fmore">40 weitere zeigen</button>`:''}</div></section></div>`;
 }
+/* Sortierung im Markt. Potenzial zählt nur, wenn es gescoutet ist, sonst verrät die Liste mehr als die Spielerseite. */
+const MSORT={ovr:['Stärke',p=>ovr(p)],pot:['Potenzial (gescoutet)',p=>kn(p)>=40?p.pot:-1],value:['Marktwert',p=>valueFor(p)],fee:['Ablöse niedrig',p=>-askFor(p)],wage:['Gehalt niedrig',p=>-demandFor(p,false)],age:['Jüngste zuerst',p=>-p.age]};
 
 /* ===== Turniere / Liga ===== */
 function bmatch(m){const me=meIn(m);return `<div class="bm ${me?'me':''}"><span class="dim" style="font-size:12px;display:flex;justify-content:space-between"><span>Bo${m.bo}</span>${me&&m.w?wlPill(m):me?'<span class="myid" style="font-size:11px">DEIN SPIEL</span>':''}</span>${[m.a,m.b].map((id,i)=>`<div class="${m.w?(m.w===id?'win':'lose'):''} ${isMyT(id)?'mine':''}"><span style="display:flex;gap:8px;align-items:center;min-width:0">${crest(S.teams[id],'sm')}${tname(id)}</span><span class="mono">${m.w?m.score[i]:'-'}</span></div>`).join('')}</div>`}

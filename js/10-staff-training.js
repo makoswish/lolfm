@@ -76,6 +76,22 @@ function mentorPanel(){const U=S.teams[S.user],all=[...U.roster,...(aca()?aca().
 
 /* ===== Kaderübersicht ===== */
 function squadAll(){const U=S.teams[S.user],A=aca();return[...U.roster.map(i=>[S.players[i],'pro']),...(A?A.roster.map(i=>[S.players[i],'aca']):[])]}
+/* Verträge: alle Spieler und Trainer nach Vertragsende, mit Verlängern direkt in der Zeile */
+function contractsTab(){const all=squadAll().slice().sort((a,b)=>a[0].contract-b[0].contract||(a[1]==='aca')-(b[1]==='aca')||ovr(b[0])-ovr(a[0]));
+  const exp=all.filter(([p])=>p.contract<=1),wk=wkKey();
+  const row=([p,k])=>{const end=S.year+p.contract-1,can=p.contract<=2,tried=p.tried===wk;
+   const act=!can?`<span class="dim">ab ${end-1}</span>`:tried?'<span class="dim">nächste Woche</span>':`<button class="btn sm ${p.contract<=1?'':'ghost'}" data-a="nego" data-t="renew" data-id="${p.id}">Verlängern</button>`;
+   return `<tr class="${k==='aca'?'benchrow':''}"><td><span class="chip">${p.role}</span></td><td class="nmcell stick"><button class="linkbtn" data-a="player" data-id="${p.id}">${p.name}</button></td>
+    <td>${k==='aca'?'Academy':isStarter(p)?'<span class="good">Starter</span>':'Bank'}</td><td class="r">${p.age}</td><td class="r mono">${ovr(p)}</td>
+    <td class="r">${end}${p.contract<=1?' <span class="warn">läuft aus</span>':''}</td><td class="r">${eurK(p.salary)}</td><td class="r">${can?eurK(demandFor(p,true)):'<span class="dim">-</span>'}</td><td class="r">${act}</td></tr>`};
+  const st=(S.staffs||[]).slice().sort((a,b)=>a.contract-b.contract);
+  return `<section class="panel s12"><div class="lab"><span>Spielerverträge</span><span class="${exp.length?'warn':''}">${exp.length?`${exp.length} ${exp.length===1?'läuft':'laufen'} am Saisonende aus`:'keiner läuft am Saisonende aus'}</span></div>
+   <div class="scroll"><table class="tbl"><thead><tr><th></th><th class="stick">Spieler</th><th>Status</th><th class="r">Alter</th><th class="r">OVR</th><th class="r">bis</th><th class="r">Gehalt</th><th class="r">Forderung</th><th></th></tr></thead><tbody>${all.map(row).join('')}</tbody></table></div>
+   <p class="muted" style="font-size:13px;margin:10px 0 0">Verlängern geht ab dem vorletzten Vertragsjahr. Die Forderung ist der Startwert des Beraters pro Woche. Gescheiterte Gespräche sind erst in der nächsten Woche wieder möglich.</p></section>
+  ${st.length?`<section class="panel s12"><div class="lab"><span>Trainerverträge</span><span>verlängern sich nicht</span></div>
+   <div class="scroll"><table class="tbl"><thead><tr><th>Trainer</th><th>Aufgabe</th><th class="r">Gehalt</th><th class="r">bis</th></tr></thead><tbody>
+   ${st.map(s=>`<tr><td class="nmcell">${s.name}</td><td>${SROLE[s.role][0]}</td><td class="r">${eurK(s.wage)}</td><td class="r">${S.year+s.contract-1}${s.contract<=1?' <span class="warn">läuft aus</span>':''}</td></tr>`).join('')}</tbody></table></div>
+   <p class="muted" style="font-size:13px;margin:10px 0 0">Trainer gehen am Vertragsende. Ersatz findest du unter Verein, Staff und Vorstand.</p></section>`:''}`}
 function depthCard(p,kind){const o=ovr(p),end=S.year+p.contract-1,st=kind==='pro'&&isStarter(p);
   const tag=st?'<span class="dtag st">Starter</span>':kind==='aca'?'<span class="dtag ac">Academy</span>':'<span class="dtag">Bank</span>';
   return `<button class="dcard ${st?'is-st':''} ${kind==='aca'?'is-ac':''}" data-a="player" data-id="${p.id}">
@@ -93,7 +109,7 @@ function depthView(){const U=S.teams[S.user],all=squadAll(),pros=all.filter(x=>x
    <div class="tile"><span>Ø Stärke Profis</span><b>${stars(teamOvr(U))}</b><small>Team-OVR ${teamOvr(U)}</small></div>
    <div class="tile"><span>Ø Alter</span><b>${f1(age)}</b><small>${all.length} Spieler gesamt</small></div>
    <div class="tile"><span>Gehälter</span><b>${eurK(wages)}</b><small>pro Woche inkl. Academy</small></div>
-   <div class="tile"><span>Verträge</span><b class="${exp?'warn':''}">${exp}</b><small>laufen am Saisonende aus</small></div></section>`;
+   <button class="tile tilebtn" data-a="ktab" data-v="vert"><span>Verträge</span><b class="${exp?'warn':''}">${exp}</b><small>laufen am Saisonende aus · Übersicht</small></button></section>`;
   const modes=`<div class="seg s12" style="margin:0">${[['pos','Nach Position'],['list','Als Liste']].map(([k,l])=>`<button class="${KMODE===k?'on':''}" data-a="kmode" data-v="${k}">${l}</button>`).join('')}</div>`;
   if(KMODE==='list'){const keys={value:['Marktwert',p=>valueFor(p)],ovr:['Aktuell',p=>ovr(p)],pot:['Potenzial',p=>p.pot],age:['Alter',p=>-p.age],wage:['Gehalt',p=>p.salary],end:['Vertragsende',p=>-p.contract]};
     const L=all.slice().sort((a,b)=>keys[KSORT][1](b[0])-keys[KSORT][1](a[0]));

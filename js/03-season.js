@@ -254,5 +254,5 @@ function newSeason(){
 }
 
 /* ===== Speichern ===== */
-function save(){try{localStorage.setItem(SAVEKEY,JSON.stringify(S))}catch(e){}}
+function save(){try{localStorage.setItem(SAVEKEY,JSON.stringify(S));setMeta(SLOT,metaOf(S))}catch(e){}}
 function load(){try{const t=localStorage.getItem(SAVEKEY);if(t){S=JSON.parse(t);if(S.view==='live'||S.view==='prematch'||S.view==='draft'||S.view==='nego')S.view='home';VIEWREG=S.teams[S.user].reg;migrate();if(evBroken(S.ev))restartEvent();else relink(S.ev);save()}}catch(e){S=null}}

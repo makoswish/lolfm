@@ -38,10 +38,12 @@ Die Reihenfolge in `index.html` ist wichtig: Code auf oberster Ebene (zum Beispi
 
 ## Wie das Spiel aufgebaut ist
 
-- **Zustand:** Der komplette Spielstand ist das globale Objekt `S` (Teams, Spieler, Finanzen, Postfach, aktuelles Turnier `S.ev`). Gespeichert wird es als JSON in `localStorage` unter `riftmgr_v2`.
+- **Zustand:** Der komplette Spielstand ist das globale Objekt `S` (Teams, Spieler, Finanzen, Postfach, aktuelles Turnier `S.ev`). Gespeichert wird es als JSON in `localStorage`. Es gibt drei Speicherplätze: Platz 1 nutzt `riftmgr_v2` (alte Spielstände bleiben dort), Platz 2 und 3 `riftmgr_v2_s2` und `riftmgr_v2_s3`. `SAVEKEY` zeigt auf den aktiven Platz (`useSlot`), `riftmgr_meta` hält eine Kurzinfo pro Platz für die Liste.
 - **Alte Spielstände:** Wer neue Felder einführt, setzt Standardwerte in `migrate()` (03-season). Spieler haben echte Spieler, alte Stände dürfen nie kaputtgehen. `tests/fixtures/` enthält zwei alte Stände, die der Migrationstest lädt.
 - **Referenzen:** Nach dem Laden zeigen Objekte in `S.ev` nicht mehr auf dieselben Teams. `relink()`, `evBroken()` und `restartEvent()` reparieren das. Neue Turnier-Logik muss das Neuladen überstehen (der Saisontest lädt jede Woche neu).
 - **Rendering:** `render()` baut die ganze Seite als HTML-String neu. Ansichten sind Funktionen, die Strings liefern, registriert in der `views`-Tabelle in `render()`. Reiter laufen über globale Variablen (`KTAB`, `TTAB`, `LTAB`, `CLUBTAB`, `TACTAB`).
+- **Rückfragen:** Aktionen, die Geld kosten oder etwas löschen, rufen beim ersten Klick `askConfirm()` auf und laufen erst mit `data-ok="1"` aus dem Dialog wirklich durch.
+- **Verlauf:** `render()` schreibt Ansicht und Reiter per `history.pushState` mit (`histSync`). Die Zurück-Taste führt über `histPop` zur vorherigen Seite. Während Draft, Live-Spiel, Verhandlung und Simulation bleibt die Seite stehen.
 - **Klicks:** Buttons tragen `data-a="name"`. Ein globaler Listener ruft `ACT[name](dataset, element)` auf. Fehler fängt der Listener ab und zeigt eine Fehlerseite statt abzustürzen.
 - **Live-Spiel:** `LIVE` hält Serie, Draft und laufendes Spiel. Während Draft und Live ist die Navigation gesperrt.
 - **Simulation:** `simOne()` spielt eine Woche inklusive eigener Serie ohne Draft. Der Simulationsmodus ruft das in Häppchen per `setTimeout` auf.
