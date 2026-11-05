@@ -67,6 +67,8 @@ const ACT={
   faff(){FILT.afford=!FILT.afford;FILT.n=40;render()},
   fmore(){FILT.n+=40;render()},
   cfno(){MODAL=null;render()},
+  qs(){qsOpen()},
+  qsgo(d){qsGo(+d.i)},
   cmp(d){if(d.b){CMP=[d.id,d.b]}else if(CMP&&CMP.length===1&&CMP[0]!==d.id){CMP=[CMP[0],d.id]}else{CMP=[d.id];pmsg(d.id,'Gemerkt. Öffne einen zweiten Spieler und tippe dort auf Vergleichen.',true);render();return}S.view='cmp';window.scrollTo(0,0);render()},
   cmpclose(){CMP=null;S.view='squad';render()},
   capt(d){const m=setCapt(d.id);pmsg(d.id,m,!/Nur Starter/.test(m));save();render()},
@@ -190,7 +192,12 @@ document.addEventListener('click',e=>{
   const f=ACT[b.dataset.a];if(!f)return;if(b.dataset.a==='nav')ERR=null;try{f(b.dataset,b)}catch(err){ERR=err.message;render()}
 });
 document.addEventListener('change',e=>{const t=e.target;if(t&&t.id==='impfile'&&t.files&&t.files[0]){const r=new FileReader();r.onload=()=>doImport(String(r.result));r.readAsText(t.files[0])}});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&MODAL&&(MODAL.team||MODAL.cf||MODAL.loan||MODAL.lin)){MODAL=null;render()}});
+document.addEventListener('keydown',e=>{
+  if(MODAL&&MODAL.qs){if(e.key==='Escape'){MODAL=null;render()}else if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();const n=QS.items.length;if(n){QS.i=(QS.i+(e.key==='ArrowDown'?1:n-1))%n;qsRefresh();const on=document.querySelector&&document.querySelector('.qsr.on');if(on&&on.scrollIntoView)on.scrollIntoView({block:'nearest'})}}else if(e.key==='Enter'){e.preventDefault();qsGo(QS.i)}return}
+  if(e.key==='Escape'&&MODAL&&(MODAL.team||MODAL.cf||MODAL.loan||MODAL.lin)){MODAL=null;render();return}
+  const t=e.target,typing=t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT'||t.isContentEditable);
+  if(S&&((e.key==='k'&&(e.ctrlKey||e.metaKey))||(e.key==='/'&&!typing&&!e.ctrlKey&&!e.metaKey))){e.preventDefault();qsOpen()}});
+document.addEventListener('input',e=>{const t=e.target;if(t&&t.id==='qsin'&&!e.isComposing){QS.q=t.value;QS.i=0;qsRefresh()}});
 /* Suche im Transfermarkt: bei jeder Eingabe neu zeichnen und den Cursor im Feld halten */
 document.addEventListener('input',e=>{const t=e.target;if(!t||t.id!=='tq'||e.isComposing)return;FILT.q=t.value;FILT.n=40;const pos=t.selectionStart;render();const n=$('#tq');if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(_){}}});
 document.addEventListener('change',e=>{const t=e.target;if(t&&t.id==='tsort'){FILT.sort=t.value;FILT.n=40;render()}if(t&&t.id==='tsgn'){FILT.sgn=+t.value;FILT.n=40;render()}});

@@ -43,6 +43,7 @@ Die Reihenfolge in `index.html` ist wichtig: Code auf oberster Ebene (zum Beispi
 - **Referenzen:** Nach dem Laden zeigen Objekte in `S.ev` nicht mehr auf dieselben Teams. `relink()`, `evBroken()` und `restartEvent()` reparieren das. Neue Turnier-Logik muss das Neuladen überstehen (der Saisontest lädt jede Woche neu).
 - **Rendering:** `render()` baut die ganze Seite als HTML-String neu. Ansichten sind Funktionen, die Strings liefern, registriert in der `views`-Tabelle in `render()`. Reiter laufen über globale Variablen (`KTAB`, `TTAB`, `LTAB`, `CLUBTAB`, `TACTAB`).
 - **Rückfragen:** Aktionen, die Geld kosten oder etwas löschen, rufen beim ersten Klick `askConfirm()` auf und laufen erst mit `data-ok="1"` aus dem Dialog wirklich durch.
+- **Übersicht und Suche:** Die Übersicht zeigt oben Kennzahlen als Karten, darunter das nächste Spiel und `todoItems()` (alles, was Aufmerksamkeit braucht, nach Dringlichkeit, jede Aufgabe mit Ziel). Neue Hinweise gehören als Eintrag in `todoItems()`, nicht als eigener Kasten. Die Schnellsuche (Strg+K oder `/`, `qsOpen`) findet Seiten aus `NAVG`, Spieler und Teams. Neue Seiten tauchen dort automatisch auf, wenn sie in `NAVG` stehen.
 - **Verlauf:** `render()` schreibt Ansicht und Reiter per `history.pushState` mit (`histSync`). Die Zurück-Taste führt über `histPop` zur vorherigen Seite. Während Draft, Live-Spiel, Verhandlung und Simulation bleibt die Seite stehen.
 - **Klicks:** Buttons tragen `data-a="name"`. Ein globaler Listener ruft `ACT[name](dataset, element)` auf. Fehler fängt der Listener ab und zeigt eine Fehlerseite statt abzustürzen.
 - **Live-Spiel:** `LIVE` hält Serie, Draft und laufendes Spiel. Während Draft und Live ist die Navigation gesperrt.
@@ -84,5 +85,6 @@ Ziel: Der Aufstieg zum Topteam soll mehrere Saisons dauern, wie in Football Mana
 
 ## Darstellung
 
-- Dunkles Design mit CSS-Variablen in `css/style.css` (`--bg`, `--panel`, `--brass`, `--good`, `--bad` ...). `--team` ist die Farbe des eigenen Teams.
+- Dunkles Design mit CSS-Variablen in `css/style.css` (`--bg`, `--panel`, `--brass`, `--good`, `--bad` ...). `--team` ist die Farbe des eigenen Teams. `--r` (10 px) und `--r2` (7 px) sind die Radien für Karten und Bedienelemente.
+- Flächen sind ruhige Karten mit Titel ohne Balken. Kennzahlen sind eigene Karten, am Handy eine wischbare Reihe. Spätere Regeln am Ende von `style.css` überschreiben frühere, neue Anpassungen kommen ans Ende.
 - Das Spiel muss am Handy laufen (ab 400 px Breite). Unter 900 px wird die Seitenleiste zur Leiste am unteren Rand.
