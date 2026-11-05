@@ -72,11 +72,18 @@ function poachBids(){const U=S.teams[S.user];const tops=U.roster.map(i=>S.player
     const T=pick(bs),fee=r1000(valueFor(p)*(1.15+R()*.35));
     mail(`${T.name} will ${p.name}`,`${T.name} (${T.reg}, Ruf ${T.rep}) bietet ${eurK(fee)} für ${p.name}. Der Spieler wäre gerne dabei. Lehnst du ab, ist er enttäuscht und will weg.`,{type:'offer',pid:p.id,from:T.id,fee,done:false,exp:S.step+3,poach:true})}}
 /* KI-Teams verstärken sich */
+/* Lücke nach einem Abgang füllen: zuerst der beste passende Vereinslose, dann ein T2-Spieler der Region, erst dann ein Nachwuchsspieler */
+function aiRefill(T,r){if(T.roster.some(i=>S.players[i].role===r))return;
+  const fa=S.fa.map(i=>S.players[i]).filter(p=>p&&p.role===r&&ovr(p)<=T.rep+4&&canJoinReg(p,T.reg)).sort((a,b)=>ovr(b)-ovr(a))[0];
+  if(fa){fa.contract=2;fa.salary=salaryFor(ovr(fa));sign(fa,T,true);return}
+  const t2=t2Of(T.reg).filter(t=>!t.academy).flatMap(t=>t.roster.map(i=>S.players[i])).filter(p=>p&&p.role===r&&!p.loan).sort((a,b)=>ovr(b)-ovr(a))[0];
+  if(t2){const from=S.teams[t2.team];unsign(t2);sign(t2,T,true);t2.contract=2;t2.salary=salaryFor(ovr(t2));ensureRoles(from,false);return}
+  ensureRoles(T,false)}
 function bestStarters(T){for(const r of ROLES){const b=T.roster.map(i=>S.players[i]).filter(p=>p.role===r).sort((x,y)=>ovr(y)-ovr(x))[0];if(b)T.starters[r]=b.id}}
 function aiPoach(){for(const reg of REGS){const L=teamsOf(reg).filter(t=>t.id!==S.user&&!t.academy).sort((a,b)=>b.rep-a.rep).slice(0,4);
   for(const T of L){if(R()>.55)continue;const weak=ROLES.map(r=>[r,S.players[T.starters[r]]]).filter(x=>x[1]).sort((a,b)=>ovr(a[1])-ovr(b[1]))[0];if(!weak)continue;const[r,cur]=weak;
-    const c=Object.values(S.players).filter(p=>p.role===r&&p.team&&p.team!==S.user&&p.team!==T.id&&!S.teams[p.team].academy&&S.teams[p.team].tier!==2&&S.teams[p.team].id!==acaId()&&S.teams[p.team].rep<T.rep&&ovr(p)>ovr(cur)+3&&ovr(p)<=T.rep+6).sort((a,b)=>ovr(b)-ovr(a))[0];
-    if(!c)continue;const from=S.teams[c.team];unsign(c);ensureRoles(from,false);bestStarters(from);c.contract=ri(2,3);c.salary=salaryFor(ovr(c));sign(c,T,true);
+    const c=Object.values(S.players).filter(p=>p.role===r&&p.team&&p.team!==S.user&&p.team!==T.id&&!S.teams[p.team].academy&&S.teams[p.team].tier!==2&&S.teams[p.team].id!==acaId()&&S.teams[p.team].rep<T.rep&&canJoinReg(p,T.reg)&&ovr(p)>ovr(cur)+3&&ovr(p)<=T.rep+6).sort((a,b)=>ovr(b)-ovr(a))[0];
+    if(!c)continue;const from=S.teams[c.team];c.home=from.reg;unsign(c);aiRefill(from,r);bestStarters(from);c.contract=ri(2,3);c.salary=salaryFor(ovr(c));sign(c,T,true);
     if(T.roster.length>MAXR){const w=T.roster.map(i=>S.players[i]).filter(x=>!isStarter(x)).sort((a,b)=>ovr(a)-ovr(b))[0];if(w)toFA(w)}
     if(R()<.5||T.reg===S.teams[S.user].reg)news(`${T.name} holt ${c.name} von ${from.name}`,'transfer')}}}
 /* Anpassung der Gegner */

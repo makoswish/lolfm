@@ -21,6 +21,7 @@ function signDiff(p){const U=S.teams[S.user],T=p.team?S.teams[p.team]:null,need=
   if(U.rep<need)return{lv:4,why:[`Spricht nur mit Vereinen ab Ruf ${need} (deiner: ${U.rep}).`]};
   const m=U.rep-need;let lv=m>=10?0:m>=5?1:2;why.push(m>=10?'Dein Verein ist für ihn eine klare Verbesserung.':m>=5?'Dein Verein ist für ihn interessant.':'Dein Verein liegt knapp über seiner Schmerzgrenze.');
   const cur=S.players[U.starters[p.role]];if(cur&&ovr(p)<ovr(cur)-1&&p.age>21){lv++;why.push(`Hätte bei dir keinen Stammplatz vor ${cur.name}.`)}
+  if(!canJoinReg(p,U.reg)){lv++;why.push(`Will ungern aus der ${homeReg(p)} in eine schwächere Region.`)}
   if(T&&T.tier!==2&&isStarter(p)&&T.rep>U.rep+3){lv++;why.push(`Ist Stammspieler bei einem größeren Verein (${T.name}).`)}
   if(!T){lv--;why.push('Vereinslos, sucht einen neuen Verein.')}else if(T.tier===2){lv--;why.push('Will den Sprung in die erste Liga.')}
   if(p.listed){lv--;why.push('Steht auf der Transferliste seines Vereins.')}

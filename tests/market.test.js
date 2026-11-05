@@ -36,3 +36,14 @@ for(const v of [3,2,1,0]){FILT.sgn=v;render();chk('Filter '+v);
 FILT.sgn=4;FILT.sort='easy';render();chk('Sortierung leicht');FILT.sort='ovr';
 ACT.player({id:p.id,tab:'vertrag'});chk('Spielerseite Bereitschaft');ok(document.querySelector('#app').innerHTML.includes('Wechselbereitschaft'),'Bereitschaft fehlt auf Spielerseite');
 `;
+// Regionen: Reihenfolge, Wechselrichtung, Auffüllen nach Abgängen
+module.exports+=`
+newGame('LYL','Tester');
+{const avg=r=>teamsOf(r).reduce((a,t)=>a+teamOvr(t),0)/teamsOf(r).length;
+ ok(avg('LCK')>avg('LEC')+3&&avg('LPL')>avg('LEC')+3,'LCK und LPL nicht klar vor LEC');ok(avg('LEC')>avg('LCS')&&avg('LCS')>avg('CBLOL')+2,'Reihenfolge der Regionen falsch');
+ const kr=genPlayer('MID',70,24,'LCK'),br=genPlayer('MID',70,24,'CBLOL');
+ ok(canJoinReg(kr,'LPL')&&!canJoinReg(kr,'CBLOL'),'LCK-Spieler darf nach Brasilien');ok(canJoinReg(br,'LCK')&&canJoinReg(br,'CBLOL'),'CBLOL-Spieler darf nicht aufsteigen');
+ const T=teamsOf('LEC').find(t=>t.id!==S.user),r='MID',gone=T.roster.filter(i=>S.players[i].role===r);for(const i of gone)toFA(S.players[i]);
+ aiRefill(T,r);const st=S.players[T.starters[r]];
+ ok(st&&st.role===r&&ovr(st)>=55,'Lücke mit Nachwuchsspieler statt Vereinslosem gefüllt: '+(st&&ovr(st)))}
+`;

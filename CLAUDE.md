@@ -62,7 +62,7 @@ Gemessen mit den Testläufen (Stand November 2026):
 - U23-Spieler wachsen etwa +3 OVR pro Saison, beim Nutzer und bei der KI gleich.
 - Talente bis 21 auf der Bank verlieren 1 bis 3 Potenzial pro Saison, Stammspieler gewinnen 0 bis 2 (selten ein Durchbruch mit +3 bis +6). Über alle U22 steigt das Potenzial im Schnitt um etwa 0,4 pro Saison.
 - Trainingszentrum über dem Ligaschnitt bringt bis +50 % Training, darunter höchstens -10 %. Ein Topteam mit Ruf 84 bis 88 startet bei etwa +20 %, ein kleiner Verein bei -10 %. Das Wachstum eigener U23 bleibt im Schnitt bei +3,4.
-- Neue Spieler liegen in T1 im Schnitt bei 68,5 OVR (Regionen von LCK 74 bis CBLOL 68). Bei Änderungen an Attributen oder Gewichten vorher und nachher messen.
+- Neue Spieler liegen in T1 im Schnitt bei 68 OVR. Regionen (Team-OVR): LCK 76, LPL 75,5, LEC 71, LCS 67,5, LCP 66, CBLOL 63, gesteuert über `REG[r].str`. Das Gefälle hält über mehrere Saisons, weil Spieler nur in gleich starke oder stärkere Regionen wechseln (`canJoinReg`, ein Punkt Spielraum) und Lücken nach Abgängen mit Vereinslosen oder T2-Spielern gefüllt werden (`aiRefill`). Bei Änderungen an Attributen, Gewichten oder Regionen vorher und nachher messen.
 - Ablöse und Gehalt steigen ab 70 OVR überproportional. Spieler weit über dem Vereinsruf verhandeln nicht.
 - Teamchemie wirkt mit -4,5 bis +3 Teamstärke. Neue Spieler brauchen etwa einen Split, bis sie eingespielt sind.
 - Gegner stellen sich mit steigendem Ruf öfter auf den Spielstil des Nutzers ein.

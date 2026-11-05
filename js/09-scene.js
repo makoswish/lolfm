@@ -8,7 +8,7 @@ function isMine(p){return !!p&&(p.team===S.user||p.team===acaId()||isLoanee(p))}
 function isLoanee(p){return !!(p&&p.loan&&(p.loan.from===S.user||p.loan.from===acaId()))}
 function t2Of(r){return Object.values(S.teams).filter(t=>t.tier===2&&t.reg===r)}
 function mkT2Team(id,name,reg,rep,color,academy){const T={id,name,reg,rep,color,tier:2,academy:!!academy,style:pick(SK),focus:pick(['TOP','MID','ADC']),roster:[],starters:{}};S.teams[id]=T;
-  const base=Math.round(48+(rep-40)*.5);
+  const base=Math.round(48+(rep-40)*.5+(REG[reg].str||0)*.6);
   for(const ro of ROLES){const p=genPlayer(ro,base+ri(-4,4),ri(16,21),reg);p.pot=clamp(ovr(p)+ri(8,24),ovr(p),95);p.salary=Math.min(p.salary,academy?400:1200);sign(p,T,true)}
   if(!academy){const p=genPlayer(pick(ROLES),base-4,ri(16,19),reg);p.pot=clamp(ovr(p)+ri(10,24),ovr(p),95);p.salary=Math.min(p.salary,900);sign(p,T,false)}
   for(const id of T.roster)S.players[id].o0=ovr(S.players[id]);return T}

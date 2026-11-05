@@ -227,10 +227,10 @@ function newSeason(){
       if(p.contract<=0){if(id===S.user||id===acaId()){toFA(p);mail('Spieler verlässt das Team',`Der Vertrag von ${p.name} ist ausgelaufen. Er ist jetzt vereinslos.`)}
         else if(R()<.75){p.contract=2;p.salary=salaryFor(ovr(p))}else toFA(p)}}}
   S.fa=S.fa.filter(id=>{const p=S.players[id];if(p.age>=30&&R()<.6){delete S.players[id];return false}return true});
-  for(let i=0;i<30;i++){const r=pick(REGS);const p=genPlayer(pick(ROLES),ri(45,63)+Math.max(0,REG[r].off),ri(17,19),r);p.contract=0;S.players[p.id]=p;S.fa.push(p.id)}
+  for(let i=0;i<30;i++){const r=pick(REGS);const p=genPlayer(pick(ROLES),ri(45,63)+Math.max(0,REG[r].off)+Math.round(REG[r].str),ri(17,19),r);p.contract=0;S.players[p.id]=p;S.fa.push(p.id)}
   for(const id in S.teams){if(id===S.user||id===acaId())continue;const T=S.teams[id];
     if(T.tier!==2)for(const r of ROLES){if(R()<.25){const cur=S.players[T.starters[r]],tp=t2Of(T.reg).filter(t=>!t.academy).flatMap(t=>t.roster.map(i=>S.players[i])).filter(p=>p.role===r&&!p.loan).sort((a,b)=>ovr(b)-ovr(a))[0];if(tp&&cur&&ovr(tp)>ovr(cur)-2&&T.roster.length<MAXR){const from=S.teams[tp.team];news(`${T.name} holt Talent ${tp.name} aus der T2-Szene (${from.name}).`,'transfer');unsign(tp);sign(tp,T,ovr(tp)>ovr(cur));tp.contract=2;tp.salary=salaryFor(ovr(tp));ensureRoles(from,false)}}}
-    for(const r of ROLES){const best=()=>S.fa.map(i=>S.players[i]).filter(p=>p.role===r&&ovr(p)<=T.rep+4).sort((a,b)=>ovr(b)-ovr(a))[0];
+    for(const r of ROLES){const best=()=>S.fa.map(i=>S.players[i]).filter(p=>p.role===r&&ovr(p)<=T.rep+4&&canJoinReg(p,T.reg)).sort((a,b)=>ovr(b)-ovr(a))[0];
       const have=T.roster.map(i=>S.players[i]).filter(p=>p.role===r);
       if(!have.length){const b=best();if(b){b.contract=2;b.salary=salaryFor(ovr(b));sign(b,T,true)}}
       else if(R()<.35){const b=best(),cur=S.players[T.starters[r]];if(b&&cur&&ovr(b)>ovr(cur)+3){b.contract=2;b.salary=salaryFor(ovr(b));sign(b,T,true);if(T.roster.length>8){const worst=T.roster.map(i=>S.players[i]).filter(p=>p.id!==b.id).sort((x,y)=>ovr(x)-ovr(y))[0];toFA(worst)}}}
