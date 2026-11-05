@@ -70,10 +70,11 @@ function newSim(A,B,ctx,drafts,live){
   if(ctx.big){const n=(avgD(A,'nrv')-avgD(B,'nrv'))*.35;XB.e+=n;XB.m+=n;XB.l+=n}
   if(ctx.gi>=2){const n=(avgD(A,'pool')-avgD(B,'pool'))*.15*Math.min(3,ctx.gi-1);XB.e+=n;XB.m+=n;XB.l+=n}
   XB.l+=(avgD(A,'con')-avgD(B,'con'))*.2;
+  const ob=T=>(S.players[T.starters.JGL].d.obj*2+S.players[T.starters.SUP].d.obj+avgD(T,'obj')*2)/5,XO=(ob(A)-ob(B))*.25;
   const da=draftBonus(A,dr[0],dr[1]),db=draftBonus(B,dr[1],dr[0]);for(const k in XB)XB[k]+=da[k]-db[k];
   const st=[ROLES.map(r=>S.players[A.starters[r]].id),ROLES.map(r=>S.players[B.starters[r]].id)],ps={};
   for(const ids of st)for(const id of ids)ps[id]={k:0,d:0,a:0,cs:0,dmg:0};
-  return{tac:[tacOf(A),tacOf(B)],A:A.id,B:B.id,ctx,dr,live:!!live,P:[teamPower(A,B),teamPower(B,A)],XB,luck:gauss()*4.6*lscale,G:0,t:0,fb:false,nextDrag:5,nextBaron:20,buff:[-1,-1],elder:[-1,-1],soul:-1,winner:-1,end:0,
+  return{tac:[tacOf(A),tacOf(B)],A:A.id,B:B.id,ctx,dr,live:!!live,P:[teamPower(A,B),teamPower(B,A)],XB,luck:gauss()*4.6*lscale,XO,G:0,t:0,fb:false,nextDrag:5,nextBaron:20,buff:[-1,-1],elder:[-1,-1],soul:-1,winner:-1,end:0,
     s:{k:[0,0],tw:[0,0],dr:[0,0],bn:[0,0]},st,ps,ev:[],tl:[{t:0,G:0,k:[0,0],tw:[0,0],dr:[0,0],bn:[0,0]}],ins:['std','std'],human:[false,false],call:[false,false],lost:[{top:0,mid:0,bot:0,nex:0},{top:0,mid:0,bot:0,nex:0}],dead:{},pos:null,evLoc:null,first:{}};
 }
 function simTick(z){
@@ -88,7 +89,7 @@ function simTick(z){
   const objB=(I[0]==='obj'?.8:0)-(I[1]==='obj'?.8:0);
   z.G+=d*9+gauss()*320;
   const tk=(k,i)=>OBJF[z.tac[i].obj][1][k]+VISION[z.tac[i].vision][2];
-  const pA=(div,ob)=>sig((d+(ob?objB+tk(ob,0)-tk(ob,1):0)+z.G/(div||2200))/10);
+  const pA=(div,ob)=>sig((d+(ob?objB+tk(ob,0)-tk(ob,1)+(z.XO||0):0)+z.G/(div||2200))/10);
   let loc=null;
   const add=(side,text,big)=>z.ev.push({t,side,text,big:!!big});
   const killer=w=>{let x=R(),acc=0;const a=pl(w);for(const p of a){acc+=KW[p.role];if(x<acc)return p}return a[3]};
@@ -97,7 +98,7 @@ function simTick(z){
   const swing=(w,amt)=>{let a=amt;if(I[1-w]==='safe')a*=.7;if(I[0]==='agg'||I[1]==='agg')a*=1.15;z.G+=sg(w)*a};
   const fightDmg=(w,mul)=>{for(const i of[0,1])for(const p of pl(i))P[p.id].dmg+=Math.round((600+R()*1200)*DMG[p.role]*(.7+p.d.mec/20*.6)*mul*(i===w?1:.6))};
   // Farm & Poke
-  for(const i of[0,1])for(const p of pl(i)){const x=P[p.id];if(z.dead[p.id]!==t-1)x.cs+=Math.round(CSR[p.role]*(.75+p.d.frm/20*.35)*(.85+R()*.3)*(ph==='l'?.85:1));x.dmg+=Math.round(140*DMG[p.role]*(1+t/40))}
+  for(const i of[0,1])for(const p of pl(i)){const x=P[p.id];if(z.dead[p.id]!==t-1)x.cs+=Math.round(CSR[p.role]*(.72+p.d.frm/20*.28+(p.d.wav||p.d.frm)/20*.1)*(.85+R()*.3)*(ph==='l'?.85:1));x.dmg+=Math.round(140*DMG[p.role]*(1+t/40))}
   // Kämpfe
   let fp=(ph==='e'?.3:ph==='m'?.4:.45)*(TEMPO[z.tac[0].tempo][2]+TEMPO[z.tac[1].tempo][2])/2;for(const v of I){if(v==='agg')fp*=1.3;if(v==='safe')fp*=.75}
   if(R()<Math.min(.85,fp)){

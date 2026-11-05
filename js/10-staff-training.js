@@ -14,10 +14,10 @@ function newStaffPool(){const rep=S.teams[S.user].rep;S.staffPool=Object.keys(SR
 function motBonus(){return(bestA(['hc'],'mot')-10)*.08}
 
 /* ===== Trainingsplan ===== */
-const SES={soloq:{n:'Solo-Queue',d:'Mechanik, Laning, Farmen, Präzision, Reaktion',g:['mec','lan','frm','pre','rea'],c:'tech',load:4},
-  scrim:{n:'Scrims',d:'Teamplay unter Spielbedingungen. Stärkt die Taktik-Vertrautheit.',g:['pos','tw','dec','com','gs'],c:'tac',load:6,fam:2.5},
-  vod:{n:'VOD-Analyse',d:'Spielverständnis, Vision, Antizipation, Entscheidungen',g:['gs','vis','ant','dec'],c:'tac',load:2,fam:1},
-  team:{n:'Kommunikation',d:'Teamwork, Kommunikation, Führung, Positionierung',g:['tw','com','lead','pos'],c:'ment',load:3},
+const SES={soloq:{n:'Solo-Queue',d:'Mechanik, Trading, Farmen, Wellenkontrolle, Skillshots, Spacing, Reaktion',g:['mec','lan','frm','wav','pre','spc','rea'],c:'tech',load:4},
+  scrim:{n:'Scrims',d:'Teamplay unter Spielbedingungen: Positionierung, Engage, Objectives, Entscheidungen. Stärkt die Taktik-Vertrautheit.',g:['pos','eng','obj','tw','dec','com'],c:'tac',load:6,fam:2.5},
+  vod:{n:'VOD-Analyse',d:'Makro, Vision-Kontrolle, Tracking, Objectives, Entscheidungen',g:['gs','vis','ant','obj','dec'],c:'tac',load:2,fam:1},
+  team:{n:'Kommunikation',d:'Teamwork, Kommunikation, Shotcalling, Engage',g:['tw','com','lead','eng'],c:'ment',load:3},
   mind:{n:'Mentaltraining',d:'Konzentration, Nervenstärke, Belastbarkeit, Reaktion',g:['con','nrv','sta','rea'],c:'ment',load:1},
   champ:{n:'Champion-Pool',d:'Meisterschaft der Haupt-Champions, neue Champions lernen',g:[],c:'tech',load:3},
   rest:{n:'Erholung',d:'+3 Form, +1 Moral, baut Belastung ab',g:[],c:'ment',load:-12}};
@@ -31,7 +31,7 @@ function trainUser(T,aca){const plan=S.training.plan,int=S.training.intensity,up
     const room=clamp((p.pot-o)/8,0,1),prof=.7+p.h.pro/20*.6,mm=S.ment&&S.ment[id]&&S.players[S.ment[id]]?1+mentQ(S.players[S.ment[id]])/80:1,lf=1-Math.max(0,(p.load||0)-70)/100;
     let load=0,ptsTot=0;
     for(const ses of plan){const sd=SES[ses];load+=sd.load;if(ses==='rest'){p.form=clamp(p.form+3,30,100);p.morale=clamp(p.morale+1,20,100);continue}
-      const G=(S.campBoost&&S.campBoost>=S.step&&!aca?1.3:1)*(.1+sesCoach(ses,aca)/4*.035)*(aca?1+.2*S.fin.infra.ac:1+.15*S.fin.infra.tc)*ageF(p)*(int==='high'?1.45:1)*room*(.5+R())*prof*mm*lf/3,pts=G/5*2.6;ptsTot+=pts;
+      const G=(S.campBoost&&S.campBoost>=S.step&&!aca?1.3:1)*(.1+sesCoach(ses,aca)/4*.035)*(aca?1+.2*S.fin.infra.ac:tcF())*ageF(p)*hwF()*(!aca&&building('tc')?.9:1)*(int==='high'?1.45:1)*room*(.5+R())*prof*mm*lf/3,pts=G/5*2.6*DSCALE;ptsTot+=pts;
       if(ses==='champ'){champTrain(p,G);continue}
       const kw=keyW(p.role),tot=sd.g.reduce((s,x)=>s+kw[x]+.03,0);for(const x of sd.g)p.d[x]=clamp(p.d[x]+pts*(kw[x]+.03)/tot,1,20)}
     if(p.ifoc&&p.d[p.ifoc]!=null)p.d[p.ifoc]=clamp(p.d[p.ifoc]+ptsTot*.45,1,20);
@@ -72,7 +72,7 @@ function mentorPanel(){const U=S.teams[S.user],all=[...U.roster,...(aca()?aca().
   return `<section class="panel s12"><div class="lab"><span>Mentoring</span><span>erfahrene Spieler betreuen Talente</span></div>
    ${young.length?young.map(p=>{const cur=S.ment[p.id]&&S.players[S.ment[p.id]];return `<div class="drow"><div class="dl">${chip(p.role)}<span class="nmcell">${p.name}</span><span class="dim" style="font-size:12px">${p.age} J. · Prof. ${p.h.pro>=15?'hoch':p.h.pro<=7?'niedrig':'mittel'}</span></div>
     <div class="dchs"><button class="chb ${cur?'':'on'}" data-a="ment" data-id="${p.id}" data-v=""><b>Kein Mentor</b><span>-</span></button>${seniors.filter(m=>mentorOk(m,p)||(cur&&cur.id===m.id)).map(m=>`<button class="chb ${cur&&cur.id===m.id?'on':''}" data-a="ment" data-id="${p.id}" data-v="${m.id}"><b>${m.name}</b><span>${m.role} · Eignung ${f1(mentQ(m))}</span></button>`).join('')}</div></div>`}).join(''):'<p class="empty">Keine Spieler bis 21 Jahre im Kader oder in der Academy.</p>'}
-   <p class="muted" style="font-size:13px;margin:10px 0 0">Ein Mentor (ab 22 Jahren, mindestens so stark) überträgt Professionalität und Ehrgeiz, hebt Spielverständnis, Entscheidungen, Nerven, Kommunikation und Führung und beschleunigt das Training. Auf gleicher Position gibt er auch Champions weiter. Eignung = Schnitt aus Professionalität, Führung und Spielverständnis. Jeder Mentor betreut höchstens zwei Talente.</p></section>`}
+   <p class="muted" style="font-size:13px;margin:10px 0 0">Ein Mentor (ab 22 Jahren, mindestens so stark) überträgt Professionalität und Ehrgeiz, hebt Makro, Entscheidungen, Nerven, Kommunikation und Shotcalling und beschleunigt das Training. Auf gleicher Position gibt er auch Champions weiter. Eignung = Schnitt aus Professionalität, Shotcalling und Makro. Jeder Mentor betreut höchstens zwei Talente.</p></section>`}
 
 /* ===== Kaderübersicht ===== */
 function squadAll(){const U=S.teams[S.user],A=aca();return[...U.roster.map(i=>[S.players[i],'pro']),...(A?A.roster.map(i=>[S.players[i],'aca']):[])]}
@@ -80,7 +80,7 @@ function squadAll(){const U=S.teams[S.user],A=aca();return[...U.roster.map(i=>[S
 function contractsTab(){const all=[...squadAll(),...Object.values(S.players).filter(isLoanee).map(p=>[p,'loan'])].sort((a,b)=>a[0].contract-b[0].contract||(a[1]==='aca')-(b[1]==='aca')||ovr(b[0])-ovr(a[0]));
   const exp=all.filter(([p])=>p.contract<=1),wk=wkKey();
   const row=([p,k])=>{const end=S.year+p.contract-1,can=p.contract<=2,tried=p.tried===wk;
-   const act=!can?`<span class="dim">ab ${end-1}</span>`:tried?'<span class="dim">nächste Woche</span>':`<button class="btn sm ${p.contract<=1?'':'ghost'}" data-a="nego" data-t="renew" data-id="${p.id}">Verlängern</button>`;
+   const act=isLoanIn(p)?`<span class="dim">Leihe von ${S.teams[p.loan.from]?S.teams[p.loan.from].id:'-'}</span>`:!can?`<span class="dim">ab ${end-1}</span>`:tried?'<span class="dim">nächste Woche</span>':`<button class="btn sm ${p.contract<=1?'':'ghost'}" data-a="nego" data-t="renew" data-id="${p.id}">Verlängern</button>`;
    return `<tr class="${k==='aca'?'benchrow':''}"><td><span class="chip">${p.role}</span></td><td class="nmcell stick"><button class="linkbtn" data-a="player" data-id="${p.id}">${p.name}</button></td>
     <td>${k==='loan'?'Leihe':k==='aca'?'Academy':isStarter(p)?'<span class="good">Starter</span>':'Bank'}</td><td class="r">${p.age}</td><td class="r mono">${ovr(p)}</td>
     <td class="r">${end}${p.contract<=1?' <span class="warn">läuft aus</span>':''}</td><td class="r">${eurK(p.salary)}</td><td class="r">${can?eurK(demandFor(p,true)):'<span class="dim">-</span>'}</td><td class="r">${act}</td></tr>`};

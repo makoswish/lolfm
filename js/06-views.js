@@ -7,6 +7,7 @@ function transferView(){
   const q=FILT.q.trim().toLowerCase();
   if(q)list=list.filter(p=>[p.name,p.rn,p.team&&S.teams[p.team].name,p.team].some(x=>x&&String(x).toLowerCase().includes(q)));
   if(FILT.afford)list=list.filter(canAfford);
+  if((FILT.sgn??4)<4)list=list.filter(p=>signDiff(p).lv<=FILT.sgn);
   const sk=MSORT[FILT.sort]||MSORT.ovr;list.sort((a,b)=>sk[1](b)-sk[1](a)||ovr(b)-ovr(a));
   const tabs=`<div class="seg" style="margin-bottom:16px">${[['markt','Markt'],['scout','Scouting'],['short','Beobachtung'],['hist','Verlauf']].map(([k,l])=>`<button class="${TTAB===k?'on':''}" data-a="ttab" data-v="${k}">${l}</button>`).join('')}</div>`;
   const rl=releasable();const head=`<div class="pagehead"><div><h1>Transfers</h1><p>Transferbudget ${eurK(S.fin.budget.transfer)} · Gehalt frei ${eurK(Math.max(0,wageFree()))}/Wo. · Kader ${U.roster.length}/${MAXR}</p></div>${rl>=25000?`<button class="btn ghost sm" data-a="gobudget">${eurK(rl)} freigeben</button>`:''}</div>${tabs}`;
@@ -17,12 +18,13 @@ function transferView(){
   <div class="seg" style="margin-bottom:14px">${[['ALL','Alle'],['SC','Gescoutet'],['FA','Vereinslos'],['T2','T2-Szene'],...REGS.map(r=>[r,r])].map(([k,l])=>`<button class="${FILT.src===k?'on':''}" data-a="fsrc" data-v="${k}">${l}</button>`).join('')}</div>
   <div class="mktbar"><input id="tq" class="inp" type="search" placeholder="Spieler oder Team suchen" value="${esc(FILT.q)}" autocomplete="off" spellcheck="false" aria-label="Suche">
    <label class="mksort"><span class="muted">Sortieren</span><select id="tsort" class="inp">${Object.entries(MSORT).map(([k,[l]])=>`<option value="${k}" ${FILT.sort===k?'selected':''}>${l}</option>`).join('')}</select></label>
+   <label class="mksort"><span class="muted">Bereitschaft</span><select id="tsgn" class="inp">${[[4,'Alle'],[3,'Ohne Unmögliche'],[2,'Höchstens schwer'],[1,'Machbar oder leichter'],[0,'Nur leicht']].map(([v,l])=>`<option value="${v}" ${(FILT.sgn??4)===v?'selected':''}>${l}</option>`).join('')}</select></label>
    <button class="tog ${FILT.afford?'on':''}" data-a="faff" title="Ablöse und Gehalt passen ins Budget, notfalls mit Umschichtung vom Konto"><span class="tbox">${FILT.afford?'✓':''}</span><span>Nur bezahlbar</span></button></div>
   <div class="rows">${list.slice(0,FILT.n).map(p=>playerRow(p,true)).join('')||'<p class="empty">Keine Spieler für diese Suche.</p>'}</div>
   <div class="mkfoot"><span class="muted">${list.length>FILT.n?`${FILT.n} von ${list.length} Spielern`:`${list.length} Spieler`}</span>${list.length>FILT.n?`<button class="btn ghost sm" data-a="fmore">40 weitere zeigen</button>`:''}</div></section></div>`;
 }
 /* Sortierung im Markt. Potenzial zählt nur, wenn es gescoutet ist, sonst verrät die Liste mehr als die Spielerseite. */
-const MSORT={ovr:['Stärke',p=>ovr(p)],pot:['Potenzial (gescoutet)',p=>potMid(p)??-1],value:['Marktwert',p=>valueFor(p)],fee:['Ablöse niedrig',p=>-askFor(p)],wage:['Gehalt niedrig',p=>-demandFor(p,false)],age:['Jüngste zuerst',p=>-p.age]};
+const MSORT={ovr:['Stärke',p=>ovr(p)],pot:['Potenzial (gescoutet)',p=>potMid(p)??-1],value:['Marktwert',p=>valueFor(p)],fee:['Ablöse niedrig',p=>-askFor(p)],wage:['Gehalt niedrig',p=>-demandFor(p,false)],easy:['Leichteste zuerst',p=>-signDiff(p).lv],age:['Jüngste zuerst',p=>-p.age]};
 
 /* ===== Turniere / Liga ===== */
 function bmatch(m){const me=meIn(m);return `<div class="bm ${me?'me':''}"><span class="dim" style="font-size:12px;display:flex;justify-content:space-between"><span>Bo${m.bo}</span>${me&&m.w?wlPill(m):me?'<span class="myid" style="font-size:11px">DEIN SPIEL</span>':''}</span>${[m.a,m.b].map((id,i)=>`<div class="${m.w?(m.w===id?'win':'lose'):''} ${isMyT(id)?'mine':''}"><span style="display:flex;gap:8px;align-items:center;min-width:0">${crest(S.teams[id],'sm')}${tname(id)}</span><span class="mono">${m.w?m.score[i]:'-'}</span></div>`).join('')}</div>`}
@@ -136,10 +138,7 @@ function clubView(){
      <section class="panel s12"><div class="lab">Streaming-Pflicht für Spieler</div><p class="muted" style="font-size:14px;margin:0 0 10px">Deine Spieler streamen neben dem Training. Bringt aktuell ${eur(ps)} pro Woche, kostet aber jede Woche etwas Form.</p>
       <div class="seg"><button class="${f.pstream?'':'on'}" data-a="pstream" data-v="0">Aus</button><button class="${f.pstream?'on':''}" data-a="pstream" data-v="1">An</button></div></section>`;
   }else if(CLUBTAB==='infra'){
-    body=Object.entries(INFRA).map(([k,x])=>{const lv=f.infra[k],max=x.cost.length,cost=x.cost[lv];
-      return `<section class="panel s4"><div class="lab"><span>${x.n}</span><span>Stufe ${lv}/${max}</span></div>${bar(lv/max*100,'var(--brass)')}<p class="muted" style="font-size:14px;margin:10px 0">${x.d}</p>
-       <div class="stat"><span class="muted">Unterhalt pro Woche</span><span>${eur(lv*x.up)}</span></div>
-       ${lv<max?`<div class="acts" style="margin-top:10px"><button class="btn sm" data-a="infra" data-v="${k}" ${f.balance<cost?'disabled':''}>Ausbauen für ${eurK(cost)}</button></div><p class="dim" style="font-size:12.5px;margin:6px 0 0">Danach ${eur((lv+1)*x.up)} Unterhalt pro Woche.</p>`:'<p class="good" style="font-size:13px;margin:10px 0 0">Voll ausgebaut.</p>'}</section>`}).join('');
+    body=infraTab();
   }else{
     body=`${staffTab()}
     <section class="panel s6"><div class="lab">Vorstand</div>${bar(S.board,barCol(S.board))}<p class="muted" style="font-size:13px">Vertrauen ${Math.round(S.board)}%. Steigt mit guten Platzierungen im Sommer-Split und einer Worlds-Teilnahme. Ziel: Platz ${expected(S.user)}.</p>
@@ -147,7 +146,7 @@ function clubView(){
      <p class="muted" style="font-size:13px;margin:0 0 8px">Hängt ein Turnier fest, startet "Phase neu starten" die aktuelle Turnierphase neu. Bisherige Ergebnisse bleiben.</p>
      <div class="acts"><button class="btn ghost sm" data-a="repair">Phase neu starten</button>${MODAL==='reset'?`<button class="btn danger sm" data-a="reset" data-ok="1">Ja, alles löschen</button><button class="btn ghost sm" data-a="reset" data-ok="0">Abbrechen</button>`:`<button class="btn ghost sm" data-a="reset">Neue Karriere</button>`}</div></section>`;
   }
-  return `<div class="pagehead"><div><h1>Verein</h1><p>${U.reg} · Ruf ${U.rep} · ${eurK(f.balance)}${f.loan?' · Kredit offen':''}</p></div></div>
+  return `<div class="pagehead"><div><h1>Verein</h1><p>${U.reg} · Ruf ${U.rep} · Prestige: ${prestigeOf(U)} · ${eurK(f.balance)}${f.loan?' · Kredit offen':''}</p></div></div>
   <div class="seg" style="margin-bottom:16px">${tabs.map(([k,l])=>`<button class="${CLUBTAB===k?'on':''}" data-a="ctab" data-v="${k}">${l}</button>`).join('')}</div>
   <div class="grid">${body}</div>`;
 }
@@ -167,7 +166,7 @@ function moodReasons(p){const r=[],T=S.teams[p.team],mine=p.team===S.user;
   if((p.load||0)>=70)r.push(['bad',`Hohe Belastung (${Math.round(p.load)}): Form und Fortschritt leiden.`]);
   if(S.ment&&S.ment[p.id]&&S.players[S.ment[p.id]])r.push(['good',`Wird von ${S.players[S.ment[p.id]].name} betreut.`]);
   if(mine&&p.team===S.user&&motBonus()>0)r.push(['good','Der Head Coach motiviert das Team.']);
-  if(mine&&S.fin.infra.gh)r.push(['good',`Gaming House Stufe ${S.fin.infra.gh} hebt Moral und Form.`]);
+  if(mine&&S.fin.infra){const gr=ghRel();if(gr>.2)r.push(['good','Das Gaming House liegt über dem Ligaschnitt und hebt Moral und Form.']);else if(gr<-.2)r.push(['bad','Das Gaming House liegt unter dem Ligaschnitt und drückt die Stimmung.'])}
   return r}
 function roleAvg(role,reg){const xs=Object.values(S.teams).filter(t=>t.reg===reg&&t.tier!==2).map(t=>S.players[t.starters[role]]).filter(Boolean);const a={};for(const k of ATTR)a[k]=Math.round(xs.reduce((s,p)=>s+p.a[k],0)/xs.length);a.ovr=Math.round(xs.reduce((s,p)=>s+ovr(p),0)/xs.length);return a}
 function kda(s){return s&&s.g?(s.d?(s.k/s.d).toFixed(2).replace('.',','):s.k+',00'):'-'}
@@ -201,7 +200,7 @@ function coachView(p){const o=ovr(p),room=p.pot-o;
 function playerView(){
   const p=S.players[PV&&PV.id];if(!p){S.view='squad';return squadView()}
   const o=ovr(p),mine=isMine(p),main=p.team===S.user,inAca=p.team===acaId(),T=p.team?S.teams[p.team]:null,ex=seeExact(p),K=kn(p),shl=(S.short||[]).includes(p.id);
-  const val=valueFor(p),demand=T?Math.round(Math.max(p.salary,salaryFor(o))*1.15/100)*100:salaryFor(o);
+  const val=valueFor(p),demand=mine?p.salary:demandFor(p,false);
   const st=p.st||{g:0,w:0,k:0,d:0,mvp:0},ka=keyAttrs(p.role),tab=PV.tab||'profil',an=mine?4:knLv(p);
   const ovrTxt=ex||an>=3?o:'~'+Math.round(o/5)*5,pTxt=potTxt(p),pM=potMid(p);
   const head=`<section class="panel s12 phead"><div class="pav">${avatar(p,'xl')}${T?crest(T,'sm'):''}</div>
@@ -217,7 +216,7 @@ function playerView(){
     const reasons=mine||an>=2?`<ul class="reasons">${moodReasons(p).map(([c,t])=>`<li class="${c}">${t}</li>`).join('')}</ul>`:'<p class="dim" style="font-size:13px;margin:4px 0 0">Gründe sichtbar ab 35% Scouting-Wissen.</p>';
     body=`<section class="panel s8"><div class="lab"><span>Attribute</span><span>Hervorgehoben: wichtig für ${RN[p.role]}${ex?'':` · Scouting-Wissen ${K}%`}</span></div>
       <div class="agrid">${col('T')}${col('M')}${col('P')}</div>
-      <p class="muted" style="font-size:13px;margin:12px 0 0">Nervenstärke wirkt in Playoffs und internationalen Spielen, Championpool ab Spiel 2 einer Serie, Konstanz gegen schwankende Leistungen, Konzentration im Lategame, Belastbarkeit gegen Formverlust.</p></section>
+      <p class="muted" style="font-size:13px;margin:12px 0 0">Fahr mit der Maus über ein Attribut für die Erklärung. Direkt im Spiel wirken: Objectives von Jungler und Support bei Drachen, Herold und Baron, Wellenkontrolle und Farmen beim CS, Nervenstärke in Playoffs und international, Championpool ab Spiel 2 einer Serie, Konstanz gegen Schwankungen, Konzentration im Lategame.</p></section>
      <section class="panel s4"><div class="lab">Kernwerte</div>${ATTR.map(k=>`<div class="attr"><span class="muted">${AN[k]}</span>${bar(ex?p.a[k]:Math.round(p.a[k]/10)*10,'var(--brass)')}<span class="mono" style="text-align:right">${ex?Math.round(p.a[k]):'?'}</span></div>`).join('')}
       <div class="lab" style="margin-top:16px">Rollen-Eignung</div>${ROLES.map(r=>{const v=ovrAs(p,r);return `<div class="attr"><span class="${r===p.role?'':'muted'}">${RN[r]}${r===p.role?' •':''}</span>${bar((v-30)*1.6,r===p.role?'var(--brass)':'var(--dim)')}<span class="mono" style="text-align:right">${ex||an>=3?v:'?'}</span></div>`}).join('')}
       <div class="lab" style="margin-top:16px"><span>Champions</span><span>Meisterschaft</span></div>${(p.ch||[]).slice(0,mine||an>=2?8:2).map(([c,m])=>`<div class="attr"><span class="${isMeta(c)?'':'muted'}">${CH[c][0]}${isMeta(c)?' ★':''}</span>${bar(m*5,'var(--brass)')}<span class="mono" style="text-align:right">${mine||an>=2?m:'?'}</span></div>`).join('')}${!mine&&an<2?'<p class="dim" style="font-size:13px;margin:4px 0 0">Ganzer Pool ab 35% Scouting-Wissen.</p>':''}
@@ -249,6 +248,7 @@ function playerView(){
     let acts='';
     const lb=canLoan(p)?`<button class="btn ghost" data-a="lendmenu" data-id="${p.id}">An T2-Team verleihen</button>`:'';
     if(isLoanee(p)){acts=`<button class="btn" data-a="lendback" data-id="${p.id}">Zurückholen</button>${p.contract<=2?`<button class="btn ghost" data-a="nego" data-t="renew" data-id="${p.id}">Vertrag verhandeln</button>`:''}`}
+    else if(isLoanIn(p)){acts=`${!isStarter(p)?`<button class="btn" data-a="setstart" data-id="${p.id}">Als Starter setzen</button>`:''}<button class="btn danger" data-a="linend" data-id="${p.id}">Leihe beenden</button>`}
     else if(inAca){acts=`${lb}<button class="btn" data-a="promote" data-id="${p.id}">In den Profikader holen</button>${p.contract<=2?`<button class="btn ghost" data-a="nego" data-t="renew" data-id="${p.id}">Vertrag verhandeln</button>`:''}<button class="btn danger" data-a="release" data-id="${p.id}">Entlassen (${eurK(p.salary*8)})</button>`}
     else if(main){acts=`${!isStarter(p)?`<button class="btn" data-a="setstart" data-id="${p.id}">Als Starter setzen</button>`:''}<button class="btn ghost" data-a="demote" data-id="${p.id}">In die Academy schicken</button>${lb}
       ${p.contract<=2?`<button class="btn ghost" data-a="nego" data-t="renew" data-id="${p.id}">Vertrag verhandeln</button>`:''}
@@ -257,11 +257,16 @@ function playerView(){
     else if(p.tried===wkKey())acts=`<p class="muted" style="margin:0">Diese Woche keine weiteren Gespräche möglich.</p>`;
     else if(!T)acts=`<button class="btn" data-a="nego" data-t="fa" data-id="${p.id}">Vertrag verhandeln</button>`;
     else acts=`<button class="btn" data-a="nego" data-t="buy" data-id="${p.id}">Transfer verhandeln</button>`;
+    if(!mine){const tw=trialWhy(p),tr=onTrial(p);
+      if(canTrial(p)||tr)acts+=tr?`<span class="muted" style="font-size:13px">Im Probetraining bis Woche ${tr.end}</span>`:`<button class="btn ghost" data-a="trial" data-id="${p.id}" ${tw?'disabled':''} title="${tw||''}">Zum Probetraining einladen</button>`;
+      if(T&&!T.academy&&T.id!==acaId()&&!(T.tier!==2&&isStarter(p)))acts+=`<button class="btn ghost" data-a="linmenu" data-id="${p.id}">Ausleihen bis Saisonende</button>`}
     const b=S.fin.budget;
     body=`<section class="panel s7"><div class="lab">${mine?'Vertrag':'Verhandlung'}</div>
       <div class="stat"><span class="muted">Marktwert</span><span>${eur(val)}</span></div>
       <div class="stat"><span class="muted">${mine?'Gehalt':'Gehaltsforderung'}</span><span>${eur(mine?p.salary:demand)} / Woche</span></div>
       ${p.team?`<div class="stat"><span class="muted">Vertrag</span><span>${p.contract} ${p.contract===1?'Saison':'Saisons'}</span></div>`:''}
+      ${isLoanIn(p)?`<div class="stat"><span class="muted">Leihe von</span><span>${S.teams[p.loan.from]?S.teams[p.loan.from].name:'-'} bis Saisonende</span></div><div class="stat"><span class="muted">Dein Gehaltsanteil</span><span>${p.loan.share}% · ${eur(wageOf(p))} / Woche</span></div>`:''}
+      ${p.trialDone===S.season&&!mine?`<div class="stat"><span class="muted">Probetraining</span><span class="good">abgeschlossen, alle Werte bekannt</span></div>`:''}
       ${mine&&p.wb?`<div class="stat"><span class="muted">Siegprämie</span><span>${eur(p.wb)} pro Serie</span></div>`:''}
       ${p.clause?`<div class="stat"><span class="muted">Ausstiegsklausel</span><span>${eur(p.clause)}</span></div>`:''}
       ${mine&&p.promise==='start'?`<div class="stat"><span class="muted">Versprechen</span><span style="font-family:var(--f-body)" class="${isStarter(p)?'good':'bad'}">Stammspieler${isStarter(p)?'':' (gebrochen)'}</span></div>`:''}
@@ -271,7 +276,11 @@ function playerView(){
      <section class="panel s5"><div class="lab">Dein Budget</div>
       <div class="stat"><span class="muted">Transferbudget</span><span>${eur(b.transfer)}</span></div>
       <div class="stat"><span class="muted">Gehalt frei pro Woche</span><span class="${wageFree()<0?'bad':''}">${eur(wageFree())}</span></div>
-      <p class="muted" style="font-size:13px;margin:10px 0 0">Ablösen gehen vom Transferbudget ab, Gehälter müssen ins Gehaltsbudget passen. Umschichten kannst du unter Verein > Finanzen.</p></section>`;
+      <p class="muted" style="font-size:13px;margin:10px 0 0">Ablösen gehen vom Transferbudget ab, Gehälter müssen ins Gehaltsbudget passen. Umschichten kannst du unter Verein > Finanzen.</p></section>
+     ${mine?'':(()=>{const sd=signDiff(p),pt=prestTxt(p,false),U=S.teams[S.user];return `<section class="panel s12"><div class="lab"><span>Wechselbereitschaft</span><span>${signTag(p)}</span></div>
+      <ul class="reasons">${sd.why.map(t=>`<li>${t}</li>`).join('')}</ul>
+      <div class="stat" style="margin-top:10px"><span class="muted">Prestige deines Vereins</span><span>${prestigeOf(U)} (Ruf ${U.rep})</span></div>
+      <div class="stat"><span class="muted">Wirkung aufs Gehalt</span><span class="${pt[0]}">${pt[1]}</span></div></section>`})()}`;
   }
   return `<div class="pagehead"><button class="btn ghost sm" data-a="pback">Zurück</button></div><div class="grid">${head}${tabs}${body}</div>`;
 }
@@ -299,7 +308,7 @@ function teamModal(){
   const ps=T.roster.map(i=>S.players[i]).sort((a,b)=>(isStarter(b)-isStarter(a))||ROLES.indexOf(a.role)-ROLES.indexOf(b.role));
   const sp=currentSplit(),row=sp&&sp.reg[T.reg]?tableOf(sp.reg[T.reg].ids,sp.reg[T.reg].res).findIndex(x=>x.id===T.id)+1:0;
   return `<div class="ov" data-a="close"><div class="sheet wide" role="dialog" aria-modal="true" aria-label="${T.name}">
-  <div style="display:flex;gap:12px;align-items:center">${crest(T,'lg')}<div style="min-width:0"><h2>${T.name}</h2><p class="muted" style="margin:2px 0 0">${T.reg} · Ruf ${T.rep}${row?` · Platz ${row} im ${sp.name}`:''}</p></div></div>
+  <div style="display:flex;gap:12px;align-items:center">${crest(T,'lg')}<div style="min-width:0"><h2>${T.name}</h2><p class="muted" style="margin:2px 0 0">${T.reg} · Ruf ${T.rep} · ${T.tier===2?'T2':prestigeOf(T)}${row?` · Platz ${row} im ${sp.name}`:''}</p></div></div>
   <div style="margin-top:14px">
    <div class="stat"><span class="muted">Team-OVR</span><span>${mine||an>=3?teamOvr(T):'~'+Math.round(teamOvr(T)/5)*5}</span></div>
    <div class="stat"><span class="muted">Spielstil</span><span style="font-family:var(--f-body)">${mine||an>=2?STYLES[T.style].n:'Analyst Level 2 nötig'}</span></div>

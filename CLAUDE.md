@@ -28,7 +28,7 @@ Die Reihenfolge in `index.html` ist wichtig: Code auf oberster Ebene (zum Beispi
 | 08-negotiation | Transfer- und Gehaltsverhandlungen (`startNego`, `NG`) |
 | 09-scene | T2-Szene, Academy, Scouting, Statistiken |
 | 10-staff-training | Trainerstab, Trainingsplan, Mentoring, Kaderübersicht, Spielerbilder |
-| 11-sponsors | Sponsoren-Slots, Angebote, Ziele |
+| 11-sponsors | Sponsoren-Slots, Angebote, Ziele, Infrastruktur (`infraTab`, `infraWeek`) |
 | 12-content | Match-Historie, News, Auszeichnungen, Erfolge, Spieler-Ereignisse (`PEV`) |
 | 13-chemistry | Teamchemie, Teamaktionen, Abwerbungen, KI-Transfers, Gegner-Anpassung |
 | 14-sim | Mehrere Wochen simulieren |
@@ -46,8 +46,12 @@ Die Reihenfolge in `index.html` ist wichtig: Code auf oberster Ebene (zum Beispi
 - **Verlauf:** `render()` schreibt Ansicht und Reiter per `history.pushState` mit (`histSync`). Die Zurück-Taste führt über `histPop` zur vorherigen Seite. Während Draft, Live-Spiel, Verhandlung und Simulation bleibt die Seite stehen.
 - **Klicks:** Buttons tragen `data-a="name"`. Ein globaler Listener ruft `ACT[name](dataset, element)` auf. Fehler fängt der Listener ab und zeigt eine Fehlerseite statt abzustürzen.
 - **Live-Spiel:** `LIVE` hält Serie, Draft und laufendes Spiel. Während Draft und Live ist die Navigation gesperrt.
+- **Attribute:** 22 Detail-Attribute in `DA` (Technik, Spielverständnis, Mental) mit Erklärung in `DINFO`. Die fünf Kernwerte entstehen über `COMP`, die Rollen gewichten sie über `W`. `DSCALE` gleicht aus, dass Training seine Punkte auf mehr Attribute verteilt. Alte Stände bekommen Wellenkontrolle, Spacing, Objectives und Engage in `attrMigrate()` aus verwandten Werten. In der Engine wirken Objectives (Jungler und Support doppelt) auf Drachen, Herold und Baron.
+- **Prestige und Wechselbereitschaft:** Der Vereinsruf ist das Prestige (`prestigeOf`). `prestF()` macht Gehaltsforderungen bei Vereinen unter dem Status des Spielers teurer (bis +50 %) und bei größeren Vereinen günstiger (bis -12 %). `signDiff()` stuft ein, wie schwer ein Spieler zu holen ist (Leicht bis Unmöglich), mit derselben Ruf-Hürde wie die Verhandlung (`signNeed`).
 - **Talente:** Jeder Spieler hat einen Entwicklungstyp `p.dev` (f/n/s), der über `ageF()` das Training und über `growLimit()` das Saisonwachstum steuert. Talente bis 21 brauchen Spielpraxis: `youthSeason()` verschiebt zum Saisonende das Potenzial (ab 20 Spielen hoch, unter 5 runter). Fremde Spieler zeigen das Potenzial als Spanne (`potEst`, `potTxt`).
 - **Leihe:** `loanOut()` schickt junge Bankspieler als Stammspieler zu einem T2-Team, `p.loan` merkt den Herkunftsverein. Leihspieler zählen über `isLoanee()` als eigene (`isMine`), stehen aber im Kader des T2-Teams. `newSeason()` holt alle zuerst zurück (`loansReturn`). Die Aktionen heißen `lend*`, weil `ACT.loan` der Kredit ist.
+- **Infrastruktur:** Kein Kaufknopf. Ausbau läuft über `infraAsk()`, der Vorstand entscheidet nach ein bis zwei Wochen in `infraDecide()`. Genehmigte Projekte stehen in `S.fin.builds` und werden in Wochenraten bezahlt. Trainingszentrum und Gaming House wirken relativ zum Ligaschnitt (`tcF`, `ghRel`), der aus dem Ruf der KI-Teams kommt (`aiInfra`). Der Startstand `S.fin.ibase` richtet sich nach dem Ruf, Unterhalt kostet nur, was darüber hinaus gebaut wurde. Hardware (`S.fin.hw`) altert und hängt am Wochenbudget `S.fin.hwb`.
+- **Probetraining und Leihe:** `startTrial()` lädt vereinslose und T2-Spieler für eine Woche ein, danach ist alles über sie bekannt. `loanIn()` leiht Bankspieler anderer Teams bis Saisonende (`p.loan.inn`, Gehaltsanteil über `wageOf`). Leihspieler lassen sich nicht verkaufen, entlassen oder verlängern.
 - **Simulation:** `simOne()` spielt eine Woche inklusive eigener Serie ohne Draft. Der Simulationsmodus ruft das in Häppchen per `setTimeout` auf.
 
 ## Balancing
@@ -57,6 +61,8 @@ Gemessen mit den Testläufen (Stand November 2026):
 - 1 Punkt Teamstärke ist etwa 5 bis 6 Prozent Siegchance pro Spiel. +3 ergibt rund 68 Prozent.
 - U23-Spieler wachsen etwa +3 OVR pro Saison, beim Nutzer und bei der KI gleich.
 - Talente bis 21 auf der Bank verlieren 1 bis 3 Potenzial pro Saison, Stammspieler gewinnen 0 bis 2 (selten ein Durchbruch mit +3 bis +6). Über alle U22 steigt das Potenzial im Schnitt um etwa 0,4 pro Saison.
+- Trainingszentrum über dem Ligaschnitt bringt bis +50 % Training, darunter höchstens -10 %. Ein Topteam mit Ruf 84 bis 88 startet bei etwa +20 %, ein kleiner Verein bei -10 %. Das Wachstum eigener U23 bleibt im Schnitt bei +3,4.
+- Neue Spieler liegen in T1 im Schnitt bei 68,5 OVR (Regionen von LCK 74 bis CBLOL 68). Bei Änderungen an Attributen oder Gewichten vorher und nachher messen.
 - Ablöse und Gehalt steigen ab 70 OVR überproportional. Spieler weit über dem Vereinsruf verhandeln nicht.
 - Teamchemie wirkt mit -4,5 bis +3 Teamstärke. Neue Spieler brauchen etwa einen Split, bis sie eingespielt sind.
 - Gegner stellen sich mit steigendem Ruf öfter auf den Spielstil des Nutzers ein.

@@ -148,20 +148,21 @@ function weekTick(){
   L['Liga-Ausschüttung']=LSHARE[U.reg]||4000;
   if(S.teams[S.user+'A'])L['T2-Förderung']=2000;
   L.Spielerstreams=f.pstream?Math.round(U.roster.length*500*U.rep/70):0;
-  L.Gehälter=-U.roster.reduce((s,id)=>s+S.players[id].salary,0);
+  L.Gehälter=-U.roster.reduce((s,id)=>s+wageOf(S.players[id]),0);
   if(f.adv){const cut=Math.min(f.adv.left,Math.round(L.Sponsoren*.25));L['Vorschuss-Rückzahlung']=-cut;f.adv.left-=cut;if(f.adv.left<=0){f.adv=null;mail('Vorschuss beglichen','Der Sponsor-Vorschuss ist vollständig verrechnet.')}}
   L.Staff=-staffWages();
   L['Content-Team']=-CONTENT[f.content][0];
-  L.Infrastruktur=-Object.keys(INFRA).reduce((a,k)=>a+f.infra[k]*INFRA[k].up,0);
+  L.Infrastruktur=-upkeep();
   {const A=aca();if(A)L['Academy-Gehälter']=-A.roster.reduce((x,i)=>x+S.players[i].salary,0)}
   if(f.loan){const pay=Math.min(f.loan.weekly,f.loan.left);L.Kreditrate=-pay;f.loan.left-=pay;if(f.loan.left<=0){f.loan=null;mail('Kredit abbezahlt','Der Kredit ist vollständig zurückgezahlt.')}}
   for(const k in L)book(k,L[k]);
+  infraWeek();trialWeek();
   f.last=L;f.weeks.push(netW());f.hist.push(f.balance);
   {const fs=finState();if(fs.proj<0&&f.balance>=0&&S.step%8===4)mail('Finanzen: Warnung',`Die Prognose fürs Saisonende liegt bei ${eurK(fs.proj)}. Mögliche Hebel: Spieler verkaufen, Content-Team oder Infrastruktur zurückfahren, Merch-Preise anpassen, einen Sponsor-Vorschuss nehmen oder Gehälter beim nächsten Vertrag drücken.`)}
   if(f.balance<-50000&&!f.bail){f.bail=true;const amt=r1000(150000+U.rep*1500);book('Vorstandshilfe',amt);S.board=clamp(S.board-12,0,100);mail('Der Vorstand springt ein',`Das Konto lag deutlich im Minus. Der Vorstand schießt einmalig ${eurK(amt)} nach, das Vertrauen sinkt deutlich. Ein zweites Mal gibt es diese Saison nicht.`)}
   if(f.balance<0&&!f.budget.frozen){f.budget.frozen=true;f.budget.transfer=0;mail('Budget eingefroren','Das Konto ist im Minus. Der Vorstand streicht das Transferbudget, bis die Finanzen wieder stimmen.')}if(f.hist.length>80)f.hist.shift();
   f.fans=Math.round(f.fans*(1+(CONTENT[f.content][1]+MERCH[f.merch].f)/100));
-  for(const id of U.roster){const p=S.players[id];if(f.pstream)p.form=clamp(p.form-1.2*(1.3-p.d.sta/20*.6),30,100);if(f.infra.gh){p.morale=clamp(p.morale+.6*f.infra.gh,20,100);p.form=clamp(p.form+.3*f.infra.gh,30,100)}}
+  for(const id of U.roster){const p=S.players[id];if(f.pstream)p.form=clamp(p.form-1.2*(1.3-p.d.sta/20*.6),30,100);{const gr=ghRel();if(gr){p.morale=clamp(p.morale+.6*gr,20,100);p.form=clamp(p.form+.3*gr,30,100)}}p.form=clamp(p.form+((f.hw??60)-60)/150,30,100)}
   for(const id in S.teams){const T=S.teams[id];if(id===S.user)trainUser(T,false);else if(id===acaId())trainUser(T,true);else trainTeam(T,pick(['bal','tech','mental','team','mind']),'normal',2,false)}
   for(const id of U.roster){const p=S.players[id];if(!ROLES.some(r=>U.starters[r]===id))p.morale=clamp(p.morale-.5,20,100)}
   trainKnow();t2Week();scoutWeek();mentorWeek();
@@ -170,10 +171,10 @@ function weekTick(){
   for(const id of U.roster){const p=S.players[id];if(p.promise==='start'){if(isStarter(p))p.pweeks=0;else{p.pweeks=(p.pweeks||0)+1;p.morale=clamp(p.morale-2,20,100);if(p.pweeks===4)mail('Versprechen gebrochen',`${p.name} wurde ein Stammplatz versprochen und sitzt seit vier Wochen auf der Bank. Seine Moral sinkt jede Woche.`)}}}
   for(const id of [...U.roster]){const p=S.players[id];if(p.clause&&p.clause<=valueFor(p)*1.25&&R()<.03){const bs=Object.values(S.teams).filter(t=>t.id!==S.user&&!t.academy&&t.rep>=ovr(p)-6);if(bs.length&&U.roster.length>5){sellPlayer(p,pick(bs),p.clause,'Ausstiegsklausel gezogen');break}}}
   for(const m of S.inbox)if(m.type==='offer'&&!m.done&&m.exp<=S.step){m.done=true;m.result='abgelaufen'}
-  const listed=U.roster.filter(id=>S.players[id].listed);
+  const listed=U.roster.filter(id=>S.players[id].listed&&!S.players[id].loan);
   if(R()<(listed.length?.3:.07)&&U.roster.length>5){
-    const pool=listed.length?listed:U.roster;const p=S.players[pick(pool)];
-    const buyers=Object.values(S.teams).filter(t=>t.id!==S.user&&!t.academy&&t.rep>=ovr(p)-8);
+    const pool=listed.length?listed:U.roster.filter(id=>!S.players[id].loan);const p=pool.length?S.players[pick(pool)]:null;
+    const buyers=p?Object.values(S.teams).filter(t=>t.id!==S.user&&!t.academy&&t.rep>=ovr(p)-8):[];
     if(buyers.length&&!S.inbox.some(m=>m.type==='offer'&&!m.done&&m.pid===p.id)){const from=pick(buyers);const fee=Math.round(valueFor(p)*(.85+R()*.45)/5000)*5000;
       mail(`Angebot für ${p.name}`,`${from.name} (${from.reg}) bietet ${eurK(fee)} Ablöse für ${p.name} (${RN[p.role]}, OVR ${ovr(p)}). Das Angebot gilt zwei Wochen.`,{type:'offer',pid:p.id,from:from.id,fee,done:false,exp:S.step+2})}
   }
@@ -185,7 +186,7 @@ function trainTeam(T,focus,intensity,coach,log){
   for(const id of T.roster){const p=S.players[id],o=ovr(p),before=log?Object.assign({},p.d):null;
     if(focus==='rest'){p.form=clamp(p.form+6,30,100);p.morale=clamp(p.morale+2,20,100)}
     else{const room=clamp((p.pot-o)/8,0,1),prof=.7+p.h.pro/20*.6;
-      const G=(.1+coach*.035)*(log?1+.15*S.fin.infra.tc:1)*ageF(p)*(intensity==='high'?1.45:1)*room*(.5+R())*prof,pts=G/5*2.6,kw=keyW(p.role);
+      const G=(.1+coach*.035)*(log?tcF():1)*ageF(p)*(intensity==='high'?1.45:1)*room*(.5+R())*prof,pts=G/5*2.6*DSCALE,kw=keyW(p.role);
       const tot=grp.a.reduce((s,x)=>s+kw[x]+.03,0);
       for(const x of grp.a)p.d[x]=clamp(p.d[x]+pts*(kw[x]+.03)/tot,1,20);
       if(p.ifoc&&p.d[p.ifoc]!=null)p.d[p.ifoc]=clamp(p.d[p.ifoc]+pts*.45,1,20);
@@ -214,11 +215,11 @@ function endSeason(){sponsorSeasonEnd();
   mail('Saison beendet',`Sommer-Split: Platz ${place} (Ziel: ${exp}). Worlds-Sieger: ${S.teams[S.rec.WLD.champ].name}. Starte die neue Saison, wenn du bereit bist.`);
 }
 function newSeason(){
-  loansReturn();youthSeason();
+  loansReturn();youthSeason();infraSeason();trialsEnd();
   for(const p of Object.values(S.players)){(p.hist=p.hist||[]).push(Object.assign({y:S.year,o:ovr(p),t:p.team},p.st||{}));if(p.hist.length>8)p.hist.shift();p.st={g:0,w:0,k:0,d:0,mvp:0};p.sg={};if(p.ch){for(const c of p.ch)if(p.age<=25)c[1]=clamp(c[1]+ri(0,2),1,20);if(p.age<=25&&R()<.4&&p.ch.length<8){const nw=CHR[p.role].filter(c=>!p.ch.some(x=>x[0]===c));if(nw.length)p.ch.push([pick(nw),ri(7,12)])}p.ch.sort((a,b)=>b[1]-a[1])}p.age++;const o=ovr(p),room=clamp((p.pot-o)/6,0,1);
     const gl=growLimit(p),gf=p.dev==='s'&&p.age>=22?1.3:p.dev==='f'&&p.age<=19?1.25:1;
     for(const x of DK){if(p.age<=gl)p.d[x]=clamp(p.d[x]+R()*.55*room*gf,1,20);
-      else if(p.age>=27){if(['rea','mec','con'].includes(x))p.d[x]=clamp(p.d[x]-R()*(p.age>=29?.75:.45),1,20);else if(['gs','dec','lead','pos'].includes(x))p.d[x]=clamp(p.d[x]+R()*.15,1,20);else p.d[x]=clamp(p.d[x]-R()*.15,1,20)}}
+      else if(p.age>=27){if(['rea','mec','con'].includes(x))p.d[x]=clamp(p.d[x]-R()*(p.age>=29?.75:.45),1,20);else if(['gs','dec','lead','pos','wav','obj','vis'].includes(x))p.d[x]=clamp(p.d[x]+R()*.15,1,20);else p.d[x]=clamp(p.d[x]-R()*.15,1,20)}}
     derive(p);
     if(ovr(p)>p.pot)p.pot=ovr(p);p.form=clamp(p.form+5,30,85);p.listed=false}
   for(const id in S.teams){const T=S.teams[id];

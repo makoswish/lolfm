@@ -3,9 +3,30 @@ let NG=null;
 const PROM={start:['Stammspieler',3],rot:['Rotation',2],back:['Ersatz',1],youth:['Talent',1.5]};
 const SBOPT=[0,10000,25000,50000,100000],WBOPT=[0,500,1000,2000],CLOPT=[0,1.5,2,3];
 function expRole(p){const U=S.teams[S.user],cur=S.players[U.starters[p.role]],o=ovr(p);if(!cur||cur.id===p.id)return'start';const co=ovr(cur);return o>=co-1?'start':o>=co-7?'rot':p.age<=20?'youth':'back'}
-function demandFor(p,renew){const U=S.teams[S.user],o=ovr(p);let d=salaryFor(o)*(p.team&&p.team!==S.user?1.15:1)*(.9+p.h.amb/20*.3);
-  const want=o+p.h.amb/4;if(U.rep<want-6)d*=1+(want-6-U.rep)/40;
+/* ===== Prestige =====
+   Der Ruf eines Vereins ist sein Prestige. Spieler, für die ein Verein eine Nummer zu klein ist, verlangen mehr Gehalt.
+   Für Spitzenteams nehmen sie Abschläge in Kauf. Eigene Spieler bei der Verlängerung nur halb so stark. */
+const PRESTIGE=[[88,'Weltspitze'],[80,'Spitzenteam'],[72,'Etabliert'],[64,'Mittelfeld'],[56,'Herausforderer'],[0,'Kleiner Verein']];
+function prestigeOf(T){return PRESTIGE.find(x=>T.rep>=x[0])[1]}
+function pStatus(p){return ovr(p)+p.h.amb/4}
+function prestF(p,renew){const g=pStatus(p)-S.teams[S.user].rep;let f=g>0?1+g/45:1+g/80;f=clamp(f,.88,1.5);return renew?1+(f-1)/2:f}
+function prestTxt(p,renew){const f=prestF(p,renew),pc=Math.round((f-1)*100);if(pc>=3)return['bad',`+${pc}% Aufschlag: Für ihn ist dein Verein eine Nummer zu klein.`];if(pc<=-3)return['good',`${pc}% Abschlag: Er will zu einem Verein mit deinem Prestige.`];return['muted','Dein Prestige passt zu ihm, kein Auf- oder Abschlag.']}
+function demandFor(p,renew){const o=ovr(p);let d=salaryFor(o)*(p.team&&p.team!==S.user?1.15:1)*(.9+p.h.amb/20*.3)*prestF(p,renew);
   if(renew){d=Math.max(d,p.salary*1.05);if(p.morale<50)d*=1.1}return r100(d)}
+/* ===== Wechselbereitschaft =====
+   Wie schwer ist ein Spieler zu holen? Nutzt dieselbe Ruf-Hürde wie die Verhandlung, dazu Rolle, Verein und Stimmung. */
+const SIGNL=[['Leicht','var(--good)'],['Machbar','var(--good)'],['Schwer','var(--warn)'],['Kaum möglich','var(--bad)'],['Unmöglich','var(--dim)']];
+function signNeed(p){return Math.ceil(pStatus(p)-13)-Math.round(attract()*2)}
+function signDiff(p){const U=S.teams[S.user],T=p.team?S.teams[p.team]:null,need=signNeed(p),why=[];
+  if(U.rep<need)return{lv:4,why:[`Spricht nur mit Vereinen ab Ruf ${need} (deiner: ${U.rep}).`]};
+  const m=U.rep-need;let lv=m>=10?0:m>=5?1:2;why.push(m>=10?'Dein Verein ist für ihn eine klare Verbesserung.':m>=5?'Dein Verein ist für ihn interessant.':'Dein Verein liegt knapp über seiner Schmerzgrenze.');
+  const cur=S.players[U.starters[p.role]];if(cur&&ovr(p)<ovr(cur)-1&&p.age>21){lv++;why.push(`Hätte bei dir keinen Stammplatz vor ${cur.name}.`)}
+  if(T&&T.tier!==2&&isStarter(p)&&T.rep>U.rep+3){lv++;why.push(`Ist Stammspieler bei einem größeren Verein (${T.name}).`)}
+  if(!T){lv--;why.push('Vereinslos, sucht einen neuen Verein.')}else if(T.tier===2){lv--;why.push('Will den Sprung in die erste Liga.')}
+  if(p.listed){lv--;why.push('Steht auf der Transferliste seines Vereins.')}
+  if(p.morale<45){lv--;why.push('Ist unzufrieden bei seinem Verein.')}
+  return{lv:clamp(lv,0,3),why}}
+function signTag(p){const s=signDiff(p),[n,c]=SIGNL[s.lv];return `<span class="sgn" style="--c:${c}">${n}</span>`}
 function prefYears(p){if(p.age>=27)return 3;if(p.h.amb>=15&&ovr(p)>=75)return 2;return p.age<=21?3:2}
 function askFor(p){const U=S.teams[S.user],T=p.team?S.teams[p.team]:null;if(!T)return 0;return r1000(valueFor(p)*(isStarter(p)?1.35:1.05)*(1+.06*p.contract)*(T.rep>U.rep+5?1.1:1))}
 function canAfford(p){return fitPlan(askFor(p),demandFor(p,false)).ok}
@@ -13,8 +34,9 @@ function startNego(type,pid){
   const p=S.players[pid],U=S.teams[S.user],o=ovr(p);
   if(type!=='renew'&&U.roster.length>=MAXR){pmsg(pid,`Dein Kader ist voll (${MAXR}). Gib zuerst einen Spieler ab.`,false);return false}
   if(p.tried===wkKey()){pmsg(pid,'Diese Woche sind keine weiteren Gespräche möglich.',false);return false}
-  const pat=clamp(3+Math.round((U.rep-(o+p.h.amb/4-8))/6)+(type==='renew'?1:0)-(p.team&&S.teams[p.team].reg!==U.reg?1:0),1,6);
-  if(type!=='renew'){const need=Math.ceil(o+p.h.amb/4-13);if(U.rep<need){pmsg(pid,`${p.name} lehnt Gespräche ab. Er will zu einem Verein mit mehr Renommee (Ruf ab ${need}, deiner: ${U.rep}).`,false);return false}}
+  if(isLoanIn(p)){pmsg(pid,'Er ist nur ausgeliehen. Über seinen Vertrag verhandelt sein Verein.',false);return false}
+  const at=attract(),pat=clamp(3+Math.round((U.rep-(o+p.h.amb/4-8))/6)+(type==='renew'?1:0)-(p.team&&S.teams[p.team].reg!==U.reg?1:0)+(at>.25?1:at<-.25?-1:0),1,6);
+  if(type!=='renew'){const need=signNeed(p);if(U.rep<need){pmsg(pid,`${p.name} lehnt Gespräche ab. Er will zu einem Verein mit mehr Renommee (Ruf ab ${need}, deiner: ${U.rep}).`,false);return false}}
   NG={type,pid,stage:type==='buy'?'fee':'contract',pat,patMax:pat,log:[],dem:{sal:demandFor(p,type==='renew'),yrs:prefYears(p),role:expRole(p)},done:false,dead:false};
   NG.terms={sal:NG.dem.sal,yrs:NG.dem.yrs,role:NG.dem.role,sb:0,wb:0,cl:0};
   if(type==='buy'){const T=S.teams[p.team],ask=askFor(p);
