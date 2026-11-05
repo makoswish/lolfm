@@ -67,7 +67,7 @@ function chemEventWeek(){if(S.inbox.some(m=>m.type==='pev'&&!m.done))return;cons
 /* Erfolg macht Ansprüche */
 function raiseDemands(){const U=S.teams[S.user],L=[];for(const r of ROLES){const p=S.players[U.starters[r]];if(!p||p.wantRaise)continue;if(p.h.amb>=11&&p.salary<demandFor(p,false)*.8){p.wantRaise=true;L.push(p.name)}}
   if(L.length)mail('Nach dem Titel: Gehaltswünsche',`${L.join(', ')} ${L.length>1?'wollen':'will'} nach dem Erfolg einen besseren Vertrag. Bis zur Verlängerung sinkt die Moral leicht und die Chemie leidet.`)}
-function poachBids(){const U=S.teams[S.user];const tops=U.roster.map(i=>S.players[i]).filter(p=>isStarter(p)&&ovr(p)>=U.rep-2).sort((a,b)=>ovr(b)-ovr(a)).slice(0,2);
+function poachBids(){const U=S.teams[S.user];const tops=U.roster.map(i=>S.players[i]).filter(p=>!p.loan&&isStarter(p)&&ovr(p)>=U.rep-2).sort((a,b)=>ovr(b)-ovr(a)).slice(0,2);
   for(const p of tops){if(R()>.5)continue;const bs=Object.values(S.teams).filter(t=>t.id!==S.user&&t.tier!==2&&!t.academy&&t.rep>=U.rep+4).sort((a,b)=>b.rep-a.rep).slice(0,6);if(!bs.length)continue;
     const T=pick(bs),fee=r1000(valueFor(p)*(1.15+R()*.35));
     mail(`${T.name} will ${p.name}`,`${T.name} (${T.reg}, Ruf ${T.rep}) bietet ${eurK(fee)} für ${p.name}. Der Spieler wäre gerne dabei. Lehnst du ab, ist er enttäuscht und will weg.`,{type:'offer',pid:p.id,from:T.id,fee,done:false,exp:S.step+3,poach:true})}}

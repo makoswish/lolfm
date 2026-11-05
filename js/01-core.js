@@ -69,7 +69,7 @@ const SLOTS=[['main','Hauptsponsor',1,null,'',['fix','perf','risk','goal','multi
   ['stream','Streaming-Plattform',.25,()=>S.fin.content>=1,'Content-Team aktiv',['content','fix','fan']],['mobile','Mobilfunk-Partner',.15,()=>S.teams[S.user].rep>=70,'Ruf ab 70',['fix','multi','goal']],
   ['car','Mobilitätspartner',.12,()=>S.teams[S.user].rep>=80,'Ruf ab 80',['fix','multi','perf']]];
 const STYPE={fix:{n:'Festbetrag',d:'Planbare Zahlung jede Woche, keine Boni.'},perf:{n:'Leistungsvertrag',d:'Weniger Fixum, dafür Prämie für jeden Seriensieg und für Titel.'},risk:{n:'Risikovertrag',d:'Kleines Fixum, große Prämien für Titel und internationale Qualifikationen.'},goal:{n:'Zielvertrag',d:'Mittleres Fixum, großer Bonus wenn das Saisonziel erreicht wird.'},multi:{n:'Mehrjahresvertrag',d:'Fast volles Fixum über 2-3 Saisons. Planbar über die Saison hinaus.'},fan:{n:'Reichweiten-Deal',d:'Kleines Fixum plus Betrag je nach Fanzahl.'},content:{n:'Content-Deal',d:'Hohes Fixum, Spieler drehen Content. Kostet etwas Form, braucht ein Content-Team.'}};
-const INFRA={tc:{n:'Trainingszentrum',d:'Mehr Fortschritt im Wochentraining, +15% pro Stufe.',cost:[120000,250000,400000],up:1500},gh:{n:'Gaming House',d:'Jede Woche etwas mehr Moral und Form für den ganzen Kader.',cost:[100000,200000,350000],up:2000},ac:{n:'Academy',d:'Mehr und bessere Talente für deine Academy zum Saisonstart, dazu schnelleres Academy-Training.',cost:[80000,180000],up:4000}};
+const INFRA={tc:{n:'Trainingszentrum',d:'Mehr Fortschritt im Wochentraining. Über dem Ligaschnitt gibt es einen Bonus, darunter einen Malus.',cost:[120000,250000,400000],up:1500},gh:{n:'Gaming House',d:'Wohnen und Alltag des Teams. Über dem Ligaschnitt steigen Moral und Form jede Woche, darunter sinken sie.',cost:[100000,200000,350000],up:2000},ac:{n:'Academy',d:'Mehr und bessere Talente für deine Academy zum Saisonstart, dazu schnelleres Academy-Training.',cost:[80000,180000],up:4000}};
 const CONTENT=[[0,0,'Keins'],[2500,.25,'Klein'],[6000,.6,'Mittel'],[12000,1.1,'Groß']];
 const MERCH={low:{n:'Günstig',m:.7,f:.35},normal:{n:'Normal',m:1,f:0},high:{n:'Premium',m:1.4,f:-.3}};
 const LOANS=[250000,500000,1000000];
@@ -183,13 +183,13 @@ function teamsOf(r){return Object.values(S.teams).filter(t=>t.reg===r&&t.tier!==
 function expected(id){const T=S.teams[id];return teamsOf(T.reg).sort((a,b)=>b.rep-a.rep).findIndex(t=>t.id===id)+1}
 function sponsorFor(rep){return Math.round((rep-28)**2*7.5/100)*100}
 function newFin(bal,fans){return{weeks:[],balance:bal,fans,slots:Object.fromEntries(SLOTS.map(x=>[x[0],null])),offers:{},merch:'normal',content:0,infra:{tc:0,gh:0,ac:0},loan:null,pstream:false,season:{inc:{},exp:{}},last:null,hist:[bal]}}
-function wageBill(){const A=S.teams[S.user+'A'];return S.teams[S.user].roster.reduce((s,id)=>s+S.players[id].salary,0)+(A?A.roster.reduce((s,id)=>s+S.players[id].salary,0):0)}
+function wageBill(){const A=S.teams[S.user+'A'];return S.teams[S.user].roster.reduce((s,id)=>s+wageOf(S.players[id]),0)+(A?A.roster.reduce((s,id)=>s+S.players[id].salary,0):0)}
 function proWages(){return S.teams[S.user].roster.reduce((s,id)=>s+S.players[id].salary,0)}
-function sustainW(){const f=S.fin,U=S.teams[S.user];const inc=(sponsorBase()||SLOTS.slice(0,2).reduce((a,[k])=>a+(f.offers[k]?f.offers[k][0].base:0),0))+f.fans*.03+(LSHARE[U.reg]||4000)+(S.teams[S.user+'A']?2000:0);const oth=staffWages()+CONTENT[f.content][0]+Object.keys(INFRA).reduce((a,k)=>a+f.infra[k]*INFRA[k].up,0)+(S.scouts||[]).reduce((a,x)=>a+x.wage,0);return Math.max(0,(inc-oth)*.95)}
+function sustainW(){const f=S.fin,U=S.teams[S.user];const inc=(sponsorBase()||SLOTS.slice(0,2).reduce((a,[k])=>a+(f.offers[k]?f.offers[k][0].base:0),0))+f.fans*.03+(LSHARE[U.reg]||4000)+(S.teams[S.user+'A']?2000:0);const oth=staffWages()+CONTENT[f.content][0]+upkeep()+(S.scouts||[]).reduce((a,x)=>a+x.wage,0);return Math.max(0,(inc-oth)*.95)}
 function wageFree(){return S.fin.budget.wage-wageBill()}
 function setBudgets(){const f=S.fin,U=S.teams[S.user],bill=wageBill(),pos=f.balance>0;
   f.budget={transfer:pos?r1000(Math.min(f.balance*.45,f.balance*.2+U.rep*2500)):0,wage:r100(Math.max(bill+1500,Math.min(Math.max(bill*1.1+2500,U.rep*300),sustainW()))),salePct:clamp(50+Math.round((S.board-50)/2),35,80),asked:false,frozen:!pos}}
-function weeklyCosts(){const f=S.fin;return wageBill()+staffWages()+CONTENT[f.content][0]+Object.keys(INFRA).reduce((a,k)=>a+f.infra[k]*INFRA[k].up,0)+(S.scouts||[]).reduce((a,x)=>a+x.wage,0)+(f.loan?f.loan.weekly:0)}
+function weeklyCosts(){const f=S.fin;return wageBill()+(HWB[f.hwb]?HWB[f.hwb].c:0)+buildCost()+staffWages()+CONTENT[f.content][0]+upkeep()+(S.scouts||[]).reduce((a,x)=>a+x.wage,0)+(f.loan?f.loan.weekly:0)}
 function reserveAmt(){return r1000(weeklyCosts()*10)}
 function releasable(){const f=S.fin;if(f.balance<=0)return 0;return Math.max(0,r1000((f.balance-reserveAmt()-f.budget.transfer)*(.5+S.board/200)))}
 function budgetReview(){const f=S.fin,b=f.budget,U=S.teams[S.user];if(f.balance<=0)return;const bill=wageBill();
@@ -216,7 +216,7 @@ function migrate(){addMissingTeams();for(const p of Object.values(S.players)){if
   if(!S.know)initKnow();
   if(!aca())genT2();if(!S.t2)t2Init();
   {const f=S.fin;for(const[k]of SLOTS){if(!(k in f.slots))f.slots[k]=null;if(f.slots[k]&&f.slots[k].sat==null)f.slots[k].sat=60;if(!f.slots[k]&&!(f.offers&&f.offers[k]))genSlotOffers(k)}}
-  initStaff();if(!S.training.plan)S.training.plan=(PLANS[S.training.focus]||PLANS.bal).slice();S.ment=S.ment||{};
+  initStaff();if(!S.training.plan)S.training.plan=(PLANS[S.training.focus]||PLANS.bal).slice();S.ment=S.ment||{};infraInit();S.trials=S.trials||[];
   if(!S.fin.lshare){S.fin.lshare=1;const A=aca();if(A)for(const id of A.roster){const p=S.players[id];if(p.age<=19)p.salary=Math.min(p.salary,450)}setBudgets();mail('Finanzen überarbeitet','Neu: Liga-Ausschüttung und T2-Förderung jede Woche, günstigere Academy-Gehälter, Sponsor-Vorschuss und eine einmalige Vorstandshilfe im Notfall. Die Budgets wurden neu berechnet.')}initScouting();if(!S.tst)S.tst={}}
 function relink(ev){if(!ev)return;if(ev.type==='intl'){ev.stage.cur=ev.cur;return}
   if(ev.stage==='semi')for(const r of REGS)ev.reg[r].po.semis=ev.cur.filter(m=>m.tag===r);
@@ -246,7 +246,7 @@ function newGame(teamId,mgr){
   }));
   for(let i=0;i<45;i++){const p=genPlayer(ROLES[i%5],ri(46,70),undefined,pick(REGS));p.contract=0;S.players[p.id]=p;S.fa.push(p.id)}
   const U=S.teams[teamId];
-  S.fin=newFin((U.rep-40)*20000,U.rep*2000);S.fin.lshare=1;genOffers();setBudgets();
+  S.fin=newFin((U.rep-40)*20000,U.rep*2000);S.fin.lshare=1;S.trials=[];infraInit();genOffers();setBudgets();
   VIEWREG=U.reg;
   S.tacs=['A','B','C'].map(n=>defTac(U,n));S.tacs[1].style='SCL';S.tacs[2].style='AGG';S.tacA=0;applyTac();initKnow();for(const k in S.know)S.know[k]=tKeys(S.tacs[0]).some(x=>x[0]===k)?80:45;
   genT2();initScouting();initStaff();S.training.plan=PLANS.bal.slice();S.ment={};

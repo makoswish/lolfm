@@ -67,6 +67,11 @@ const ACT={
   faff(){FILT.afford=!FILT.afford;FILT.n=40;render()},
   fmore(){FILT.n+=40;render()},
   cfno(){MODAL=null;render()},
+  trial(d){const e=startTrial(d.id);pmsg(d.id,e||'Er trainiert diese Woche bei euch mit. Der Bericht kommt nächste Woche.',!e);save();render()},
+  linmenu(d){const p=S.players[d.id];if(!p)return;MODAL={lin:p.id};render()},
+  linoffer(d){const e=loanIn(d.id,+d.v);MODAL=null;pmsg(d.id,e||'Leihe perfekt. Er gehört bis Saisonende zu deinem Kader.',!e);if(S.view!=='player'){PV.tab='vertrag';PV.back=S.view;S.view='player'}save();render()},
+  linend(d){if(d.ok!=='1'){const p=S.players[d.id];return askConfirm('linend',{id:d.id},`Leihe von ${p.name} beenden?`,`Er geht sofort zurück zu seinem Verein. Die Leihgebühr von ${eurK(p.loan.fee||0)} bekommst du nicht zurück.`,'Leihe beenden')}
+    MODAL=null;const e=loanInEnd(d.id);if(e)pmsg(d.id,e,false);else{S.view='squad';PV=null}save();render()},
   lendmenu(d){const p=S.players[d.id];if(!canLoan(p))return;MODAL={loan:p.id};render()},
   lend(d){const e=loanOut(d.id,d.t);MODAL=null;if(e)loanErr(d.id,e);save();render()},
   lendback(d){const r=loanBack(d.id);if(typeof r==='string')loanErr(d.id,r);else mail('Leihe beendet',`${S.players[d.id].name} ist zurück (${r.g} Spiele, OVR ${r.d>=0?'+':''}${r.d}).`);save();render()},
@@ -82,12 +87,12 @@ const ACT={
   ifoc(d){const p=S.players[d.id];p.ifoc=d.v==='none'?null:d.v;save();render()},
   close(){MODAL=null;render()},
   setstart(d){const p=S.players[d.id];S.teams[S.user].starters[p.role]=p.id;pmsg(d.id,`${p.name} startet ab sofort auf ${RN[p.role]}.`,true);save();render()},
-  list(d){const p=S.players[d.id];p.listed=!p.listed;pmsg(d.id,p.listed?'Andere Teams wissen jetzt, dass er zu haben ist.':'Er steht nicht mehr zum Verkauf.');save();render()},
+  list(d){const p=S.players[d.id];if(isLoanIn(p))return;p.listed=!p.listed;pmsg(d.id,p.listed?'Andere Teams wissen jetzt, dass er zu haben ist.':'Er steht nicht mehr zum Verkauf.');save();render()},
   renew(d){const p=S.players[d.id],dem=Math.round(salaryFor(ovr(p))*1.1/100)*100;
     if(dem-p.salary>wageFree()){pmsg(d.id,`Das Gehaltsbudget reicht nicht. Nötig: ${eurK(dem-p.salary)} mehr pro Woche, frei sind ${eurK(Math.max(0,wageFree()))}. Du kannst unter Verein > Finanzen umschichten.`,false);render();return}
     if(p.morale<45&&R()<.6){p.tried=wkKey();pmsg(d.id,`${p.name} ist unzufrieden und lehnt ab. Mehr Spielzeit oder Siege helfen.`,false)}
     else{p.salary=dem;p.contract=Math.min(4,p.contract+2);pmsg(d.id,`Verlängert bis ${S.year+p.contract-1} für ${eurK(dem)} pro Woche.`,true)}save();render()},
-  release(d){const p=S.players[d.id],U=S.teams[S.user];if(!p)return;
+  release(d){const p=S.players[d.id],U=S.teams[S.user];if(!p||isLoanIn(p))return;
     if(d.ok!=='1')return askConfirm('release',{id:p.id},`${p.name} entlassen?`,`Er verlässt den Verein sofort. Die Abfindung von ${eurK(p.salary*8)} geht direkt vom Konto ab. Das lässt sich nicht rückgängig machen.`,`Entlassen für ${eurK(p.salary*8)}`);
     MODAL=null;const wasA=p.team===acaId();book('Abfindungen',-p.salary*8);toFA(p);if(wasA)ensureRoles(aca(),false);else ensureRoles(U,true);S.view='squad';PV=null;save();render()},
   fa(d){const p=S.players[d.id],U=S.teams[S.user],f=+d.f,dem=salaryFor(ovr(p));
@@ -158,7 +163,8 @@ const ACT={
   merch(d){S.fin.merch=d.v;save();render()},
   content(d){S.fin.content=+d.v;save();render()},
   pstream(d){S.fin.pstream=d.v==='1';save();render()},
-  infra(d){const f=S.fin,x=INFRA[d.v],lv=f.infra[d.v];if(lv>=x.cost.length||f.balance<x.cost[lv])return;book('Investitionen',-x.cost[lv]);f.infra[d.v]++;save();render()},
+  infraask(d){const e=infraAsk(d.v);if(e)mail('Antrag nicht möglich',e);save();render()},
+  hwb(d){if(HWB[d.v])S.fin.hwb=d.v;save();render()},
   loan(d){const f=S.fin,a=+d.v;if(f.loan)return;book('Kredit',a);f.budget.transfer+=a;if(f.balance>0)f.budget.frozen=false;f.loan={left:Math.round(a*1.12),weekly:Math.round(a*1.12/26)};mail('Kredit aufgenommen',`${eurK(a)} sind auf dem Konto und im Transferbudget. Rückzahlung: ${eurK(f.loan.weekly)} pro Woche über 26 Wochen.`);save();render()},
   payloan(){const f=S.fin;if(!f.loan||f.balance<f.loan.left)return;book('Kredittilgung',-f.loan.left);f.loan=null;save();render()},
   repair(){if(LIVE){clearInterval(LIVE.timer);LIVE=null}restartEvent();ERR=null;S.view='home';save();render()},
@@ -172,7 +178,7 @@ document.addEventListener('click',e=>{
   const f=ACT[b.dataset.a];if(!f)return;if(b.dataset.a==='nav')ERR=null;try{f(b.dataset,b)}catch(err){ERR=err.message;render()}
 });
 document.addEventListener('change',e=>{const t=e.target;if(t&&t.id==='impfile'&&t.files&&t.files[0]){const r=new FileReader();r.onload=()=>doImport(String(r.result));r.readAsText(t.files[0])}});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&MODAL&&(MODAL.team||MODAL.cf||MODAL.loan)){MODAL=null;render()}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&MODAL&&(MODAL.team||MODAL.cf||MODAL.loan||MODAL.lin)){MODAL=null;render()}});
 /* Suche im Transfermarkt: bei jeder Eingabe neu zeichnen und den Cursor im Feld halten */
 document.addEventListener('input',e=>{const t=e.target;if(!t||t.id!=='tq'||e.isComposing)return;FILT.q=t.value;FILT.n=40;const pos=t.selectionStart;render();const n=$('#tq');if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(_){}}});
 document.addEventListener('change',e=>{const t=e.target;if(t&&t.id==='tsort'){FILT.sort=t.value;FILT.n=40;render()}});

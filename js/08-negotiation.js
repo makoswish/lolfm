@@ -13,8 +13,9 @@ function startNego(type,pid){
   const p=S.players[pid],U=S.teams[S.user],o=ovr(p);
   if(type!=='renew'&&U.roster.length>=MAXR){pmsg(pid,`Dein Kader ist voll (${MAXR}). Gib zuerst einen Spieler ab.`,false);return false}
   if(p.tried===wkKey()){pmsg(pid,'Diese Woche sind keine weiteren Gespräche möglich.',false);return false}
-  const pat=clamp(3+Math.round((U.rep-(o+p.h.amb/4-8))/6)+(type==='renew'?1:0)-(p.team&&S.teams[p.team].reg!==U.reg?1:0),1,6);
-  if(type!=='renew'){const need=Math.ceil(o+p.h.amb/4-13);if(U.rep<need){pmsg(pid,`${p.name} lehnt Gespräche ab. Er will zu einem Verein mit mehr Renommee (Ruf ab ${need}, deiner: ${U.rep}).`,false);return false}}
+  if(isLoanIn(p)){pmsg(pid,'Er ist nur ausgeliehen. Über seinen Vertrag verhandelt sein Verein.',false);return false}
+  const at=attract(),pat=clamp(3+Math.round((U.rep-(o+p.h.amb/4-8))/6)+(type==='renew'?1:0)-(p.team&&S.teams[p.team].reg!==U.reg?1:0)+(at>.25?1:at<-.25?-1:0),1,6);
+  if(type!=='renew'){const need=Math.ceil(o+p.h.amb/4-13)-Math.round(attract()*2);if(U.rep<need){pmsg(pid,`${p.name} lehnt Gespräche ab. Er will zu einem Verein mit mehr Renommee (Ruf ab ${need}, deiner: ${U.rep}).`,false);return false}}
   NG={type,pid,stage:type==='buy'?'fee':'contract',pat,patMax:pat,log:[],dem:{sal:demandFor(p,type==='renew'),yrs:prefYears(p),role:expRole(p)},done:false,dead:false};
   NG.terms={sal:NG.dem.sal,yrs:NG.dem.yrs,role:NG.dem.role,sb:0,wb:0,cl:0};
   if(type==='buy'){const T=S.teams[p.team],ask=askFor(p);

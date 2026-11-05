@@ -528,3 +528,5 @@ select.inp{padding-right:28px;appearance:none;-webkit-appearance:none;background
 .tilebtn{font:inherit;color:inherit;text-align:left;cursor:pointer}.tilebtn:hover{background:var(--panel2)}
 .tilebtn:focus-visible{outline:2px solid var(--fg);outline-offset:-2px}
 @media (max-width:600px){.slot{grid-template-columns:28px minmax(0,1fr)}.slacts{grid-column:1/-1;justify-content:flex-start}}
+.cmpbar{display:grid;grid-template-columns:96px minmax(0,1fr) 78px;gap:6px 10px;align-items:center;font-size:12.5px}
+.cmpbar>span:nth-child(3n){text-align:right}

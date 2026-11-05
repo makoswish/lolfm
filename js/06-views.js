@@ -136,10 +136,7 @@ function clubView(){
      <section class="panel s12"><div class="lab">Streaming-Pflicht für Spieler</div><p class="muted" style="font-size:14px;margin:0 0 10px">Deine Spieler streamen neben dem Training. Bringt aktuell ${eur(ps)} pro Woche, kostet aber jede Woche etwas Form.</p>
       <div class="seg"><button class="${f.pstream?'':'on'}" data-a="pstream" data-v="0">Aus</button><button class="${f.pstream?'on':''}" data-a="pstream" data-v="1">An</button></div></section>`;
   }else if(CLUBTAB==='infra'){
-    body=Object.entries(INFRA).map(([k,x])=>{const lv=f.infra[k],max=x.cost.length,cost=x.cost[lv];
-      return `<section class="panel s4"><div class="lab"><span>${x.n}</span><span>Stufe ${lv}/${max}</span></div>${bar(lv/max*100,'var(--brass)')}<p class="muted" style="font-size:14px;margin:10px 0">${x.d}</p>
-       <div class="stat"><span class="muted">Unterhalt pro Woche</span><span>${eur(lv*x.up)}</span></div>
-       ${lv<max?`<div class="acts" style="margin-top:10px"><button class="btn sm" data-a="infra" data-v="${k}" ${f.balance<cost?'disabled':''}>Ausbauen für ${eurK(cost)}</button></div><p class="dim" style="font-size:12.5px;margin:6px 0 0">Danach ${eur((lv+1)*x.up)} Unterhalt pro Woche.</p>`:'<p class="good" style="font-size:13px;margin:10px 0 0">Voll ausgebaut.</p>'}</section>`}).join('');
+    body=infraTab();
   }else{
     body=`${staffTab()}
     <section class="panel s6"><div class="lab">Vorstand</div>${bar(S.board,barCol(S.board))}<p class="muted" style="font-size:13px">Vertrauen ${Math.round(S.board)}%. Steigt mit guten Platzierungen im Sommer-Split und einer Worlds-Teilnahme. Ziel: Platz ${expected(S.user)}.</p>
@@ -167,7 +164,7 @@ function moodReasons(p){const r=[],T=S.teams[p.team],mine=p.team===S.user;
   if((p.load||0)>=70)r.push(['bad',`Hohe Belastung (${Math.round(p.load)}): Form und Fortschritt leiden.`]);
   if(S.ment&&S.ment[p.id]&&S.players[S.ment[p.id]])r.push(['good',`Wird von ${S.players[S.ment[p.id]].name} betreut.`]);
   if(mine&&p.team===S.user&&motBonus()>0)r.push(['good','Der Head Coach motiviert das Team.']);
-  if(mine&&S.fin.infra.gh)r.push(['good',`Gaming House Stufe ${S.fin.infra.gh} hebt Moral und Form.`]);
+  if(mine&&S.fin.infra){const gr=ghRel();if(gr>.2)r.push(['good','Das Gaming House liegt über dem Ligaschnitt und hebt Moral und Form.']);else if(gr<-.2)r.push(['bad','Das Gaming House liegt unter dem Ligaschnitt und drückt die Stimmung.'])}
   return r}
 function roleAvg(role,reg){const xs=Object.values(S.teams).filter(t=>t.reg===reg&&t.tier!==2).map(t=>S.players[t.starters[role]]).filter(Boolean);const a={};for(const k of ATTR)a[k]=Math.round(xs.reduce((s,p)=>s+p.a[k],0)/xs.length);a.ovr=Math.round(xs.reduce((s,p)=>s+ovr(p),0)/xs.length);return a}
 function kda(s){return s&&s.g?(s.d?(s.k/s.d).toFixed(2).replace('.',','):s.k+',00'):'-'}
@@ -249,6 +246,7 @@ function playerView(){
     let acts='';
     const lb=canLoan(p)?`<button class="btn ghost" data-a="lendmenu" data-id="${p.id}">An T2-Team verleihen</button>`:'';
     if(isLoanee(p)){acts=`<button class="btn" data-a="lendback" data-id="${p.id}">Zurückholen</button>${p.contract<=2?`<button class="btn ghost" data-a="nego" data-t="renew" data-id="${p.id}">Vertrag verhandeln</button>`:''}`}
+    else if(isLoanIn(p)){acts=`${!isStarter(p)?`<button class="btn" data-a="setstart" data-id="${p.id}">Als Starter setzen</button>`:''}<button class="btn danger" data-a="linend" data-id="${p.id}">Leihe beenden</button>`}
     else if(inAca){acts=`${lb}<button class="btn" data-a="promote" data-id="${p.id}">In den Profikader holen</button>${p.contract<=2?`<button class="btn ghost" data-a="nego" data-t="renew" data-id="${p.id}">Vertrag verhandeln</button>`:''}<button class="btn danger" data-a="release" data-id="${p.id}">Entlassen (${eurK(p.salary*8)})</button>`}
     else if(main){acts=`${!isStarter(p)?`<button class="btn" data-a="setstart" data-id="${p.id}">Als Starter setzen</button>`:''}<button class="btn ghost" data-a="demote" data-id="${p.id}">In die Academy schicken</button>${lb}
       ${p.contract<=2?`<button class="btn ghost" data-a="nego" data-t="renew" data-id="${p.id}">Vertrag verhandeln</button>`:''}
@@ -257,11 +255,16 @@ function playerView(){
     else if(p.tried===wkKey())acts=`<p class="muted" style="margin:0">Diese Woche keine weiteren Gespräche möglich.</p>`;
     else if(!T)acts=`<button class="btn" data-a="nego" data-t="fa" data-id="${p.id}">Vertrag verhandeln</button>`;
     else acts=`<button class="btn" data-a="nego" data-t="buy" data-id="${p.id}">Transfer verhandeln</button>`;
+    if(!mine){const tw=trialWhy(p),tr=onTrial(p);
+      if(canTrial(p)||tr)acts+=tr?`<span class="muted" style="font-size:13px">Im Probetraining bis Woche ${tr.end}</span>`:`<button class="btn ghost" data-a="trial" data-id="${p.id}" ${tw?'disabled':''} title="${tw||''}">Zum Probetraining einladen</button>`;
+      if(T&&!T.academy&&T.id!==acaId())acts+=`<button class="btn ghost" data-a="linmenu" data-id="${p.id}">Ausleihen bis Saisonende</button>`}
     const b=S.fin.budget;
     body=`<section class="panel s7"><div class="lab">${mine?'Vertrag':'Verhandlung'}</div>
       <div class="stat"><span class="muted">Marktwert</span><span>${eur(val)}</span></div>
       <div class="stat"><span class="muted">${mine?'Gehalt':'Gehaltsforderung'}</span><span>${eur(mine?p.salary:demand)} / Woche</span></div>
       ${p.team?`<div class="stat"><span class="muted">Vertrag</span><span>${p.contract} ${p.contract===1?'Saison':'Saisons'}</span></div>`:''}
+      ${isLoanIn(p)?`<div class="stat"><span class="muted">Leihe von</span><span>${S.teams[p.loan.from]?S.teams[p.loan.from].name:'-'} bis Saisonende</span></div><div class="stat"><span class="muted">Dein Gehaltsanteil</span><span>${p.loan.share}% · ${eur(wageOf(p))} / Woche</span></div>`:''}
+      ${p.trialDone===S.season&&!mine?`<div class="stat"><span class="muted">Probetraining</span><span class="good">abgeschlossen, alle Werte bekannt</span></div>`:''}
       ${mine&&p.wb?`<div class="stat"><span class="muted">Siegprämie</span><span>${eur(p.wb)} pro Serie</span></div>`:''}
       ${p.clause?`<div class="stat"><span class="muted">Ausstiegsklausel</span><span>${eur(p.clause)}</span></div>`:''}
       ${mine&&p.promise==='start'?`<div class="stat"><span class="muted">Versprechen</span><span style="font-family:var(--f-body)" class="${isStarter(p)?'good':'bad'}">Stammspieler${isStarter(p)?'':' (gebrochen)'}</span></div>`:''}

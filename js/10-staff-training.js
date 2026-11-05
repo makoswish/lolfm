@@ -31,7 +31,7 @@ function trainUser(T,aca){const plan=S.training.plan,int=S.training.intensity,up
     const room=clamp((p.pot-o)/8,0,1),prof=.7+p.h.pro/20*.6,mm=S.ment&&S.ment[id]&&S.players[S.ment[id]]?1+mentQ(S.players[S.ment[id]])/80:1,lf=1-Math.max(0,(p.load||0)-70)/100;
     let load=0,ptsTot=0;
     for(const ses of plan){const sd=SES[ses];load+=sd.load;if(ses==='rest'){p.form=clamp(p.form+3,30,100);p.morale=clamp(p.morale+1,20,100);continue}
-      const G=(S.campBoost&&S.campBoost>=S.step&&!aca?1.3:1)*(.1+sesCoach(ses,aca)/4*.035)*(aca?1+.2*S.fin.infra.ac:1+.15*S.fin.infra.tc)*ageF(p)*(int==='high'?1.45:1)*room*(.5+R())*prof*mm*lf/3,pts=G/5*2.6;ptsTot+=pts;
+      const G=(S.campBoost&&S.campBoost>=S.step&&!aca?1.3:1)*(.1+sesCoach(ses,aca)/4*.035)*(aca?1+.2*S.fin.infra.ac:tcF())*ageF(p)*hwF()*(!aca&&building('tc')?.9:1)*(int==='high'?1.45:1)*room*(.5+R())*prof*mm*lf/3,pts=G/5*2.6;ptsTot+=pts;
       if(ses==='champ'){champTrain(p,G);continue}
       const kw=keyW(p.role),tot=sd.g.reduce((s,x)=>s+kw[x]+.03,0);for(const x of sd.g)p.d[x]=clamp(p.d[x]+pts*(kw[x]+.03)/tot,1,20)}
     if(p.ifoc&&p.d[p.ifoc]!=null)p.d[p.ifoc]=clamp(p.d[p.ifoc]+ptsTot*.45,1,20);
@@ -80,7 +80,7 @@ function squadAll(){const U=S.teams[S.user],A=aca();return[...U.roster.map(i=>[S
 function contractsTab(){const all=[...squadAll(),...Object.values(S.players).filter(isLoanee).map(p=>[p,'loan'])].sort((a,b)=>a[0].contract-b[0].contract||(a[1]==='aca')-(b[1]==='aca')||ovr(b[0])-ovr(a[0]));
   const exp=all.filter(([p])=>p.contract<=1),wk=wkKey();
   const row=([p,k])=>{const end=S.year+p.contract-1,can=p.contract<=2,tried=p.tried===wk;
-   const act=!can?`<span class="dim">ab ${end-1}</span>`:tried?'<span class="dim">nächste Woche</span>':`<button class="btn sm ${p.contract<=1?'':'ghost'}" data-a="nego" data-t="renew" data-id="${p.id}">Verlängern</button>`;
+   const act=isLoanIn(p)?`<span class="dim">Leihe von ${S.teams[p.loan.from]?S.teams[p.loan.from].id:'-'}</span>`:!can?`<span class="dim">ab ${end-1}</span>`:tried?'<span class="dim">nächste Woche</span>':`<button class="btn sm ${p.contract<=1?'':'ghost'}" data-a="nego" data-t="renew" data-id="${p.id}">Verlängern</button>`;
    return `<tr class="${k==='aca'?'benchrow':''}"><td><span class="chip">${p.role}</span></td><td class="nmcell stick"><button class="linkbtn" data-a="player" data-id="${p.id}">${p.name}</button></td>
     <td>${k==='loan'?'Leihe':k==='aca'?'Academy':isStarter(p)?'<span class="good">Starter</span>':'Bank'}</td><td class="r">${p.age}</td><td class="r mono">${ovr(p)}</td>
     <td class="r">${end}${p.contract<=1?' <span class="warn">läuft aus</span>':''}</td><td class="r">${eurK(p.salary)}</td><td class="r">${can?eurK(demandFor(p,true)):'<span class="dim">-</span>'}</td><td class="r">${act}</td></tr>`};
