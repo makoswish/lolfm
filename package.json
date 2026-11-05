@@ -1,0 +1,11 @@
+{
+  "name": "rift-manager",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Esports-Manager im Browser, angelehnt an Football Manager und Esports Manager. Fiktive Teams, Spieler und Champions.",
+  "scripts": {
+    "test": "node tests/run.js",
+    "build": "node scripts/build-single.js",
+    "serve": "python3 -m http.server 8000"
+  }
+}
