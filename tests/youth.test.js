@@ -62,3 +62,15 @@ newGame('LYL','Tester');initScouting();
  ok(avgRep<avgAll*.7,'Scouts empfehlen unrealistische Ziele: Abstand '+avgRep.toFixed(1)+' gegen Pool '+avgAll.toFixed(1));
  ok(typeof scoutTab()==='string'&&scoutTab().includes('sgn')||S.reports.length===0,'Bericht ohne Wechselbereitschaft')}
 `;
+module.exports+=`
+// Academy springt ein und hinterlässt keine Lücke: kein Absturz in der T2-Woche, auch nicht bei alten Ständen
+newGame('LYL','Tester');
+{const U=S.teams[S.user],A=aca();
+ const adc=U.roster.map(i=>S.players[i]).filter(p=>p.role==='ADC');for(const p of adc){toFA(p)}
+ ensureRoles(U,false);
+ ok(ROLES.every(r=>S.players[A.starters[r]]),'Academy hat nach dem Einspringen eine Rolle ohne Spieler');
+ // alter, kaputter Stand: Lücke von Hand erzeugen, Laden repariert sie
+ delete A.starters.MID;A.roster=A.roster.filter(i=>S.players[i].role!=='MID');
+ reload();ok(ROLES.every(r=>S.players[S.teams[acaId()].starters[r]]),'Laden repariert die Academy nicht');
+ ACT.next();chk('Woche nach Academy-Einsprung')}
+`;
