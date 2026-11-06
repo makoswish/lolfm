@@ -11,14 +11,21 @@ function prestigeOf(T){return PRESTIGE.find(x=>T.rep>=x[0])[1]}
 function pStatus(p){return ovr(p)+p.h.amb/4}
 function prestF(p,renew){const g=pStatus(p)-S.teams[S.user].rep;let f=g>0?1+g/45:1+g/80;f=clamp(f,.88,1.5);return renew?1+(f-1)/2:f}
 function prestTxt(p,renew){const f=prestF(p,renew),pc=Math.round((f-1)*100);if(pc>=3)return['bad',`+${pc}% Aufschlag: Für ihn ist dein Verein eine Nummer zu klein.`];if(pc<=-3)return['good',`${pc}% Abschlag: Er will zu einem Verein mit deinem Prestige.`];return['muted','Dein Prestige passt zu ihm, kein Auf- oder Abschlag.']}
-function demandFor(p,renew){const o=ovr(p);let d=salaryFor(o)*(p.team&&p.team!==S.user?1.15:1)*(.9+p.h.amb/20*.3)*prestF(p,renew);
+/* Weiche Ruf-Hürde: Unter seiner Schmerzgrenze verhandelt ein Spieler trotzdem, aber teuer. Pro Ruf-Punkt darunter 2,5% Aufschlag aufs Gehalt,
+   weniger Geduld und ein kleiner Respekt-Malus. Erst ab SOFTGAP Punkten Abstand lehnt er Gespräche ab. */
+const SOFTGAP=14;
+function hurdleGap(p){if(isMine(p))return 0;return Math.max(0,signNeed(p)-S.teams[S.user].rep)}
+function hurdleF(p,renew){if(renew||isMine(p))return 1;return 1+Math.min(hurdleGap(p),SOFTGAP)*.025}
+function demandFor(p,renew){const o=ovr(p);let d=salaryFor(o)*(p.team&&p.team!==S.user?1.15:1)*(.9+p.h.amb/20*.3)*prestF(p,renew)*hurdleF(p,renew);
   if(renew){d=Math.max(d,p.salary*1.05);if(p.morale<50)d*=1.1}return r100(d)}
 /* ===== Wechselbereitschaft =====
    Wie schwer ist ein Spieler zu holen? Nutzt dieselbe Ruf-Hürde wie die Verhandlung, dazu Rolle, Verein und Stimmung. */
 const SIGNL=[['Leicht','var(--good)'],['Machbar','var(--good)'],['Schwer','var(--warn)'],['Kaum möglich','var(--bad)'],['Unmöglich','var(--dim)']];
 function signNeed(p){return Math.ceil(pStatus(p)-13)-Math.round(attract()*2)}
 function signDiff(p){const U=S.teams[S.user],T=p.team?S.teams[p.team]:null,need=signNeed(p),why=[];
-  if(U.rep<need)return{lv:4,why:[`Spricht nur mit Vereinen ab Ruf ${need} (deiner: ${U.rep}).`]};
+  const gap=need-U.rep;
+  if(gap>SOFTGAP)return{lv:4,why:[`Dein Verein liegt ${gap} Ruf-Punkte unter seiner Schmerzgrenze (${need}). Erst ab Ruf ${need-SOFTGAP} verhandelt er überhaupt.`]};
+  if(gap>0)return{lv:3,why:[`Dein Verein liegt ${gap} Ruf-Punkte unter seiner Schmerzgrenze (${need}). Er verhandelt, verlangt aber zusätzlich ${Math.round(gap*2.5)}% Aufschlag aufs Gehalt und verliert schneller die Geduld.`]};
   const m=U.rep-need;let lv=m>=10?0:m>=5?1:2;why.push(m>=10?'Dein Verein ist für ihn eine klare Verbesserung.':m>=5?'Dein Verein ist für ihn interessant.':'Dein Verein liegt knapp über seiner Schmerzgrenze.');
   const cur=S.players[U.starters[p.role]];if(cur&&ovr(p)<ovr(cur)-1&&p.age>21){lv++;why.push(`Hätte bei dir keinen Stammplatz vor ${cur.name}.`)}
   if(!canJoinReg(p,U.reg)){lv++;why.push(`Will ungern aus der ${homeReg(p)} in eine schwächere Region.`)}
@@ -30,44 +37,56 @@ function signDiff(p){const U=S.teams[S.user],T=p.team?S.teams[p.team]:null,need=
 function signTag(p){const s=signDiff(p),[n,c]=SIGNL[s.lv];return `<span class="sgn" style="--c:${c}">${n}</span>`}
 function prefYears(p){if(p.age>=27)return 3;if(p.h.amb>=15&&ovr(p)>=75)return 2;return p.age<=21?3:2}
 function askFor(p){const U=S.teams[S.user],T=p.team?S.teams[p.team]:null;if(!T)return 0;return r1000(valueFor(p)*(isStarter(p)?1.35:1.05)*(1+.06*p.contract)*(T.rep>U.rep+5?1.1:1))}
-function canAfford(p){return fitPlan(askFor(p),demandFor(p,false)).ok}
+function canAfford(p){const pl=fitPlan(askFor(p),demandFor(p,false));return pl.ok||pl.finOk}
 function startNego(type,pid){
   const p=S.players[pid],U=S.teams[S.user],o=ovr(p);
   if(type!=='renew'&&U.roster.length>=MAXR){pmsg(pid,`Dein Kader ist voll (${MAXR}). Gib zuerst einen Spieler ab.`,false);return false}
   if(p.tried===wkKey()){pmsg(pid,'Diese Woche sind keine weiteren Gespräche möglich.',false);return false}
   if(isLoanIn(p)){pmsg(pid,'Er ist nur ausgeliehen. Über seinen Vertrag verhandelt sein Verein.',false);return false}
-  const at=attract(),pat=clamp(3+Math.round((U.rep-(o+p.h.amb/4-8))/6)+(type==='renew'?1:0)-(p.team&&S.teams[p.team].reg!==U.reg?1:0)+(at>.25?1:at<-.25?-1:0),1,6);
-  if(type!=='renew'){const need=signNeed(p);if(U.rep<need){pmsg(pid,`${p.name} lehnt Gespräche ab. Er will zu einem Verein mit mehr Renommee (Ruf ab ${need}, deiner: ${U.rep}).`,false);return false}}
-  NG={type,pid,stage:type==='buy'?'fee':'contract',pat,patMax:pat,log:[],dem:{sal:demandFor(p,type==='renew'),yrs:prefYears(p),role:expRole(p)},done:false,dead:false};
+  const hg=type==='renew'?0:hurdleGap(p),at=attract(),pat=clamp(3+Math.round((U.rep-(o+p.h.amb/4-8))/6)+(type==='renew'?1:0)-(p.team&&S.teams[p.team].reg!==U.reg?1:0)+(at>.25?1:at<-.25?-1:0)-Math.ceil(hg/5),1,6);
+  if(hg>SOFTGAP){pmsg(pid,`${p.name} lehnt Gespräche ab. Dein Verein liegt ${hg} Ruf-Punkte unter seiner Schmerzgrenze (Ruf ab ${signNeed(p)}, deiner: ${U.rep}). Erst ab Ruf ${signNeed(p)-SOFTGAP} verhandelt er überhaupt, dann aber teuer.`,false);return false}
+  NG={type,pid,hg,stage:type==='buy'?'fee':'contract',pat,patMax:pat,log:[],dem:{sal:demandFor(p,type==='renew'),yrs:prefYears(p),role:expRole(p)},done:false,dead:false};
   NG.terms={sal:NG.dem.sal,yrs:NG.dem.yrs,role:NG.dem.role,sb:0,wb:0,cl:0};
   if(type==='buy'){const T=S.teams[p.team],ask=askFor(p);
     NG.club={ask,min:r1000(ask*(.86+R()*.1)),pat:3,patMax:3};NG.fee={amt:r1000(ask*.8),pay:'now',sell:0};
     NG.log.push(['club',`${T.name}: Wir hören uns das an. Unsere Vorstellung liegt bei rund ${eurK(ask)}.`])}
   else NG.log.push(['agent',demandText()]);
   S.view='nego';return true}
-function demandText(){const d=NG.dem,p=S.players[NG.pid];return `Berater von ${p.name}: Wir erwarten etwa ${eurK(d.sal)} pro Woche über ${d.yrs} ${d.yrs===1?'Saison':'Saisons'} und eine Rolle als ${PROM[d.role][0]}.`}
+function hurdleNote(){const hg=NG&&NG.hg;return hg>0?` Ehrlich gesagt ist dein Verein ihm ${hg} Ruf-Punkte zu klein. Er spricht trotzdem mit euch, aber nur mit ${Math.round(Math.min(hg,SOFTGAP)*2.5)}% Aufschlag aufs Gehalt, und die Geduld ist kürzer.`:''}
+function demandText(){const d=NG.dem,p=S.players[NG.pid];return `Berater von ${p.name}: Wir erwarten etwa ${eurK(d.sal)} pro Woche über ${d.yrs} ${d.yrs===1?'Saison':'Saisons'} und eine Rolle als ${PROM[d.role][0]}.${hurdleNote()}`}
 function ngNeed(){const p=S.players[NG.pid];if(NG.stage==='fee')return{t:feeNow(),w:0};const t=NG.terms,ex=p.team===acaId()?0:t.sal-(NG.type==='renew'?p.salary:0);return{t:feeNow()+t.sb,w:Math.max(0,ex)}}
+/* Finanzierung auf Raten: Reicht das Konto für die Lücke im Transferbudget nicht, finanziert der Vorstand den Rest bis zu einem Rahmen.
+   Aufschlag FINRATE, fällig zum nächsten Saisonstart und dann abgezogen vom Konto und vom Transferbudget. Ohne Vertrauen oder bei Minus gibt es nichts. */
+const FINRATE=.1;
+function finDebts(){return(S.fin.debts||[]).reduce((a,x)=>a+x.amt,0)}
+function finLimit(){const f=S.fin;if(f.balance<=0||S.board<35||(f.budget&&f.budget.frozen))return 0;return r1000(150000+f.balance*.5)}
+function finRoom(){return Math.max(0,finLimit()-finDebts())}
 function fitPlan(nt,nw){const b=S.fin.budget,sw=Math.max(0,r100(Math.ceil(Math.max(0,nw-wageFree())/100)*100)),shiftT=sw*40,tot=nt+shiftT,rel=Math.max(0,r1000(Math.ceil(Math.max(0,tot-b.transfer)/1000)*1000));
-  return{sw,shiftT,rel,ok:rel<=releasable(),need:rel>0||sw>0}}
-function applyFit(pl){const b=S.fin.budget;if(!pl.ok)return false;if(pl.rel){b.transfer+=pl.rel;b.frozen=false}if(pl.sw){b.transfer-=pl.shiftT;b.wage+=pl.sw}
+  const rl=releasable(),short=Math.max(0,rel-rl),finCost=r1000(Math.ceil(short*(1+FINRATE)/1000)*1000);
+  return{sw,shiftT,rel,ok:rel<=rl,need:rel>0||sw>0,fin:short,finCost,finOk:short>0&&finCost<=finRoom()}}
+function applyFit(pl,useFin){const b=S.fin.budget;
+  if(!pl.ok){if(!(useFin&&pl.finOk))return false;const all=releasable();
+    b.transfer+=all+pl.fin;b.frozen=false;book('Finanzierung',pl.fin);(S.fin.debts=S.fin.debts||[]).push({amt:pl.finCost,to:'der Finanzierung',season:S.season+1,fin:true});
+    if(pl.sw){b.transfer-=pl.shiftT;b.wage+=pl.sw}
+    NG.log.push(['sys',`Finanzierung: ${eurK(all)} vom Konto freigegeben, ${eurK(pl.fin)} auf Raten. Zum nächsten Saisonstart werden ${eurK(pl.finCost)} fällig (${Math.round(FINRATE*100)}% Aufschlag).`]);return true}if(pl.rel){b.transfer+=pl.rel;b.frozen=false}if(pl.sw){b.transfer-=pl.shiftT;b.wage+=pl.sw}
   if(pl.rel||pl.sw)NG.log.push(['sys',`Budget angepasst: ${pl.rel?`${eurK(pl.rel)} vom Konto freigegeben`:''}${pl.rel&&pl.sw?', ':''}${pl.sw?`${eurK(pl.shiftT)} Transferbudget in ${eurK(pl.sw)} Gehaltsbudget pro Woche umgeschichtet`:''}.`]);return true}
 function autoFit(){if(S.autoFit===false)return;const n=ngNeed(),pl=fitPlan(n.t,n.w);if(pl.need&&pl.ok)applyFit(pl)}
 function fitBox(){const n=ngNeed(),pl=fitPlan(n.t,n.w),b=S.fin.budget;
   return `<div class="fitbox"><div class="stat"><span class="muted">Transferbudget</span><span>${eur(b.transfer)}</span></div><div class="stat"><span class="muted">Gehalt frei pro Woche</span><span>${eur(Math.max(0,wageFree()))}</span></div><div class="stat"><span class="muted">Freigabe vom Konto möglich</span><span>${eur(releasable())}</span></div>
-   ${pl.need?(pl.ok?`<p style="font-size:13.5px;margin:8px 0">Für dieses Angebot fehlt Budget. Passend machen: ${pl.rel?`<b>${eurK(pl.rel)}</b> vom Konto freigeben`:''}${pl.rel&&pl.sw?' und ':''}${pl.sw?`<b>${eurK(pl.shiftT)}</b> ins Gehaltsbudget umschichten (+${eurK(pl.sw)}/Wo.)`:''}.</p><button class="btn sm" data-a="ngfit">Budget passend machen</button>`:`<p class="bad" style="font-size:13.5px;margin:8px 0 0">Auch mit Freigabe vom Konto reicht das Geld nicht. Senke das Angebot oder verkaufe vorher Spieler.</p>`):'<p class="good" style="font-size:13.5px;margin:8px 0 0">Das Angebot passt ins Budget.</p>'}
+   ${pl.need?(pl.ok?`<p style="font-size:13.5px;margin:8px 0">Für dieses Angebot fehlt Budget. Passend machen: ${pl.rel?`<b>${eurK(pl.rel)}</b> vom Konto freigeben`:''}${pl.rel&&pl.sw?' und ':''}${pl.sw?`<b>${eurK(pl.shiftT)}</b> ins Gehaltsbudget umschichten (+${eurK(pl.sw)}/Wo.)`:''}.</p><button class="btn sm" data-a="ngfit">Budget passend machen</button>`:(pl.finOk?`<p style="font-size:13.5px;margin:8px 0">Dein Konto allein reicht dafür nicht. Du kannst die Lücke finanzieren: ${eurK(releasable())} vom Konto, <b>${eurK(pl.fin)}</b> auf Raten. Zum nächsten Saisonstart werden ${eurK(pl.finCost)} fällig (${Math.round(FINRATE*100)}% Aufschlag), dein Transferbudget dann sinkt entsprechend. Rahmen: ${eurK(finRoom())}.</p><button class="btn sm" data-a="ngfin">Finanzieren und Budget passend machen</button>`:`<p class="bad" style="font-size:13.5px;margin:8px 0 0">Auch mit Freigabe vom Konto reicht das Geld nicht. ${pl.fin>0?`Für eine Finanzierung von ${eurK(pl.finCost)} ist kein Rahmen frei (${eurK(finRoom())}).`:''} Senke das Angebot oder verkaufe vorher Spieler.</p>`)):'<p class="good" style="font-size:13.5px;margin:8px 0 0">Das Angebot passt ins Budget.</p>'}
    <label class="tog"><input type="checkbox" id="autofit" data-a="ngauto" ${S.autoFit===false?'':'checked'}> Budget beim Abschicken automatisch anpassen</label></div>`}
 function feeVal(){const f=NG.fee;return f.amt*(f.pay==='inst'?.95:1)*(1+f.sell/100*.3)}
 function feeNow(){return NG.fee?(NG.fee.pay==='inst'?Math.round(NG.fee.amt/2):NG.fee.amt):0}
 function sendFee(){const p=S.players[NG.pid],c=NG.club,v=feeVal(),T=S.teams[p.team];
   autoFit();
-  if(feeNow()>S.fin.budget.transfer){NG.log.push(['sys',`Das Transferbudget reicht nicht (${eurK(S.fin.budget.transfer)} verfügbar).`]);return}
+  if(feeNow()>S.fin.budget.transfer){const pl=fitPlan(feeNow(),0);NG.log.push(['sys',pl.finOk?`Das Transferbudget reicht nicht (${eurK(S.fin.budget.transfer)} verfügbar). Du kannst die Lücke auf Raten finanzieren, siehe unten.`:`Das Transferbudget reicht nicht (${eurK(S.fin.budget.transfer)} verfügbar), und für eine Finanzierung ist kein Rahmen frei (${eurK(finRoom())}).`]);return}
   NG.log.push(['me',`Angebot: ${eurK(NG.fee.amt)}${NG.fee.pay==='inst'?' in zwei Raten':' sofort'}${NG.fee.sell?`, ${NG.fee.sell}% Weiterverkaufsbeteiligung`:''}.`]);
   if(v>=c.min){NG.stage='contract';NG.log.push(['club',`${T.name}: Einverstanden. Jetzt müsst ihr euch nur noch mit dem Spieler einigen.`]);NG.log.push(['agent',demandText()]);return}
   c.pat--;
   if(c.pat<=0||v<c.min*.65){NG.dead=true;p.tried=wkKey();NG.log.push(['club',`${T.name}: Das ist nicht ernst gemeint. Wir beenden die Gespräche.`]);return}
   const cnt=r1000(c.min*(1+c.pat*.05));NG.log.push(['club',`${T.name}: Zu wenig. Unter ${eurK(cnt)} geben wir ihn nicht ab.${c.pat===1?' Das ist unser letztes Wort.':''}`])}
 function wkVal(t){return t.sal+t.wb*.35+t.sb/(t.yrs*26)}
-function cScore(){const p=S.players[NG.pid],t=NG.terms,d=NG.dem;let pen=-Math.abs(t.yrs-d.yrs)*.04;
+function cScore(){const p=S.players[NG.pid],t=NG.terms,d=NG.dem;let pen=-Math.abs(t.yrs-d.yrs)*.04-(NG.hg||0)*.006;
   const pv=PROM[t.role][1],ev=PROM[d.role][1];if(pv<ev)pen-=.12*(ev-pv);else if(pv>ev)pen+=.04;
   if(t.cl)pen+=p.h.amb>=13?.06:.02;else if(p.h.amb>=15)pen-=.03;
   return{sc:wkVal(t)/d.sal+pen,pen}}
@@ -75,7 +94,7 @@ function sendContract(){const p=S.players[NG.pid],t=NG.terms,d=NG.dem;
   const extra=t.sal-(NG.type==='renew'?p.salary:0);
   autoFit();
   if(p.team!==acaId()&&extra>wageFree()){NG.log.push(['sys',`Das Gehaltsbudget reicht nicht. Frei sind ${eurK(Math.max(0,wageFree()))} pro Woche.`]);return}
-  if(t.sb+feeNow()>S.fin.budget.transfer){NG.log.push(['sys','Ablöse und Handgeld übersteigen dein Transferbudget.']);return}
+  if(t.sb+feeNow()>S.fin.budget.transfer){const pl=fitPlan(t.sb+feeNow(),0);NG.log.push(['sys',pl.finOk?'Ablöse und Handgeld übersteigen dein Transferbudget. Du kannst die Lücke auf Raten finanzieren, siehe unten.':`Ablöse und Handgeld übersteigen dein Transferbudget, und für eine Finanzierung ist kein Rahmen frei (${eurK(finRoom())}).`]);return}
   NG.log.push(['me',`Angebot: ${eurK(t.sal)} pro Woche, ${t.yrs} ${t.yrs===1?'Saison':'Saisons'}, ${PROM[t.role][0]}${t.sb?`, ${eurK(t.sb)} Handgeld`:''}${t.wb?`, ${eur(t.wb)} Siegprämie`:''}${t.cl?`, Klausel ${CLOPT[t.cl]}× Marktwert`:''}.`]);
   const{sc,pen}=cScore(),need=1+(R()-.5)*.05;
   if(sc>=need){closeDeal();return}
@@ -83,6 +102,7 @@ function sendContract(){const p=S.players[NG.pid],t=NG.terms,d=NG.dem;
   if(NG.pat<=0||sc<.6){NG.dead=true;p.tried=wkKey();NG.log.push(['agent','Berater: So kommen wir nicht zusammen. Wir beenden die Gespräche.']);return}
   const m=[],pv=PROM[t.role][1],ev=PROM[d.role][1];
   if(pv<ev)m.push(`Er will als ${PROM[d.role][0]} eingeplant werden.`);
+  if(NG.hg>0)m.push('Dein Verein ist ihm eigentlich zu klein, da muss mehr kommen.');
   if(t.yrs!==d.yrs)m.push(`Er bevorzugt ${d.yrs} ${d.yrs===1?'Saison':'Saisons'}.`);
   const needSal=r100(d.sal*(need-pen)-(t.wb*.35+t.sb/(t.yrs*26)));
   if(needSal>t.sal)m.push(`Unter ${eurK(needSal)} pro Woche unterschreibt er so nicht.`);
@@ -125,6 +145,7 @@ function negoView(){
   else{const{sc}=cScore(),cv=clamp(sc*100,0,130),val=valueFor(p);
     main=`<section class="panel s7"><div class="lab"><span>Vertrag mit ${p.name}</span><span>Geduld des Beraters ${dots(NG.pat,NG.patMax)}</span></div>
      <div class="dem"><div><span>Forderung</span><b>${eurK(NG.dem.sal)}/Wo.</b></div><div><span>Laufzeit</span><b>${NG.dem.yrs} J.</b></div><div><span>Rolle</span><b>${PROM[NG.dem.role][0]}</b></div></div>
+     ${NG.hg>0?`<div class="note warn" style="margin-top:10px">Dein Verein liegt ${NG.hg} Ruf-Punkte unter seiner Schmerzgrenze. In der Forderung stecken ${Math.round(Math.min(NG.hg,SOFTGAP)*2.5)}% Ruf-Aufschlag, zusätzlich zum Prestige-Aufschlag. Mit mehr Gehalt oder Handgeld lässt er sich überzeugen, die Geduld ist aber kürzer.</div>`:''}
      <div class="lab" style="margin:14px 0 6px">Wochengehalt</div><div class="big">${eur(t.sal)}</div>${stepper('ngsal',[-1000,-100,100,1000])}
      <div class="lab" style="margin:14px 0 6px">Laufzeit</div><div class="seg">${[1,2,3,4].map(v=>`<button class="${t.yrs===v?'on':''}" data-a="ngyrs" data-v="${v}">${v} ${v===1?'Saison':'Saisons'}</button>`).join('')}</div>
      <div class="lab" style="margin:14px 0 6px"><span>Rolle im Team</span><span>Stammspieler-Versprechen muss gehalten werden</span></div><div class="seg">${Object.entries(PROM).map(([k,v])=>`<button class="${t.role===k?'on':''}" data-a="ngrole" data-v="${k}">${v[0]}</button>`).join('')}</div>

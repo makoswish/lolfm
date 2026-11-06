@@ -19,7 +19,7 @@ function transferView(){
   <div class="mktbar"><input id="tq" class="inp" type="search" placeholder="Spieler oder Team suchen" value="${esc(FILT.q)}" autocomplete="off" spellcheck="false" aria-label="Suche">
    <label class="mksort"><span class="muted">Sortieren</span><select id="tsort" class="inp">${Object.entries(MSORT).map(([k,[l]])=>`<option value="${k}" ${FILT.sort===k?'selected':''}>${l}</option>`).join('')}</select></label>
    <label class="mksort"><span class="muted">Bereitschaft</span><select id="tsgn" class="inp">${[[4,'Alle'],[3,'Ohne Unmögliche'],[2,'Höchstens schwer'],[1,'Machbar oder leichter'],[0,'Nur leicht']].map(([v,l])=>`<option value="${v}" ${(FILT.sgn??4)===v?'selected':''}>${l}</option>`).join('')}</select></label>
-   <button class="tog ${FILT.afford?'on':''}" data-a="faff" title="Ablöse und Gehalt passen ins Budget, notfalls mit Umschichtung vom Konto"><span class="tbox">${FILT.afford?'✓':''}</span><span>Nur bezahlbar</span></button></div>
+   <button class="tog ${FILT.afford?'on':''}" data-a="faff" title="Ablöse und Gehalt passen ins Budget, notfalls mit Umschichtung vom Konto oder Finanzierung auf Raten"><span class="tbox">${FILT.afford?'✓':''}</span><span>Nur bezahlbar</span></button></div>
   <div class="rows">${list.slice(0,FILT.n).map(p=>playerRow(p,true)).join('')||'<p class="empty">Keine Spieler für diese Suche.</p>'}</div>
   <div class="mkfoot"><span class="muted">${list.length>FILT.n?`${FILT.n} von ${list.length} Spielern`:`${list.length} Spieler`}</span>${list.length>FILT.n?`<button class="btn ghost sm" data-a="fmore">40 weitere zeigen</button>`:''}</div></section></div>`;
 }
@@ -279,7 +279,7 @@ function playerView(){
      ${mine?'':(()=>{const sd=signDiff(p),pt=prestTxt(p,false),U=S.teams[S.user];return `<section class="panel s12"><div class="lab"><span>Wechselbereitschaft</span><span>${signTag(p)}</span></div>
       <ul class="reasons">${sd.why.map(t=>`<li>${t}</li>`).join('')}</ul>
       <div class="stat" style="margin-top:10px"><span class="muted">Prestige deines Vereins</span><span>${prestigeOf(U)} (Ruf ${U.rep})</span></div>
-      <div class="stat"><span class="muted">Wirkung aufs Gehalt</span><span class="${pt[0]}">${pt[1]}</span></div></section>`})()}`;
+      <div class="stat"><span class="muted">Wirkung aufs Gehalt</span><span class="${pt[0]}">${pt[1]}</span></div>${(()=>{const hg=hurdleGap(p);return hg>0&&hg<=SOFTGAP?`<div class="stat"><span class="muted">Unter seiner Ruf-Hürde</span><span class="bad">+${Math.round(hg*2.5)}% Aufschlag, wenig Geduld</span></div>`:''})()}</section>`})()}`;
   }
   const mySt=S.players[S.teams[S.user].starters[p.role]],cb=`<div class="acts">${mySt&&mySt.id!==p.id?`<button class="btn ghost sm" data-a="cmp" data-id="${mySt.id}" data-b="${p.id}">Mit ${mySt.name} vergleichen</button>`:''}<button class="btn ghost sm" data-a="cmp" data-id="${p.id}">${CMP&&CMP.length===1&&CMP[0]!==p.id?`Mit ${S.players[CMP[0]]?S.players[CMP[0]].name:'Spieler'} vergleichen`:'Vergleichen'}</button></div>`;
   return `<div class="pagehead"><button class="btn ghost sm" data-a="pback">Zurück</button>${cb}</div><div class="grid">${head}${tabs}${body}</div>`;

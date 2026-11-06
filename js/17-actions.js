@@ -63,6 +63,7 @@ const ACT={
   ngsb(d){NG.terms.sb=+d.v;render()},ngwb(d){NG.terms.wb=+d.v;render()},ngcl(d){NG.terms.cl=+d.v;render()},
   ngdem(){NG.terms.sal=NG.dem.sal;NG.terms.yrs=NG.dem.yrs;NG.terms.role=NG.dem.role;render()},
   ngfit(){const n=ngNeed();applyFit(fitPlan(n.t,n.w));save();render()},
+  ngfin(){const n=ngNeed();applyFit(fitPlan(n.t,n.w),true);save();render()},
   ngauto(d,el){S.autoFit=!!(el&&el.checked);save();render()},
   ngsign(){if(!NG.dead&&!NG.done)sendContract();save();render()},
   ngleave(){const id=NG.pid;NG=null;const back=PV&&PV.back||'squad';PV={id,tab:'vertrag',back};S.view='player';window.scrollTo(0,0);render()},

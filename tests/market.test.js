@@ -47,3 +47,57 @@ newGame('LYL','Tester');
  aiRefill(T,r);const st=S.players[T.starters[r]];
  ok(st&&st.role===r&&ovr(st)>=55,'Lücke mit Nachwuchsspieler statt Vereinslosem gefüllt: '+(st&&ovr(st)))}
 `;
+module.exports+=`
+function html(){return document.querySelector('#app').innerHTML}
+function room(){const T=S.teams[S.user];while(T.roster.length>=MAXR-1){const i=T.roster.find(function(x){return !isStarter(S.players[x])});if(i==null)break;toFA(S.players[i])}}
+newGame('LYL','Tester');
+{const V=S.teams[S.user],ro=function(x){return Math.round(x*1000)/1000};
+ const star=genPlayer('MID',78,25,'LEC');star.contract=0;S.players[star.id]=star;S.fa.push(star.id);
+ const need=signNeed(star);V.rep=need;ok(hurdleGap(star)===0&&hurdleF(star,false)===1,'Hürde ohne Abstand');const d0=demandFor(star,false),pat0=(room(),startNego('fa',star.id),NG.pat);NG=null;star.tried='';
+ // Abstand 8: verhandelbar, teurer, weniger Geduld, Stufe Kaum möglich
+ V.rep=need-8;ok(hurdleGap(star)===8,'Abstand falsch');ok(Math.abs(hurdleF(star,false)-1.2)<1e-9,'Aufschlag nicht 20 Prozent');
+ ok(signDiff(star).lv===3&&signDiff(star).why[0].indexOf('verhandelt')>=0,'Stufe bei Abstand 8');
+ ok(demandFor(star,false)>d0*1.15,'Forderung unter der Hürde nicht höher');
+ room();ok(startNego('fa',star.id)===true&&NG&&NG.hg===8,'Verhandlung unter der Hürde startet nicht');
+ ok(NG.pat<pat0,'Geduld sinkt unter der Hürde nicht');ok(NG.log[0][1].indexOf('Ruf-Punkte zu klein')>=0,'Berater erwähnt die Hürde nicht');
+ render();chk('Verhandlung unter der Hürde');ok(html().indexOf('Ruf-Punkte unter seiner Schmerzgrenze')>=0,'Hinweis in der Verhandlung fehlt');
+ // Respekt-Malus, mit Gehalt ausgleichbar
+ {const a=cScore().sc;NG.hg=0;const b=cScore().sc;NG.hg=8;ok(a<b,'Kein Respekt-Malus')}
+ // Mit genug Gehalt kommt ein Deal zustande
+ S.fin.budget.wage+=1e6;S.fin.budget.transfer+=1e6;NG.terms.sal=r100(NG.dem.sal*1.3);NG.terms.sb=50000;ACT.ngsign();ok(NG.done===true,'Deal mit hohem Angebot kommt nicht zustande');
+ NG=null;
+ // Eigene Spieler: keine Hürde bei Verlängerung
+ const mine=S.players[V.starters.MID];ok(hurdleF(mine,true)===1&&hurdleGap(mine)===0,'Hürde bei eigenem Spieler');
+ // Weit darunter: Gespräche abgelehnt
+ const far=genPlayer('MID',78,25,'LEC');far.contract=0;S.players[far.id]=far;S.fa.push(far.id);V.rep=signNeed(far)-SOFTGAP-1;
+ ok(signDiff(far).lv===4,'Zu großer Abstand ist nicht Unmöglich');room();ok(startNego('fa',far.id)===false&&!NG,'Gespräche trotz zu großem Abstand');ok(PV&&PV.msg&&PV.msg.indexOf('lehnt Gespräche ab')>=0,'Ablehnung ohne Erklärung');
+}
+`;
+module.exports+=`
+newGame('LYL','Tester');
+{const V=S.teams[S.user];S.fin.balance=2000000;S.board=70;S.fin.debts=[];
+ ok(finLimit()===r1000(150000+S.fin.balance*.5)&&finRoom()===finLimit(),'Finanzierungsrahmen');
+ const rl=releasable(),nt=S.fin.budget.transfer+rl+300000,pl=fitPlan(nt,0);
+ ok(!pl.ok&&pl.fin>=300000&&pl.finOk&&pl.finCost>=pl.fin*1.1-1000,'Lücke wird nicht als finanzierbar erkannt');
+ ok(fitPlan(S.fin.budget.transfer+rl+finRoom()*2,0).finOk===false,'Zu große Lücke ist finanzierbar');
+ NG={log:[]};ok(applyFit(pl)===false,'Finanzierung ohne Bestätigung');
+ const bal0=S.fin.balance,tb0=S.fin.budget.transfer;ok(applyFit(pl,true)===true,'Finanzierung klappt nicht');
+ ok(S.fin.balance===bal0+pl.fin,'Finanzierung bucht kein Geld auf das Konto');ok(S.fin.budget.transfer===tb0+rl+pl.fin-pl.shiftT,'Transferbudget nach Finanzierung falsch');
+ ok(S.fin.debts.length===1&&S.fin.debts[0].fin&&S.fin.debts[0].amt===pl.finCost&&S.fin.debts[0].season===S.season+1,'Rate nicht vorgemerkt');
+ ok(finRoom()<finLimit(),'Rahmen schrumpft nicht');ok(NG.log.some(function(l){return l[1].indexOf('Finanzierung')===0}),'Kein Hinweis im Gespräch');NG=null;
+ // Kein Rahmen ohne Vertrauen, Geld oder bei Minus
+ S.board=20;ok(finLimit()===0,'Rahmen trotz Misstrauen');S.board=70;S.fin.balance=-1;ok(finLimit()===0,'Rahmen bei Minus');S.fin.balance=2000000;
+ // Verhandlung: Knopf erscheint, Ablöse über dem Budget wird nach Finanzierung akzeptiert
+ S.fin.debts=[];const cheap=Object.values(S.players).filter(function(p){return p.team&&p.team!==S.user&&S.teams[p.team].tier!==2&&p.team!==acaId()&&ovr(p)<66&&!isStarter(p)})[0];
+ while(V.roster.length>=MAXR)toFA(S.players[V.roster.find(function(i){return !isStarter(S.players[i])})]);
+ ok(startNego('buy',cheap.id)===true,'Kaufverhandlung startet nicht');NG.fee.pay='now';NG.fee.amt=r1000(S.fin.budget.transfer+releasable()+300000);
+ render();chk('Verhandlung mit Finanzierung');ok(html().indexOf('data-a="ngfin"')>=0,'Knopf Finanzieren fehlt');
+ S.autoFit=true;ACT.ngsend();ok(NG.stage==='fee'&&NG.log.some(function(l){return l[1].indexOf('auf Raten finanzieren')>=0}),'Ohne Bestätigung wird nicht finanziert');
+ ACT.ngfin();ok(S.fin.debts.length===1,'Finanzieren per Knopf');ACT.ngsend();ok(NG.stage==='contract'||NG.dead,'Angebot nach Finanzierung nicht abgeschickt');
+ // Bezahlbar-Filter zählt die Finanzierung mit
+ NG=null;
+ // Rate wird zum Saisonstart fällig
+ S.fin.debts=[{amt:70000,to:'der Finanzierung',season:S.season+1,fin:true}];let g=0;while(S.phase!=='offseason'&&g++<200)playWeek();
+ const b1=S.fin.balance;ACT.next();chk('Neue Saison mit Rate');ok(!S.fin.debts.length,'Rate nicht abgebucht');ok(S.inbox.some(function(m){return m.title==='Finanzierung fällig'}),'Keine Mail zur fälligen Finanzierung');
+}
+`;
