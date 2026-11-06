@@ -11,6 +11,9 @@ let bad=0;
 function chk(tag){if(ERR||appEl.innerHTML.includes('Fehler (')){console.log('FEHLER',tag,ERR);ERR=null;bad++}}
 function playWeek(){const p=userPending();if(p){ACT.next();ACT.quick()}else ACT.next()}
 function playSeason(){let g=0;while(S.phase!=='offseason'&&g++<200){playWeek();chk('Woche '+S.step)}}
+/* Abstieg oder Entlassung am Saisonende: erst einen Verein wählen, dann die neue Saison starten */
+function takeJob(){if(S.jobless){ACT.next();const id=S.jobs.list[0];ACT.jobtake({v:id});ACT.jobtake({v:id,ok:'1'})}}
+function nextSeason(){takeJob();ACT.next()}
 function reload(){store[SAVEKEY]=JSON.stringify(S);S=null;load()}
 `;
 // Führt einen Test-Body im Spielkontext aus. Gibt die Anzahl Probleme zurück.

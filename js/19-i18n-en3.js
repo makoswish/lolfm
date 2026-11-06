@@ -1,6 +1,15 @@
 /* Englische Übersetzungen, Teil 3: Ergänzungen aus Draft, Turnieren, Persönlichkeit und Kürzeln. */
 const EN3=`
 Optionen=>Options
+Auf- und Abstieg=>Promotion and relegation
+Noch keine Relegation gespielt.=>No relegation played yet.
+Der Letzte jeder Liga spielt am Saisonende gegen den Meister der T{}-Szene seiner Region (Bo{}). Verlierst du als Manager, musst du den Verein verlassen und bekommst Angebote anderer Vereine.=>At the end of the season the last-placed team of every league plays the champion of its region's T{} scene (Bo{}). If you lose as a manager, you have to leave the club and receive offers from other clubs.
+Letzter Platz im Sommer-Split: Die Relegation droht=>Last place in the Summer Split: relegation looms
+Relegation gewonnen=>Relegation won
+Abstieg=>Relegation
+Abgestiegen=>Relegated
+Du musst den Verein verlassen=>You have to leave the club
+Dein Verein ist abgestiegen und trennt sich von dir. Wähle einen Verein, der einen Manager sucht, bevor die neue Saison startet.=>Your club has been relegated and parts ways with you. Choose a club that is looking for a manager before the new season starts.
 {} zum Ø=>{} vs avg
 Ruf {}=>Rep {}
 Kader nach Position=>Squad by position

@@ -56,7 +56,7 @@ ok(reviewText().includes('Saisonrückblick '+S.year),'Rückblick-Text fehlt');AC
 // Volle Saisons mit Neuladen: nichts hängt, Rentner kehren nicht zurück
 newGame('LYL','Tester');
 Object.values(S.players).filter(p=>p.team&&S.teams[p.team].tier!==2).slice(0,12).forEach(p=>p.age=37);
-for(let s=0;s<3;s++){playSeason();ACT.next();chk('Saison '+s);ok(S.phase==='season','Saison startet nicht');
+for(let s=0;s<3;s++){playSeason();nextSeason();chk('Saison '+s);ok(S.phase==='season','Saison startet nicht');
  ok(Object.values(S.teams).every(t=>t.tier===2||ROLES.every(r=>S.players[t.starters[r]]&&!S.players[t.starters[r]].retired)),'Rentner in der Startelf');reload()}
 ok(Object.values(S.players).some(p=>p.retired),'Nach drei Saisons ist niemand in Rente gegangen');
 `;
@@ -168,7 +168,7 @@ newGame('LYL','Tester');
  ACT.jobtake({v:S.jobs.list[0]});ACT.jobtake({v:S.jobs.list[0],ok:'1'});chk('Neuer Verein');ok(S.user!==old&&!S.jobless&&S.resign===false,'Wechsel nach Kündigung klappt nicht');
  ACT.next();ok(S.phase==='season','Neue Saison startet nicht')}
 // In der Saisonpause wirkt die Kündigung sofort
-newGame('LSN','Tester');playSeason();
+newGame('LSN','Tester');playSeason();takeJob();
 {ACT.nav2({v:'mgr',k:'MTAB',t:'board'});ok(html().includes('Jetzt kündigen'),'Sofort-Knopf in der Pause fehlt');ACT.resign({ok:'1'});ok(S.jobless&&S.jobs.resigned&&S.view==='jobs','Sofortige Kündigung greift nicht');chk('Sofort gekündigt')}
 `;
 module.exports+=`
@@ -193,7 +193,7 @@ newGame('LYL','Tester');
  // Alter Stand ohne Index lädt mit 1
  delete S.eco;delete S.ecoLog;reload();ok(S.eco===1&&Array.isArray(S.ecoLog),'Alter Stand ohne Marktindex');
  // Mehrere Saisons: Index wächst weiter und bleibt in einem Rahmen
- S.eco=1;for(let i=0;i<5;i++){playSeason();ACT.next();chk('Saison '+i)}
+ S.eco=1;for(let i=0;i<5;i++){playSeason();nextSeason();chk('Saison '+i)}
  ok(S.eco>1.15&&S.eco<1.6,'Marktindex nach fünf Saisons außerhalb des Rahmens: '+S.eco)}
 `;
 module.exports+=`
@@ -222,14 +222,14 @@ newGame('LYL','Tester');
  // Zum Saisonstart sind alle Stellen besetzt
  const vac=T1().filter(t=>t.id!==S.user).slice(0,3);for(const t of vac){t.mgr=null;t.vac=true}fillVacancies();ok(vac.every(t=>t.mgr&&!t.vac),'Vakanzen werden nicht besetzt')}
 // Entlassung: ebenfalls nur vakante Vereine
-newGame('LSN','Tester');playSeason();
+newGame('LSN','Tester');playSeason();takeJob();
 {S.board=5;S.summary=S.summary||{place:8,exp:2,splits:[],intl:[]};careerSeason();ok(S.jobless&&S.jobs.list.length>=2&&S.jobs.list.every(id=>S.teams[id].vac&&!S.teams[id].mgr),'Entlassung: Angebote von Vereinen mit Manager')}
 `;
 module.exports+=`
 function ok(c,msg){if(!c){console.log('FEHLER',msg);bad++}}
 function html(){return document.querySelector('#app').innerHTML}
 // Personal nach dem Vereinswechsel: Einstellen und Entlassen geben immer eine Rückmeldung
-newGame('LYL','Tester');playSeason();
+newGame('LYL','Tester');playSeason();takeJob();
 {const T=Object.values(S.teams).filter(t=>t.tier!==2&&!t.academy&&t.reg==='LCK').sort((a,b)=>b.rep-a.rep)[4];ok(switchTeam(T.id)===null,'Wechsel');
  ACT.nav2({v:'club',k:'CLUBTAB',t:'staff'});chk('Trainerstab');
  // Rolle voll: Analyst
@@ -266,4 +266,39 @@ newGame('LYL','Tester');
  ok(html().includes('data-a="ngshiftw"')&&html().includes('data-a="ngfin"')&&!html().includes('vom Konto freigeben'),'Wege bei zu kleinem Transferbudget fehlen');
  const t0=S.fin.budget.transfer,w0=S.fin.budget.wage;ACT.ngshiftw();ok(S.fin.budget.transfer>t0&&S.fin.budget.wage<w0&&(S.fin.budget.transfer-t0)/25000===(w0-S.fin.budget.wage)/625,'Umschichten ins Transferbudget falsch');
  ok(S.fin.budget.wage>=bill,'Umschichten reißt die Lohnsumme über das Budget');chk('Umschichten')}
+`;
+module.exports+=`
+function ok(c,msg){if(!c){console.log('FEHLER',msg);bad++}}
+function html(){return document.querySelector('#app').innerHTML}
+// Relegation: Tausch der Ligen, Bo5, Abstieg des Nutzers wie Entlassung
+newGame('LYL','Tester');
+{const count=()=>REGS.map(r=>teamsOf(r).length+':'+t2Of(r).filter(t=>!t.academy).length).join(',');const c0=count();
+ playSeason();chk('Saison 1');ok(S.phase==='offseason','Saison endet nicht');ok(Array.isArray(S.releg),'Keine Relegations-Liste');
+ ok(REGS.every(r=>S.releg.some(x=>x.reg===r)||S.releg.length>=0),'Relegation');
+ ok(S.releg.length===REGS.length,'Nicht jede Region hat eine Relegation gespielt: '+S.releg.length);
+ ok(count()===c0,'Teamzahlen ändern sich: '+c0+' gegen '+count());
+ ok(S.releg.every(x=>/^[0-3]:[0-3]$/.test(x.sc)&&(x.sc.startsWith('3')||x.sc.endsWith('3'))),'Bo5 endet ohne Sieger');
+ // Tausch direkt: Letzter gegen T2-Meister
+ const r='LCK',A=teamsOf(r).sort((a,b)=>a.rep-b.rep)[0],B=t2Champ(r),nA=A.name,nB=B.name,reg1=teamsOf(r).length;
+ ok(A.tier!==2&&!A.academy&&B&&B.tier===2&&!B.academy,'Vorbereitung');
+ swapTiers(A,B);
+ ok(A.tier===2&&B.tier!==2&&teamsOf(r).length===reg1&&teamsOf(r).includes(B)&&!teamsOf(r).includes(A),'Tausch greift nicht');
+ ok(!/(Rising|Next|Prospects|Rookies|Challengers|Ascend|Youth|Nova)$/.test(B.name)&&B.tag&&B.tag.length===3&&B.mgr&&!B.vac,'Aufsteiger nicht hergerichtet: '+B.name+' '+B.tag);
+ ok(ROLES.every(x=>S.players[B.starters[x]]&&S.players[B.starters[x]].team===B.id),'Aufsteiger ohne vollständige Startelf');
+ ok(crest(B).includes('>'+B.tag+'<'),'Wappen zeigt das Kürzel nicht');
+ ok(B.rep>=48&&A.rep>=34,'Ruf außerhalb des Rahmens');
+ // Liga-Lage zeigt die Relegation
+ ACT.nav2({v:'league',k:'LTAB',t:'lage'});chk('Liga-Lage');ok(html().includes('Auf- und Abstieg'),'Auf- und Abstieg nicht sichtbar');
+ // Nächste Saison läuft mit dem neuen Teilnehmerfeld (mit Neuladen jede Woche)
+ ACT.next();chk('Neue Saison');ok(S.phase==='season','Neue Saison startet nicht');
+ let g=0;while(S.phase!=='offseason'&&g++<260){playWeek();reload();chk('Woche '+S.step)}ok(S.phase==='offseason','Saison nach dem Tausch hängt');
+}
+// Nutzer steigt ab: wie Entlassung mit Angeboten
+newGame('LSN','Tester');playSeason();takeJob();
+{const U=S.teams[S.user],r=U.reg,B=t2Champ(r),old=S.user;ok(B,'Kein T2-Meister');
+ swapTiers(U,B);S.relegUser=true;S.summary=S.summary||{place:10,exp:10,splits:[],intl:[]};careerSeason();
+ ok(S.jobless&&S.jobs&&S.jobs.relegated&&S.jobs.list.length>=2&&S.jobs.list.every(id=>S.teams[id].tier!==2&&S.teams[id].vac),'Abstieg führt nicht zu Angeboten');
+ ACT.next();ok(S.view==='jobs'&&html().includes('Abgestiegen'),'Jobseite nach dem Abstieg');
+ ACT.jobtake({v:S.jobs.list[0]});ACT.jobtake({v:S.jobs.list[0],ok:'1'});chk('Neuer Verein');ok(S.user!==old&&S.teams[S.user].tier!==2&&S.teams[old].tier===2,'Wechsel nach dem Abstieg');
+ ACT.next();ok(S.phase==='season','Neue Saison nach Abstieg');chk('Saison startet')}
 `;

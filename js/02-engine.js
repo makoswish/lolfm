@@ -9,6 +9,7 @@ function teamPower(T,O){
   const ts=styleOf(T),sm=STYLES[ts].mod;ph.e+=sm[0];ph.m+=sm[1];ph.l+=sm[2];
   {const cp=chemPow(T);ph.e+=cp;ph.m+=cp;ph.l+=cp}
   ph.m+=capPow(T);{const mp=metaPow(T);ph.e+=mp;ph.m+=mp;ph.l+=mp}
+  if(T.relB){ph.e+=T.relB;ph.m+=T.relB;ph.l+=T.relB}
   if(O){const c=COUNTER[ts];if(c.vs===styleOf(O))ph[c.ph]+=2.5;
     const mine=S.players[T.starters[T.focus]],th=S.players[O.starters[T.focus]];ph.e+=ovr(mine)>ovr(th)?2:.8}
   const an=T.id===S.user?S.staff.analyst:2;ph.m+=(an-2)*.6;ph.l+=(an-2)*.4;
