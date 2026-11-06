@@ -12,20 +12,22 @@ function pStatus(p){return ovr(p)+p.h.amb/4}
 function prestF(p,renew){const g=pStatus(p)-S.teams[S.user].rep;let f=g>0?1+g/45:1+g/80;f=clamp(f,.88,1.5);return renew?1+(f-1)/2:f}
 function prestTxt(p,renew){const f=prestF(p,renew),pc=Math.round((f-1)*100);if(pc>=3)return['bad',`+${pc}% Aufschlag: Für ihn ist dein Verein eine Nummer zu klein.`];if(pc<=-3)return['good',`${pc}% Abschlag: Er will zu einem Verein mit deinem Prestige.`];return['muted','Dein Prestige passt zu ihm, kein Auf- oder Abschlag.']}
 /* Weiche Ruf-Hürde: Unter seiner Schmerzgrenze verhandelt ein Spieler trotzdem, aber teuer. Pro Ruf-Punkt darunter 2,5% Aufschlag aufs Gehalt,
-   weniger Geduld und ein kleiner Respekt-Malus. Erst ab SOFTGAP Punkten Abstand lehnt er Gespräche ab. */
+   weniger Geduld und ein kleiner Respekt-Malus. Über SOFTGAP hinaus steigt der Aufschlag auf 5% pro Punkt (höchstens +150% insgesamt).
+   Es gibt keine Absage: Die Grenze setzen Gehaltsbudget und Konto. */
 const SOFTGAP=14;
 function hurdleGap(p){if(isMine(p))return 0;return Math.max(0,signNeed(p)-S.teams[S.user].rep)}
-function hurdleF(p,renew){if(renew||isMine(p))return 1;return 1+Math.min(hurdleGap(p),SOFTGAP)*.025}
+function hurdleF(p,renew){if(renew||isMine(p))return 1;return hurdleCut(hurdleGap(p))}
+function hurdleCut(g){return Math.min(2.5,1+Math.min(g,SOFTGAP)*.025+Math.max(0,g-SOFTGAP)*.05)}
 function demandFor(p,renew){const o=ovr(p);let d=salaryFor(o)*(p.team&&p.team!==S.user?1.15:1)*(.9+p.h.amb/20*.3)*prestF(p,renew)*hurdleF(p,renew);
   if(renew){d=Math.max(d,p.salary*1.05);if(p.morale<50)d*=1.1}return r100(d)}
 /* ===== Wechselbereitschaft =====
    Wie schwer ist ein Spieler zu holen? Nutzt dieselbe Ruf-Hürde wie die Verhandlung, dazu Rolle, Verein und Stimmung. */
-const SIGNL=[['Leicht','var(--good)'],['Machbar','var(--good)'],['Schwer','var(--warn)'],['Kaum möglich','var(--bad)'],['Unmöglich','var(--dim)']];
+const SIGNL=[['Leicht','var(--good)'],['Machbar','var(--good)'],['Schwer','var(--warn)'],['Kaum möglich','var(--bad)'],['Extrem teuer','var(--bad)']];
 function signNeed(p){return Math.ceil(pStatus(p)-13)-Math.round(attract()*2)}
 function signDiff(p){const U=S.teams[S.user],T=p.team?S.teams[p.team]:null,need=signNeed(p),why=[];
   const gap=need-U.rep;
-  if(gap>SOFTGAP)return{lv:4,why:[`Dein Verein liegt ${gap} Ruf-Punkte unter seiner Schmerzgrenze (${need}). Erst ab Ruf ${need-SOFTGAP} verhandelt er überhaupt.`]};
-  if(gap>0)return{lv:3,why:[`Dein Verein liegt ${gap} Ruf-Punkte unter seiner Schmerzgrenze (${need}). Er verhandelt, verlangt aber zusätzlich ${Math.round(gap*2.5)}% Aufschlag aufs Gehalt und verliert schneller die Geduld.`]};
+  if(gap>SOFTGAP)return{lv:4,why:[`Dein Verein liegt ${gap} Ruf-Punkte unter seiner Schmerzgrenze (${need}). Er verhandelt, verlangt aber ${Math.round((hurdleCut(gap)-1)*100)}% Aufschlag aufs Gehalt und hat kaum Geduld.`]};
+  if(gap>0)return{lv:3,why:[`Dein Verein liegt ${gap} Ruf-Punkte unter seiner Schmerzgrenze (${need}). Er verhandelt, verlangt aber zusätzlich ${Math.round((hurdleCut(gap)-1)*100)}% Aufschlag aufs Gehalt und verliert schneller die Geduld.`]};
   const m=U.rep-need;let lv=m>=10?0:m>=5?1:2;why.push(m>=10?'Dein Verein ist für ihn eine klare Verbesserung.':m>=5?'Dein Verein ist für ihn interessant.':'Dein Verein liegt knapp über seiner Schmerzgrenze.');
   const cur=S.players[U.starters[p.role]];if(cur&&ovr(p)<ovr(cur)-1&&p.age>21){lv++;why.push(`Hätte bei dir keinen Stammplatz vor ${cur.name}.`)}
   if(!canJoinReg(p,U.reg)){lv++;why.push(`Will ungern aus der ${homeReg(p)} in eine schwächere Region.`)}
@@ -44,7 +46,6 @@ function startNego(type,pid){
   if(p.tried===wkKey()){pmsg(pid,'Diese Woche sind keine weiteren Gespräche möglich.',false);return false}
   if(isLoanIn(p)){pmsg(pid,'Er ist nur ausgeliehen. Über seinen Vertrag verhandelt sein Verein.',false);return false}
   const hg=type==='renew'?0:hurdleGap(p),at=attract(),pat=clamp(3+Math.round((U.rep-(o+p.h.amb/4-8))/6)+(type==='renew'?1:0)-(p.team&&S.teams[p.team].reg!==U.reg?1:0)+(at>.25?1:at<-.25?-1:0)-Math.ceil(hg/5),1,6);
-  if(hg>SOFTGAP){pmsg(pid,`${p.name} lehnt Gespräche ab. Dein Verein liegt ${hg} Ruf-Punkte unter seiner Schmerzgrenze (Ruf ab ${signNeed(p)}, deiner: ${U.rep}). Erst ab Ruf ${signNeed(p)-SOFTGAP} verhandelt er überhaupt, dann aber teuer.`,false);return false}
   NG={type,pid,hg,stage:type==='buy'?'fee':'contract',pat,patMax:pat,log:[],dem:{sal:demandFor(p,type==='renew'),yrs:prefYears(p),role:expRole(p)},done:false,dead:false};
   NG.terms={sal:NG.dem.sal,yrs:NG.dem.yrs,role:NG.dem.role,sb:0,wb:0,cl:0};
   if(type==='buy'){const T=S.teams[p.team],ask=askFor(p);
@@ -52,7 +53,7 @@ function startNego(type,pid){
     NG.log.push(['club',`${T.name}: Wir hören uns das an. Unsere Vorstellung liegt bei rund ${eurK(ask)}.`])}
   else NG.log.push(['agent',demandText()]);
   S.view='nego';return true}
-function hurdleNote(){const hg=NG&&NG.hg;return hg>0?` Ehrlich gesagt ist dein Verein ihm ${hg} Ruf-Punkte zu klein. Er spricht trotzdem mit euch, aber nur mit ${Math.round(Math.min(hg,SOFTGAP)*2.5)}% Aufschlag aufs Gehalt, und die Geduld ist kürzer.`:''}
+function hurdleNote(){const hg=NG&&NG.hg;return hg>0?` Ehrlich gesagt ist dein Verein ihm ${hg} Ruf-Punkte zu klein. Er spricht trotzdem mit euch, aber nur mit ${Math.round((hurdleCut(hg)-1)*100)}% Aufschlag aufs Gehalt, und die Geduld ist kürzer.`:''}
 function demandText(){const d=NG.dem,p=S.players[NG.pid];return `Berater von ${p.name}: Wir erwarten etwa ${eurK(d.sal)} pro Woche über ${d.yrs} ${d.yrs===1?'Saison':'Saisons'} und eine Rolle als ${PROM[d.role][0]}.${hurdleNote()}`}
 function ngNeed(){const p=S.players[NG.pid];if(NG.stage==='fee')return{t:feeNow(),w:0};const t=NG.terms,ex=p.team===acaId()?0:t.sal-(NG.type==='renew'?p.salary:0);return{t:feeNow()+t.sb,w:Math.max(0,ex)}}
 /* Finanzierung auf Raten: Reicht das Konto für die Lücke im Transferbudget nicht, finanziert der Vorstand den Rest bis zu einem Rahmen.
@@ -145,7 +146,7 @@ function negoView(){
   else{const{sc}=cScore(),cv=clamp(sc*100,0,130),val=valueFor(p);
     main=`<section class="panel s7"><div class="lab"><span>Vertrag mit ${p.name}</span><span>Geduld des Beraters ${dots(NG.pat,NG.patMax)}</span></div>
      <div class="dem"><div><span>Forderung</span><b>${eurK(NG.dem.sal)}/Wo.</b></div><div><span>Laufzeit</span><b>${NG.dem.yrs} J.</b></div><div><span>Rolle</span><b>${PROM[NG.dem.role][0]}</b></div></div>
-     ${NG.hg>0?`<div class="note warn" style="margin-top:10px">Dein Verein liegt ${NG.hg} Ruf-Punkte unter seiner Schmerzgrenze. In der Forderung stecken ${Math.round(Math.min(NG.hg,SOFTGAP)*2.5)}% Ruf-Aufschlag, zusätzlich zum Prestige-Aufschlag. Mit mehr Gehalt oder Handgeld lässt er sich überzeugen, die Geduld ist aber kürzer.</div>`:''}
+     ${NG.hg>0?`<div class="note warn" style="margin-top:10px">Dein Verein liegt ${NG.hg} Ruf-Punkte unter seiner Schmerzgrenze. In der Forderung stecken ${Math.round((hurdleCut(NG.hg)-1)*100)}% Ruf-Aufschlag, zusätzlich zum Prestige-Aufschlag. Mit mehr Gehalt oder Handgeld lässt er sich überzeugen, die Geduld ist aber kürzer.</div>`:''}
      <div class="lab" style="margin:14px 0 6px">Wochengehalt</div><div class="big">${eur(t.sal)}</div>${stepper('ngsal',[-1000,-100,100,1000])}
      <div class="lab" style="margin:14px 0 6px">Laufzeit</div><div class="seg">${[1,2,3,4].map(v=>`<button class="${t.yrs===v?'on':''}" data-a="ngyrs" data-v="${v}">${v} ${v===1?'Saison':'Saisons'}</button>`).join('')}</div>
      <div class="lab" style="margin:14px 0 6px"><span>Rolle im Team</span><span>Stammspieler-Versprechen muss gehalten werden</span></div><div class="seg">${Object.entries(PROM).map(([k,v])=>`<button class="${t.role===k?'on':''}" data-a="ngrole" data-v="${k}">${v[0]}</button>`).join('')}</div>

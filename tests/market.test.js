@@ -26,10 +26,11 @@ ok(Math.abs(prestF(p,true)-1)<Math.abs(prestF(p,false)-1)||prestF(p,false)===1,'
 ok(prestigeOf({rep:90})==='Weltspitze'&&prestigeOf({rep:40})==='Kleiner Verein','Prestige-Stufen');
 
 // Wechselbereitschaft
-V.rep=50;const sd=signDiff(p);ok(sd.lv===4&&sd.why.length,'Star sollte kleinem Verein absagen');
-ok(!startNego('buy',p.id),'Verhandlung trotz Unmöglich gestartet');V.rep=rep0;p.tried='';
+V.rep=50;const sd=signDiff(p);ok(sd.lv===4&&sd.why.length,'Star sollte kleinem Verein extrem teuer sein');
+ok(hurdleF(p,false)>1.5,'Aufschlag für Star bei kleinem Verein zu niedrig');V.rep=rep0;p.tried='';
 const fa=Object.values(S.players).filter(x=>!x.team).sort((a,b)=>ovr(a)-ovr(b))[0];ok(signDiff(fa).lv<=1,'Schwacher Vereinsloser nicht leicht zu holen');
 ACT.nav2({v:'transfer',k:'TTAB',t:'markt'});chk('Markt');ok(document.querySelector('#app').innerHTML.includes('class="sgn"'),'Bereitschaft fehlt im Markt');
+ok(/Vertrag bis 20\\d\\d/.test(document.querySelector('#app').innerHTML),'Vertragsende fehlt in den Marktzeilen');
 for(const v of [3,2,1,0]){FILT.sgn=v;render();chk('Filter '+v);
   const ids=[...document.querySelector('#app').innerHTML.matchAll(/class="row" data-a="player" data-id="([^"]+)"/g)].map(m=>m[1]);
   ok(ids.every(id=>signDiff(S.players[id]).lv<=v),'Filter zeigt zu schwere Spieler bei '+v)}
@@ -68,9 +69,11 @@ newGame('LYL','Tester');
  NG=null;
  // Eigene Spieler: keine Hürde bei Verlängerung
  const mine=S.players[V.starters.MID];ok(hurdleF(mine,true)===1&&hurdleGap(mine)===0,'Hürde bei eigenem Spieler');
- // Weit darunter: Gespräche abgelehnt
+ // Weit darunter: keine Absage, nur ein hoher Aufschlag
  const far=genPlayer('MID',78,25,'LEC');far.contract=0;S.players[far.id]=far;S.fa.push(far.id);V.rep=signNeed(far)-SOFTGAP-1;
- ok(signDiff(far).lv===4,'Zu großer Abstand ist nicht Unmöglich');room();ok(startNego('fa',far.id)===false&&!NG,'Gespräche trotz zu großem Abstand');ok(PV&&PV.msg&&PV.msg.indexOf('lehnt Gespräche ab')>=0,'Ablehnung ohne Erklärung');
+ ok(signDiff(far).lv===4,'Zu großer Abstand ist nicht Extrem teuer');
+ {const g=hurdleGap(far);ok(g>SOFTGAP&&hurdleF(far,false)>1+SOFTGAP*.025&&hurdleF(far,false)<=2.5,'Aufschlag jenseits der weichen Grenze steigt nicht gedeckelt');
+  room();ok(startNego('fa',far.id)===true&&NG&&NG.hg===g,'Gespräche trotz großem Abstand nicht möglich');ok(NG.pat===1,'Geduld bei großem Abstand nicht minimal');NG=null;far.tried=''}
 }
 `;
 module.exports+=`
