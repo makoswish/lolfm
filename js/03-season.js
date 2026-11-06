@@ -248,7 +248,7 @@ function newSeason(){
   S.tstLast=S.tst;S.tst={};t2Init();S.scoutPool=[genScout(ri(1,2)),genScout(ri(2,3)),genScout(ri(3,4))];S.season++;S.year++;S.step=0;S.patch=0;S.phase='season';S.ci=0;S.rec={};S.splits={};S.summary=null;S.lastRound=null;
   for(const p of Object.values(S.players))p.o0=ovr(p);
   setBudgets();
-  if(S.fin.debts){for(const x of S.fin.debts.filter(x=>x.season<=S.season)){book('Ablöse-Raten',-x.amt);S.fin.budget.transfer=Math.max(0,S.fin.budget.transfer-x.amt);mail('Ablöse-Rate fällig',`${eurK(x.amt)} gehen als zweite Rate an ${x.to}.`)}S.fin.debts=S.fin.debts.filter(x=>x.season>S.season)}
+  if(S.fin.debts){for(const x of S.fin.debts.filter(x=>x.season<=S.season)){book('Ablöse-Raten',-x.amt);S.fin.budget.transfer=Math.max(0,S.fin.budget.transfer-x.amt);x.fin?mail('Finanzierung fällig',`Die Finanzierung vom letzten Jahr wird abgebucht: ${eurK(x.amt)}. Dein Transferbudget sinkt um denselben Betrag.`):mail('Ablöse-Rate fällig',`${eurK(x.amt)} gehen als zweite Rate an ${x.to}.`)}S.fin.debts=S.fin.debts.filter(x=>x.season>S.season)}
   for(const id in S.teams)S.teams[id].tac=null;
   S.ev=initEvent(CAL[0]);try{pressPreview()}catch(e){}
   mail(`Budgets ${S.year}`,`Transferbudget ${eurK(S.fin.budget.transfer)}, Gehaltsbudget ${eurK(S.fin.budget.wage)} pro Woche (aktuell genutzt: ${eurK(wageBill())}). ${S.fin.budget.salePct}% der Verkaufserlöse fließen ins Transferbudget.`);

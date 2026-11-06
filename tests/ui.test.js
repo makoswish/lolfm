@@ -43,4 +43,25 @@ newGame('LYL','Tester');
  ok(T.roster.every(i=>h.includes('data-id="'+i+'"')),'Kader fehlt im Team-Fenster');ACT.close();ok(!ovOpen(),'Sperre bleibt nach Schließen');
  const b=U=>U.roster.map(i=>S.players[i]).find(p=>!isStarter(p));ACT.release({id:b(S.teams[S.user]).id});ok(ovOpen()&&MODAL.cf,'Rückfrage ohne Sperre');ACT.cfno();ok(!ovOpen(),'Sperre nach Abbrechen');
  ACT.qs();ok(ovOpen(),'Suche ohne Sperre');ACT.cfno();ACT.simmenu();ok(ovOpen(),'Simulationsmenü ohne Sperre');MODAL=null;render();ok(!ovOpen(),'Sperre bleibt hängen')}
+
+// Spielervergleich: besserer Wert, Bilanz, Kosten
+newGame('LYL','Tester');
+{const U=S.teams[S.user],a=S.players[U.starters.MID],b=S.players[U.starters.TOP];
+ for(const k of ['mec','lan','gs','nrv'])a.d[k]=18;for(const k of ['mec','lan','gs','nrv'])b.d[k]=6;a.salary=9000;b.salary=3000;derive(a);derive(b);
+ ACT.cmp({id:a.id,b:b.id});chk('Vergleich eigene Spieler');const h=html();
+ ok(h.includes('cmpmeter')&&h.includes('Bilanz der Werte'),'Bilanz fehlt');
+ ok(h.includes('class="cv a cb"')&&h.includes('class="cv b cw"'),'Besserer Wert nicht markiert');
+ ok(h.includes('class="tri"'),'Pfeil zum besseren Wert fehlt');
+ const cnt=(h.match(/class="cv a cb"/g)||[]).length,cnt2=(h.match(/class="cv b cb"/g)||[]).length;
+ const m=h.match(/<div class="cside"><b>(\\d+)<\\/b>/),m2=h.match(/<div class="cside r"><b>(\\d+)<\\/b>/);
+ ok(m&&m2,'Bilanz-Zahlen fehlen');
+ // Gehalt: niedriger ist besser, zählt nicht in die Bilanz. Marktwert, Alter, Spiele ohne Urteil.
+ const rowOf=function(l){const i=h.indexOf('>'+l+'</td>');return h.slice(i,h.indexOf('</tr>',i))};
+ ok(/class="cv b cb"/.test(rowOf('Gehalt')),'Beim Gehalt gewinnt nicht der niedrigere Wert');
+ ok(!/cb/.test(rowOf('Marktwert'))&&!/cb/.test(rowOf('Alter')),'Marktwert oder Alter bekommen ein Urteil');
+ ok(+m[1]+ +m2[1]<=30,'Bilanz zählt mehr als die Werte');ok(cnt+cnt2>=+m[1]+ +m2[1],'Bilanz passt nicht zu den markierten Werten');
+ // Fremder Spieler mit wenig Wissen: Fragezeichen, keine Markierung auf unbekannten Werten
+ const o=Object.values(S.players).find(p=>p.team&&p.team!==S.user&&S.teams[p.team].tier!==2);S.kn[o.id]=0;ACT.cmp({id:a.id,b:o.id});chk('Vergleich mit Unbekanntem');
+ const h2=html();ok(h2.includes('unbekannt'),'Unbekannte Werte nicht ausgewiesen');ok(!/class="cv b cb"/.test(h2.slice(h2.indexOf('>Mechanik</td>'),h2.indexOf('</tr>',h2.indexOf('>Mechanik</td>')))),'Unbekannter Wert als besser markiert');
+ ACT.cmpclose()}
 `;

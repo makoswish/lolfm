@@ -2,7 +2,7 @@
 const ACT={
   startreg(d){STARTREG=d.v;render()},
   pickteam(d){const n=($('#mgr')||{}).value;useSlot(NEWSLOT||freeSlot()||SLOT);NEWSLOT=null;newGame(d.id,(n||'').trim()||'Manager');render()},
-  nav2(d){if(LIVE&&(LIVE.phase==='live'||LIVE.phase==='draft'))return;if(MODAL==='reset')MODAL=null;
+  nav2(d){if(liveLocked())return;if(MODAL==='reset')MODAL=null;
     if(d.k==='KTAB')KTAB=d.t;else if(d.k==='TACTAB')TACTAB=d.t;else if(d.k==='TTAB')TTAB=d.t;else if(d.k==='LTAB')LTAB=d.t;else if(d.k==='CLUBTAB')CLUBTAB=d.t;
     if(d.v==='save'){EXP=null;IMPMSG=null}
     if(d.v==='transfer'&&d.t==='scout')(S.reports||[]).forEach(r=>r.seen=true);S.view=d.v;window.scrollTo(0,0);render()},
@@ -17,7 +17,7 @@ const ACT={
   simhalt(){if(SIMRUN){SIMRUN.why='Von dir angehalten.';simFinish()}render()},
   simclose(d){if(MODAL==='sim')MODAL=null;SIMREP=null;if(d.go==='inbox'){IBF='ALL';S.view='inbox'}window.scrollTo(0,0);render()},
   tb(d){tbDo(d.v);render()},nwf(d){NWF=d.v;render()},
-  nav(d){if(LIVE&&LIVE.phase==='live')return;if(d.v==='tactic')TACTAB='tac';if(MODAL==='reset')MODAL=null;S.view=d.v;window.scrollTo(0,0);render()},
+  nav(d){if(LIVE&&(LIVE.phase==='live'||LIVE.phase==='intro'))return;if(d.v==='tactic')TACTAB='tac';if(MODAL==='reset')MODAL=null;S.view=d.v;window.scrollTo(0,0);render()},
   vreg(d){VIEWREG=d.v;render()},
   next(){if(S.phase==='offseason'){if(S.jobless){S.view='jobs';render();return}S.jobs=null;newSeason();render();return}const p=userPending();if(p)openSeries(p);else{step();S.view='home'}window.scrollTo(0,0);render()},
   skipto(){let g=0;while(S.phase!=='offseason'&&!userPending()&&g++<80)step();S.view='home';render()},
@@ -30,12 +30,20 @@ const ACT={
     if(D.step==='ban'){D.myBans=aiBans(O);D.oppPicks=aiPicks(O,[...D.myBans,...D.oppBans],[],D.oppRoles);D.step='pick'}
     D.picks=aiPicks(U,draftTaken(),[],ROLES,D.oppPicks);render()},
   dok(){if(!ROLES.every(r=>LIVE.draft.picks[r]!=null))return;finishDraft();window.scrollTo(0,0);render()},
-  ins(d){LIVE.sim.ins[myS()]=d.v;render()},
-  bcall(){LIVE.sim.call[myS()]=true;render()},
   press(d){pressAnswer(+d.v);render()},
   quick(){while(!seriesOver()){const s=LIVE.series;recordGame(simGame(S.teams[s.a],S.teams[s.b],gctx()))}commitSeries();LIVE=null;if(!userPending())step();S.view='home';window.scrollTo(0,0);render()},
   talk(d){doTalk(d.v);save();render()},
-  speed(d){LIVE.speed=+d.v;loop();render()},
+  speed(d){LIVE.speed=+d.v;LIVE.slow=0;loop();render()},
+  gostart(){if(!LIVE||LIVE.phase!=='intro')return;LIVE.phase='live';window.scrollTo(0,0);render();loop()},
+  tick1(){if(!LIVE||LIVE.phase!=='live')return;if(simTick(LIVE.sim))gameDone();render()},
+  nextm(){if(!LIVE||LIVE.phase!=='live')return;const z=LIVE.sim,n0=z.ev.length;let done=false,g=0;
+    while(g++<90){done=simTick(z);if(done||z.ev.slice(n0).some(e=>e.w>=2))break}
+    clearInterval(LIVE.timer);LIVE.speed=3;if(done)gameDone();render()},
+  snd(){SND=!SND;try{localStorage.setItem('riftmgr_snd',SND?'1':'0')}catch(e){}if(SND&&LIVE)lvBeep({side:myS(),w:2});render()},
+  lvtab(d){LIVE.tab=d.v;render()},
+  lvf(d){LIVE.filter=d.v;render()},
+  pin(d){LIVE.pin=LIVE.pin===d.id?null:d.id;if(LIVE.filter==='pin'&&!LIVE.pin)LIVE.filter='key';render()},
+  evsel(d){LIVE.sel=LIVE.sel===+d.i?null:+d.i;liveRefresh()},
   skip(){while(!simTick(LIVE.sim));gameDone();render()},
   nextgame(){LIVE.phase='pre';LIVE.press=null;S.view='prematch';window.scrollTo(0,0);render()},
   after(){LIVE=null;if(!userPending())step();S.view='home';window.scrollTo(0,0);render()},
@@ -55,6 +63,7 @@ const ACT={
   ngsb(d){NG.terms.sb=+d.v;render()},ngwb(d){NG.terms.wb=+d.v;render()},ngcl(d){NG.terms.cl=+d.v;render()},
   ngdem(){NG.terms.sal=NG.dem.sal;NG.terms.yrs=NG.dem.yrs;NG.terms.role=NG.dem.role;render()},
   ngfit(){const n=ngNeed();applyFit(fitPlan(n.t,n.w));save();render()},
+  ngfin(){const n=ngNeed();applyFit(fitPlan(n.t,n.w),true);save();render()},
   ngauto(d,el){S.autoFit=!!(el&&el.checked);save();render()},
   ngsign(){if(!NG.dead&&!NG.done)sendContract();save();render()},
   ngleave(){const id=NG.pid;NG=null;const back=PV&&PV.back||'squad';PV={id,tab:'vertrag',back};S.view='player';window.scrollTo(0,0);render()},
@@ -186,6 +195,8 @@ const ACT={
   reset(d){if(d.ok==='1'){try{localStorage.removeItem(SAVEKEY)}catch(e){}setMeta(SLOT,null);S=null;LIVE=null;MODAL=null}else if(d.ok==='0')MODAL=null;else MODAL='reset';render()}
 };
 function loanErr(id,msg){pmsg(id,msg,false);if(S.view!=='player'){PV.tab='vertrag';PV.back=S.view;S.view='player'}}
+/* Bereiche der Live-Ansicht werden pro Minute neu gezeichnet: Eingaben dort reagieren schon beim Drücken */
+document.addEventListener('pointerdown',e=>{const b=e.target&&e.target.closest&&e.target.closest('[data-pd]');if(!b)return;const f=ACT[b.dataset.pd];if(!f)return;try{f(b.dataset,b)}catch(err){ERR=err.message;render()}});
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-a]');if(!b||b.disabled)return;
   if(b.classList.contains('ov')&&e.target!==b)return;if(SIMRUN&&b.dataset.a!=='simhalt')return;
