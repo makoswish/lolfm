@@ -17,7 +17,7 @@ function mkOffer(type,b,nm){const o={name:nm(),type,base:r100(b)};
   else if(type==='content'){o.base=r100(b*1.3)}
   return o}
 function genSlotOffers(k,used){const f=S.fin,sl=SLOTS.find(x=>x[0]===k),B=(sponsorFor(S.teams[S.user].rep)+6000)/1.5,b=B*sl[2]*(.9+R()*.2);used=used||new Set(Object.values(f.slots).filter(Boolean).map(o=>o.name));
-  const nm=()=>{let n,g=0;do n=pick(BRANDS);while(used.has(n)&&g++<60);used.add(n);return n};
+  const reg=S.teams[S.user].reg,nm=()=>{let n,g=0;do n=pick(R()<.7&&BRANDR[reg]?BRANDR[reg]:BRANDS);while(used.has(n)&&g++<80);if(used.has(n))do n=pick(BRANDS.concat(BRANDR[reg]||[]));while(used.has(n)&&g++<160);used.add(n);return n};
   const pool=shuffle(sl[5].filter(t=>t!=='fix').slice()).slice(0,k==='main'?3:2),types=['fix',...pool];
   const list=types.map(t=>mkOffer(t,b,nm));
   const loyal=(f.loyal||[]).find(n=>!used.has(n)||list.some(o=>o.name===n));if(loyal&&R()<.7){const o=mkOffer(pick(['fix','multi']),b*1.12,()=>loyal);o.loyal=true;list.push(o)}
@@ -38,7 +38,7 @@ function sponsorSeasonEnd(){const f=S.fin;f.loyal=[];
 function sponsorNewSeason(){const f=S.fin;for(const[k]of SLOTS){const o=f.slots[k];if(o&&o.type==='multi'&&o.yrs>1){o.yrs--}else f.slots[k]=null}genOffers();
   if(f.loyal&&f.loyal.length)mail('Treue Partner',`${f.loyal.join(', ')} ${f.loyal.length===1?'war':'waren'} sehr zufrieden und ${f.loyal.length===1?'bietet':'bieten'} dir bessere Konditionen an.`)}
 function spCard(k,o,i,signed){const t=STYPE[o.type],sat=o.sat??60,cpen=r1000(o.base*8);
-  return `<div class="card spc ${signed?'on':''} ${o.loyal?'loyal':''}" style="cursor:default"><span class="tag">${t.n}${o.loyal?' · Treuer Partner':''}</span><b>${o.name}</b><p>${t.d}</p>
+  return `<div class="card spc ${signed?'on':''} ${o.loyal?'loyal':''}" style="cursor:default"><span class="tag">${t.n}${o.loyal?' · Treuer Partner':''} · ${ORGN[brandOrg(o.name)]}</span><b>${o.name}</b><p>${t.d}</p>
    <div class="stat"><span class="muted">Pro Woche</span><span>${eur(o.base)}</span></div>
    ${o.perWin?`<div class="stat"><span class="muted">Pro Seriensieg</span><span>${eur(o.perWin)}</span></div>`:''}
    ${o.title?`<div class="stat"><span class="muted">Pro Titel</span><span>${eur(o.title)}</span></div>`:''}

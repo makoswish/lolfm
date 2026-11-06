@@ -58,6 +58,8 @@ const ACT={
   ngfee(d){NG.fee.amt=Math.max(0,NG.fee.amt+ +d.v);render()},
   ngpay(d){NG.fee.pay=d.v;render()},ngsell(d){NG.fee.sell=+d.v;render()},
   ngsend(){if(!NG.dead&&!NG.done)sendFee();save();render()},
+  ngnudge(d){const[mn,mx]=ngRange(d.k);ngPut(d.k,clamp(ngGet(d.k)+ +d.v,mn,mx));render()},
+  ngalt(){if(!NG.dead&&!NG.done)ngAlt();render()},
   ngsal(d){NG.terms.sal=Math.max(800,NG.terms.sal+ +d.v);render()},
   ngyrs(d){NG.terms.yrs=+d.v;render()},ngrole(d){NG.terms.role=d.v;render()},
   ngsb(d){NG.terms.sb=+d.v;render()},ngwb(d){NG.terms.wb=+d.v;render()},ngcl(d){NG.terms.cl=+d.v;render()},
@@ -217,3 +219,6 @@ document.addEventListener('input',e=>{const t=e.target;if(t&&t.id==='qsin'&&!e.i
 document.addEventListener('input',e=>{const t=e.target;if(!t||t.id!=='tq'||e.isComposing)return;FILT.q=t.value;FILT.n=40;const pos=t.selectionStart;render();const n=$('#tq');if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(_){}}});
 document.addEventListener('change',e=>{const t=e.target;if(t&&t.id==='tsort'){FILT.sort=t.value;FILT.n=40;render()}if(t&&t.id==='tsgn'){FILT.sgn=+t.value;FILT.n=40;render()}});
 initSlot();load();render();
+
+document.addEventListener('input',e=>{const t=e.target;if(t&&t.dataset&&t.dataset.rk&&typeof NG!=='undefined'&&NG){try{ngPut(t.dataset.rk,t.value);const w=t.closest('.rng'),rv=w&&w.querySelector('.rv');if(rv)rv.textContent=ngFmt(t.dataset.rk,+t.value);ngLive()}catch(err){}}});
+document.addEventListener('change',e=>{const t=e.target;if(t&&t.dataset&&t.dataset.rk&&typeof NG!=='undefined'&&NG){try{render()}catch(err){}}});

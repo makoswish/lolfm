@@ -78,7 +78,17 @@ const NATS=['DE','FR','ES','KR','CN','US','BR','VN','PL','DK'];
 const PRE=['Kae','Vy','Mir','Tor','Zen','Ral','Sko','Fen','Ixa','Bru','Nok','Sel','Var','Qui','Dra','Lum','Hex','Ory','Pax','Tyv','Kro','Elu','Sab','Jin','Ruk','Wen','Ash','Cal','Oz','Yri','Mav','Gil','Rho','Fy','Nim','Tez','Baz','Lio','Sor','Xan','Hyu','Doy','Mei','Kai','Lux','Rin','Sha','Tao','Vel','Zu'];
 const SUF=['ro','rex','len','ix','ka','dor','vyn','ard','ess','nik','u','os','ay','eth','im','ark','ula','ez','o','yx','an','is','ko','ven','ra','jin','ho','zy','mo','ki'];
 const MAXR=9;
-const BRANDS=['Nordlicht Energy','Vektor Hardware','Kaiju Snacks','Pulsar Peripherals','Helix Bank','Atlas Mobile','Quanta Cloud','Ember Drinks','Orbit Chairs','Lumen Telecom','Falke Versicherung','Nimbus Airlines','Tessera Monitors','Kobalt Motors','Sora Headsets','Mosaik Fashion'];
+const BRANDS=['Vektor Hardware','Kaiju Snacks','Pulsar Peripherals','Atlas Mobile','Quanta Cloud','Ember Drinks','Orbit Chairs','Nimbus Airlines','Sora Headsets','Zenit Sports'];
+/* Sponsoren sind regional: Jede Liga hat eigene Marken aus ihrem Markt, dazu kommen internationale Konzerne. */
+const BRANDR={
+ LCK:['Hanbit Electronics','Seorin Mobile','Daehan Foods','Baekma Motors','Mirae Securities','Taeyang Energy','Gaon Cosmetics','Hwarang Sports','Cheongsol Telecom','Namsan Bank','Dongbaek Games','Haneul Airways'],
+ LPL:['Longteng Tech','Hongyun Mobile','Tianhe Drinks','Jinfeng Motors','Yuntai Cloud','Zhaoyang Foods','Qinglan Electronics','Baiyu Bank','Huaxing Hardware','Mingyue Tea','Feiyan Airlines','Shengda Energy'],
+ LEC:['Nordlicht Energy','Falke Versicherung','Helix Bank','Lumen Telecom','Mosaik Fashion','Tessera Monitors','Kobalt Motors','Alpenquell Water','Rhein Logistik','Vauban Bank','Nordsee Airlines','Brisa Cosmetics'],
+ LCS:['Frontier Wireless','Summit Outdoor','Liberty Bank','Coastline Drinks','Redwood Motors','Beacon Cloud','Starlight Snacks','Pioneer Mobile','Harbor Insurance','Ironwood Gear','Prairie Airlines','Maple Hardware'],
+ LCP:['Merapi Mobile','Kenari Airlines','Lotus Energy','Mekong Bank','Garuda Motors','Tropika Drinks','Bayanihan Telecom','Nusantara Cloud','Orchid Foods','Pasifik Hardware','Aoyama Electronics','Kitsune Games'],
+ CBLOL:['Tupã Energy','Verde Mata Drinks','Carioca Mobile','Sertão Motors','Brasa Foods','Banco Cruzeiro','Amazônia Telecom','Arara Airlines','Solaris Moda','Capoeira Gear','Jaguar Hardware','Ipanema Seguros']};
+const ORGN={LCK:'Südkorea',LPL:'China',LEC:'Europa',LCS:'Nordamerika',LCP:'Asien-Pazifik',CBLOL:'Brasilien',GL:'International'};
+function brandOrg(n){for(const r in BRANDR)if(BRANDR[r].includes(n))return r;return 'GL'}
 const SLOTS=[['main','Hauptsponsor',1,null,'',['fix','perf','risk','goal','multi']],['hw','Hardware-Partner',.5,null,'',['fix','perf','multi','content']],
   ['jersey','Trikot-Ärmel',.2,()=>S.teams[S.user].rep>=55,'Ruf ab 55',['fix','goal','fan']],['drink','Getränkepartner',.15,()=>S.fin.fans>=110000,'110.000 Fans',['fix','fan','perf']],
   ['stream','Streaming-Plattform',.25,()=>S.fin.content>=1,'Content-Team aktiv',['content','fix','fan']],['mobile','Mobilfunk-Partner',.15,()=>S.teams[S.user].rep>=70,'Ruf ab 70',['fix','multi','goal']],

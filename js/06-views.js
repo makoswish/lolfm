@@ -270,7 +270,7 @@ function playerView(){
       ${p.team?`<div class="stat"><span class="muted">Vertrag</span><span>${p.contract} ${p.contract===1?'Saison':'Saisons'}</span></div>`:''}${agentRow(p)}
       ${isLoanIn(p)?`<div class="stat"><span class="muted">Leihe von</span><span>${S.teams[p.loan.from]?S.teams[p.loan.from].name:'-'} bis Saisonende</span></div><div class="stat"><span class="muted">Dein Gehaltsanteil</span><span>${p.loan.share}% · ${eur(wageOf(p))} / Woche</span></div>`:''}
       ${p.trialDone===S.season&&!mine?`<div class="stat"><span class="muted">Probetraining</span><span class="good">abgeschlossen, alle Werte bekannt</span></div>`:''}
-      ${mine&&p.wb?`<div class="stat"><span class="muted">Siegprämie</span><span>${eur(p.wb)} pro Serie</span></div>`:''}
+      ${mine&&p.wb?`<div class="stat"><span class="muted">Siegprämie</span><span>${eur(p.wb)} pro Serie</span></div>`:''}${mine&&p.tb?`<div class="stat"><span class="muted">Titelprämie</span><span>${eur(p.tb)} pro Titel</span></div>`:''}${mine&&p.addon?`<div class="stat"><span class="muted">Ablöse-Bonus offen</span><span>${eurK(p.addon.amt)} nach ${p.addon.g-p.addon.c} Spielen</span></div>`:''}
       ${p.clause?`<div class="stat"><span class="muted">Ausstiegsklausel</span><span>${eur(p.clause)}</span></div>`:''}
       ${mine&&p.promise==='start'?`<div class="stat"><span class="muted">Versprechen</span><span style="font-family:var(--f-body)" class="${isStarter(p)?'good':'bad'}">Stammspieler${isStarter(p)?'':' (gebrochen)'}</span></div>`:''}
       ${p.sellon?`<div class="stat"><span class="muted">Weiterverkaufsanteil</span><span>${p.sellon.pct}% an ${S.teams[p.sellon.team]?S.teams[p.sellon.team].id:'-'}</span></div>`:''}

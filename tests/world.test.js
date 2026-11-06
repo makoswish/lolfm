@@ -60,3 +60,43 @@ for(let s=0;s<3;s++){playSeason();ACT.next();chk('Saison '+s);ok(S.phase==='seas
  ok(Object.values(S.teams).every(t=>t.tier===2||ROLES.every(r=>S.players[t.starters[r]]&&!S.players[t.starters[r]].retired)),'Rentner in der Startelf');reload()}
 ok(Object.values(S.players).some(p=>p.retired),'Nach drei Saisons ist niemand in Rente gegangen');
 `;
+module.exports+=`
+function ok(c,msg){if(!c){console.log('FEHLER',msg);bad++}}
+function html(){return document.querySelector('#app').innerHTML}
+// Regionale Sponsoren: Marken stammen überwiegend aus dem eigenen Markt
+for(const [team,reg] of [['LYL','LEC']]){}
+{const seen={};for(const tid of ['LYL','LSN','CWM']){newGame(tid,'Tester');const r=S.teams[S.user].reg;let own=0,n=0;
+  for(let i=0;i<10;i++){S.fin.slots=Object.fromEntries(SLOTS.map(x=>[x[0],null]));genOffers();for(const k in S.fin.offers)for(const o of S.fin.offers[k]){if(o.loyal)continue;n++;const org=brandOrg(o.name);if(org===r)own++;
+    ok(org===r||org==='GL','Marke aus fremdem Markt: '+o.name+' ('+org+') bei '+r)}}
+  ok(own/n>.5,'Zu wenig regionale Sponsoren in '+r+': '+own+' von '+n)}}
+// Asiatische Ligen: asiatische Marken
+{const T=Object.values(S.teams).find(t=>t.tier!==2&&t.reg==='LCK');S.user=T.id;S.fin.slots=Object.fromEntries(SLOTS.map(x=>[x[0],null]));genOffers();
+ const names=Object.values(S.fin.offers).flat().map(o=>o.name);ok(names.some(n=>BRANDR.LCK.includes(n)),'Keine koreanische Marke in der LCK');ok(!names.some(n=>BRANDR.CBLOL.includes(n)),'Brasilianische Marke in der LCK')}
+
+// Verhandlung mit Reglern
+newGame('LYL','Tester');
+{const U=S.teams[S.user];const p=Object.values(S.players).find(x=>x.team&&x.team!==S.user&&S.teams[x.team].tier!==2&&x.team!==acaId()&&ovr(x)<70&&!x.loan);
+ while(U.roster.length>=MAXR)toFA(S.players[U.roster.find(i=>!isStarter(S.players[i]))]);S.fin.balance=3000000;S.board=80;
+ ok(startNego('buy',p.id)===true,'Verhandlung startet nicht');render();chk('Ablöse');
+ ok(html().includes('data-rk="fee"')&&html().includes('data-rk="sell"')&&html().includes('data-rk="addon"'),'Regler für Ablöse fehlen');ok(!html().includes('data-a="ngfee"'),'Alte Ablöse-Schritte noch da');
+ const a0=NG.fee.amt;ACT.ngnudge({k:'fee',v:'5000'});ok(NG.fee.amt===a0+5000,'Nudge Ablöse');
+ const mn=ngRange('fee')[0];ACT.ngnudge({k:'fee',v:'-99999999'});ok(NG.fee.amt===mn,'Nudge bleibt im Bereich');
+ // Bonus an den Verein zählt halb
+ NG.fee.amt=NG.club.ask;NG.fee.addon=0;const v0=feeVal();NG.fee.addon=20000;ok(Math.abs(feeVal()-v0-10000)<1,'Bonus zählt nicht halb');
+ // Regler bewegen: nur Teilaktualisierung, Zustand folgt
+ ngPut('fee',NG.club.ask);NG.fee.addon=0;NG.fee.pay='now';S.fin.budget.transfer=NG.club.ask+1000000;
+ ACT.ngsend();ok(NG.stage==='contract','Abschicken kommt nicht durch');render();chk('Vertrag');
+ const h=html();ok(['sal','sb','wb','tb'].every(k=>h.includes('data-rk="'+k+'"')),'Regler im Vertrag fehlen');ok(h.includes('data-a="ngalt"')&&h.includes('id="ngmeter"')&&h.includes('id="ngwk"'),'Alternativen, Meter oder Gesamtwert fehlen');
+ // Alternativen haben denselben Wert wie die Forderung
+ for(let i=0;i<3;i++){ACT.ngalt();ok(Math.abs(wkVal(NG.terms)-NG.dem.sal)/NG.dem.sal<.03,'Alternative '+ALTS[NG.alt]+' weicht vom Wert der Forderung ab: '+Math.round(wkVal(NG.terms))+' gegen '+NG.dem.sal);ok(cScore().sc>=.97,'Alternative '+ALTS[NG.alt]+' wird zu schlecht bewertet: '+cScore().sc.toFixed(3))}
+ ok(NG.alt===2&&NG.terms.tb>0&&NG.terms.wb>0,'Prämien-Alternative ohne Prämien');
+ // Prämien sind für den Spieler etwas wert
+ const t=NG.terms;const w0=wkVal(t);t.tb+=26000;ok(wkVal(t)>w0+90,'Titelprämie ohne Wert');t.tb-=26000;
+ // Abschluss: Titelprämie und Ablöse-Bonus werden gespeichert und ausgezahlt
+ NG.fee.addon=15000;NG.terms.sal=r100(NG.dem.sal*1.4);NG.terms.tb=30000;NG.terms.wb=500;S.autoFit=true;closeDeal();
+ ok(p.tb===30000&&p.wb===500&&p.team===S.user,'Prämien nicht gespeichert');ok(p.addon&&p.addon.amt===15000&&p.addon.g===20,'Ablöse-Bonus nicht vereinbart');
+ // eigener Ablöse-Bonus
+ NG=null;p.addon={team:'BOH',amt:15000,g:20,c:0,l:0};p.st=p.st||{};p.st.g=19;const b0=S.fin.balance;addonWeek();ok(S.fin.balance===b0&&p.addon.c===19,'Ablöse-Bonus zu früh');p.st.g=21;addonWeek();ok(S.fin.balance===b0-15000&&!p.addon,'Ablöse-Bonus wird nicht gezahlt');
+ const b1=S.fin.balance;titleBonus();ok(S.fin.balance===b1-30000,'Titelprämie wird nicht gezahlt');
+ ACT.player({id:p.id,tab:'vertrag'});chk('Spielerseite');ok(html().includes('Titelprämie'),'Titelprämie nicht auf der Spielerseite')}
+`;

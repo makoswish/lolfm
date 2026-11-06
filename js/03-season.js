@@ -107,7 +107,7 @@ function finishEvent(ev){
     const pl=ev.reg[U.reg].order.indexOf(S.user)+1,pr=SPLITPRIZE[pl-1]||5000;book('Preisgeld',pr);if(pl===1)sponsorBonus('title');
     const champ=S.teams[ev.reg[U.reg].order[0]];for(const r of REGS){const c=S.teams[ev.reg[r].order[0]];if(c)news(`${c.name} gewinnt den ${ev.name} der ${r}.`,'title')}
     mail(`${ev.name} beendet`,pl===1?`Dein Team gewinnt den ${ev.name} der ${U.reg}! Preisgeld ${eurK(pr)}.`:`${champ.name} gewinnt den ${ev.name}. Dein Team wird ${pl}. Preisgeld ${eurK(pr)}.`);
-    if(pl===1){S.trophies.unshift({year:S.year,name:`${U.reg} ${ev.name}`});raiseDemands()}
+    if(pl===1){S.trophies.unshift({year:S.year,name:`${U.reg} ${ev.name}`});raiseDemands();titleBonus()}
     try{boardSplit(ev.id)}catch(e){}
   }else{
     S.rec[ev.id]={champ:ev.champ,place:ev.place};
@@ -115,7 +115,7 @@ function finishEvent(ev){
     const myp=ev.place[S.user];
     news(`${S.teams[ev.champ].name} (${S.teams[ev.champ].reg}) gewinnt ${ev.name} ${S.year}.`,'title');
     if(myp){const pr=PRZ[ev.id][myp]||0;book('Preisgeld',pr);if(myp==='Sieger')sponsorBonus('title');S.fin.fans=Math.round(S.fin.fans*(1+(REPB[myp]||0)*.02));
-      if(myp==='Sieger')S.trophies.unshift({year:S.year,name:ev.name});
+      if(myp==='Sieger'){S.trophies.unshift({year:S.year,name:ev.name});titleBonus()}
       mail(myp==='Sieger'?`${ev.name}-Sieger!`:`${ev.name}: ${myp}`,myp==='Sieger'?`Dein Team gewinnt ${ev.name} ${S.year}. Preisgeld ${eurK(pr)}.`:`Aus in der Runde ${myp}. ${S.teams[ev.champ].name} (${S.teams[ev.champ].reg}) gewinnt das Turnier. Preisgeld ${eurK(pr)}.`)}
     else mail(`${ev.name} vorbei`,`${S.teams[ev.champ].name} aus der ${S.teams[ev.champ].reg} gewinnt ${ev.name} ${S.year}.`);
   }

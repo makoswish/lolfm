@@ -102,11 +102,18 @@ function exPool(){S.exs=S.exs||[];if(!S.exs.length)return;S.scoutPool=S.scoutPoo
     const st=genStaff(x.role==='SUP'||x.role==='JGL'?'an':'ac',clamp(x.peak/6,8,15));st.name=`${x.name} (Ex-Profi)`;st.ex=true;st.age=clamp(x.age+1,30,45);st.fee=0;S.staffPool.unshift(st)}
   if(S.scoutPool.length>6)S.scoutPool.length=6;if(S.staffPool.length>14)S.staffPool.length=14;S.exs=[]}
 
+/* ----- Prämien aus Verträgen: Titelprämie an Spieler, Ablöse-Bonus an den Ex-Verein ----- */
+function titleBonus(){const U=S.teams[S.user];let sum=0;for(const id of U.roster){const p=S.players[id];if(p&&p.tb&&!p.loan)sum+=p.tb}
+  if(sum){book('Titelprämien',-sum);mail('Titelprämien ausgezahlt',`Für den Titel gehen ${eurK(sum)} an die Spieler.`)}}
+function addonWeek(){const U=S.teams[S.user];for(const id of U.roster){const p=S.players[id];if(!p||!p.addon)continue;const a=p.addon,g=(p.st&&p.st.g)||0;
+  if(g<a.l)a.l=0;a.c+=g-a.l;a.l=g;
+  if(a.c>=a.g){book('Ablöse-Bonus',-a.amt);mail('Ablöse-Bonus fällig',`${p.name} hat ${a.g} Spiele für dich bestritten. ${eurK(a.amt)} gehen an ${S.teams[a.team]?S.teams[a.team].name:'den Ex-Verein'}.`);delete p.addon}}}
+
 /* ----- Wöchentlicher Haken und Saisonende ----- */
 function worldWeek(){
   if(!S.mst)metaShift();
   if(S.ev&&S.ev.type==='split'&&S.step>0&&S.step%7===3&&S.phase!=='offseason')hotfix();
-  injWeek();fanWeek();
+  injWeek();fanWeek();addonWeek();
   if(R()<.5)leagueEvent()}
 function worldSeasonEnd(){mgrSeason()}
 
