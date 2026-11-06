@@ -104,3 +104,17 @@ newGame('LYL','Tester');
  const b1=S.fin.balance;ACT.next();chk('Neue Saison mit Rate');ok(!S.fin.debts.length,'Rate nicht abgebucht');ok(S.inbox.some(function(m){return m.title==='Finanzierung fällig'}),'Keine Mail zur fälligen Finanzierung');
 }
 `;
+module.exports+=`
+// Import-Filter in Markt und Scouting
+newGame('LYL','Tester');
+{const reg=S.teams[S.user].reg;
+ ACT.nav2({v:'transfer',k:'TTAB',t:'markt'});FILT.sgn=4;FILT.n=400;
+ const IMPRE=/class="warn">Import/;ok(IMPRE.test(document.querySelector('#app').innerHTML),'Test braucht sichtbare Importe im Markt');
+ ACT.fnoimp();chk('Ohne Importe');ok(FILT.noimp===true,'Import-Filter nicht aktiv');
+ ok(!IMPRE.test(document.querySelector('#app').innerHTML)&&document.querySelector('#app').innerHTML.includes('class="row"'),'Importe trotz Filter sichtbar oder Liste leer');
+ ACT.fnoimp();FILT.n=40;
+ initScouting();const sc=S.scouts[0];sc.reg='ALL';sc.scope='all';sc.frole='ALL';sc.fage=99;sc.fval=0;sc.fimp=0;
+ const n0=scoutPool(sc).length,imp0=scoutPool(sc).filter(p=>isImp(p,reg)).length;ACT.scf({id:sc.id,k:'fimp',v:'1'});
+ const pool=scoutPool(sc);ok(sc.fimp===1&&pool.every(p=>!isImp(p,reg))&&pool.length===n0-imp0&&imp0>0,'Scout-Filter ohne Importe wirkt nicht');
+ ACT.nav2({v:'transfer',k:'TTAB',t:'scout'});chk('Scouting-Reiter');ok(document.querySelector('#app').innerHTML.includes('Ohne Importe'),'Import-Auswahl im Suchprofil fehlt')}
+`;

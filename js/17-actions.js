@@ -73,6 +73,7 @@ const ACT={
   intens(d){S.training.intensity=d.v;save();render()},
   frole(d){FILT.role=d.v;FILT.n=40;render()},
   fsrc(d){FILT.src=d.v;FILT.n=40;render()},
+  fnoimp(){FILT.noimp=!FILT.noimp;FILT.n=40;render()},
   faff(){FILT.afford=!FILT.afford;FILT.n=40;render()},
   fmore(){FILT.n+=40;render()},
   cfno(){MODAL=null;render()},
