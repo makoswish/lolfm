@@ -1,5 +1,5 @@
 /* ===== Spielvorbereitung ===== */
-function openSeries(m){{const U=S.teams[S.user],fo=fixOut(U);if(fo.length)mail('Ausfall',fo.map(([a,b])=>`${a.name} fehlt (${a.out.why}), ${b.name} spielt`).join('. ')+'.');const ch=fixImports(U);if(ch.length)mail('Import-Regel',`Für die Startelf gilt: höchstens ${IMPMAX} Importspieler. ${ch.map(([a,b])=>`${b.name} spielt für ${a.name}`).join(', ')}.`)}LIVE={series:{m,a:m.a,b:m.b,bo:m.bo,wins:[0,0],games:[],done:false},talk:null,phase:'pre',sim:null,t:0,speed:1,timer:null};const O=S.teams[m.a===S.user?m.b:m.a];if(O&&R()<adaptChance(O))LIVE.adapt=O.id;S.view='prematch'}
+function openSeries(m){{const U=S.teams[S.user],fo=fixOut(U);if(fo.length)mail('Ausfall',fo.map(([a,b])=>`${a.name} fehlt (${a.out.why}), ${b.name} spielt`).join('. ')+'.');const ch=fixImports(U);if(ch.length)mail('Import-Regel',`Für die Startelf gilt: höchstens ${IMPMAX} Importspieler. ${ch.map(([a,b])=>`${b.name} spielt für ${a.name}`).join(', ')}.`)}LIVE={series:{m,a:m.a,b:m.b,bo:m.bo,wins:[0,0],games:[],done:false},talk:null,phase:'pre',sim:null,t:0,speed:4,timer:null};const O=S.teams[m.a===S.user?m.b:m.a];if(O&&R()<adaptChance(O))LIVE.adapt=O.id;S.view='prematch'}
 function preView(){
   const s=LIVE.series,U=S.teams[S.user],O=S.teams[s.a===S.user?s.b:s.a],an=S.staff.analyst;
   const gi=s.wins[0]+s.wins[1]+1,myS=s.a===S.user?0:1;
@@ -14,6 +14,7 @@ function preView(){
    <p class="muted" style="font-size:13px;margin:12px 0 0">${fav>2?'Dein Team ist auf dem Papier Favorit.':fav<-2?'Dein Team ist Außenseiter.':'Die Teams sind etwa gleich stark.'}</p></section>
   <section class="panel s5"><div class="lab">Scouting-Bericht</div>
    <div class="stat"><span class="muted">Spielstil</span><span style="font-family:var(--f-body)">${an>=2||scrimKnows(O.id)?STYLES[O.style].n+(an<2?' (aus Scrims)':''):'Analyst Level 2 nötig'}</span></div>
+   ${(()=>{const pa=teamPower(U,O),pb=teamPower(O,U),pc=Math.round(sig(.235*((pa.e+pa.m+pa.l)-(pb.e+pb.m+pb.l))/3)*100),[hw,hn]=h2hOf(U,O);return `<div class="stat"><span class="muted">Siegchance vorab</span><span class="${pc>=55?'good':pc<=45?'bad':''}">${pc}%</span></div><div class="stat"><span class="muted">Bilanz gegeneinander</span><span>${hn?`${hw}-${hn-hw} in ${hn} ${hn===1?'Serie':'Serien'}`:'noch nie gespielt'}</span></div>`})()}
    <div class="stat"><span class="muted">Jungle-Fokus</span><span style="font-family:var(--f-body)">${an>=3?FOCUS[O.focus]:'Analyst Level 3 nötig'}</span></div>
    ${(()=>{const cmp=(x,lbl,show)=>{if(!show)return'';const a=avgD(U,x),b=avgD(O,x),df=a-b;return `<div class="stat"><span class="muted">${lbl}</span><span style="font-family:var(--f-body)" class="${an<2?'dim':df>.5?'good':df<-.5?'bad':''}">${an<2?'unbekannt':df>.5?'Vorteil für dich':df<-.5?'Vorteil Gegner':'ausgeglichen'}</span></div>`};
      return cmp('nrv','Nervenstärke',s.m.big)+cmp('pool','Championpool',s.bo>1)+cmp('cns','Konstanz',true)})()}
@@ -103,73 +104,13 @@ function finishDraft(){
   startLive(me===0?[mine,theirs]:[theirs,mine]);
 }
 function startLive(drafts){
-  const s=LIVE.series,z=newSim(S.teams[s.a],S.teams[s.b],gctx(),drafts,true);z.human[myS()]=true;
-  LIVE.sim=z;LIVE.phase='live';S.view='live';MODAL=null;loop();
+  const s=LIVE.series,z=newSim(S.teams[s.a],S.teams[s.b],gctx(),drafts,true);
+  Object.assign(LIVE,{sim:z,phase:'intro',tab:'map',filter:'key',sel:null,pin:null,slow:0});S.view='live';MODAL=null;window.scrollTo(0,0);
 }
 
-/* ===== Live ===== */
-function loop(){clearInterval(LIVE.timer);if(LIVE.speed===3)return;const ms=[900,330,110][LIVE.speed];
-  LIVE.timer=setInterval(()=>{if(!LIVE||LIVE.phase!=='live'){clearInterval(LIVE&&LIVE.timer);return}if(simTick(LIVE.sim))gameDone();if(S.view==='live')render()},ms)}
-function gameDone(){clearInterval(LIVE.timer);finishSim(LIVE.sim);LIVE.phase='post';recordGame(LIVE.sim);if(seriesOver())commitSeries();LIVE.talk=null}
-function miniMap(z){
-  const tw=[0,1].map(i=>{const L=z.lost[i],col=i===0?'var(--blue)':'var(--red)';
-    return ['top','mid','bot','nex'].map(l=>TWR[i][l].map((p,k)=>{const dead=k<L[l];return `<rect x="${p[0]-1.6}" y="${p[1]-1.6}" width="3.2" height="3.2" rx=".6" fill="${dead?'var(--dim)':col}" opacity="${dead?.35:1}"/>`}).join('')).join('')}).join('');
-  const dots=z.pos?[0,1].map(i=>z.st[i].map(id=>{const q=z.pos[id];if(!q)return'';const p=S.players[id];
-    return `<g opacity="${q[2]?.35:1}"><circle cx="${q[0]}" cy="${q[1]}" r="2.9" fill="${i===0?'var(--blue)':'var(--red)'}" stroke="var(--bg)" stroke-width=".7"/><text x="${q[0]}" y="${q[1]+1.1}" text-anchor="middle" font-size="2.8" font-weight="700" fill="var(--bg)" font-family="Barlow,sans-serif">${p.role[0]}</text></g>`}).join('')).join(''):'';
-  const pulse=z.evLoc&&z.winner<0?`<circle cx="${z.evLoc[0]}" cy="${z.evLoc[1]}" r="7" fill="none" stroke="var(--brass2)" stroke-width=".8" opacity=".8"/><circle cx="${z.evLoc[0]}" cy="${z.evLoc[1]}" r="3.5" fill="var(--brass)" opacity=".25"/>`:'';
-  return `<svg viewBox="0 0 100 100" class="mmap" role="img" aria-label="Minimap">
-    <rect width="100" height="100" rx="4" fill="var(--panel2)"/>
-    <path d="M8 92 L8 8 L92 8 M8 92 L92 8 M8 92 L92 92 L92 8" stroke="var(--line)" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M6 6 L94 94" stroke="var(--blue)" stroke-opacity=".14" stroke-width="7" fill="none"/>
-    <circle cx="30" cy="30" r="4" fill="none" stroke="var(--muted)" stroke-width=".7"/><text x="30" y="31.3" text-anchor="middle" font-size="3.6" fill="var(--muted)" font-family="Barlow,sans-serif">B</text>
-    <circle cx="70" cy="70" r="4" fill="none" stroke="var(--muted)" stroke-width=".7"/><text x="70" y="71.3" text-anchor="middle" font-size="3.6" fill="var(--muted)" font-family="Barlow,sans-serif">D</text>
-    <circle cx="8" cy="92" r="5" fill="var(--blue)" opacity=".35"/><circle cx="92" cy="8" r="5" fill="var(--red)" opacity=".35"/>
-    ${tw}${pulse}${dots}</svg>`;
-}
-function pTable(z,side,post){const T=S.teams[side===0?z.A:z.B],dr=z.dr[side];
-  const td=z.st[side].reduce((s,i)=>s+z.ps[i].dmg,0)||1;
-  return `<div class="scroll"><table class="tbl ptb"><thead><tr><th></th><th>${T.id}</th><th class="r">K/D/A</th><th class="r">CS</th><th class="r hide-s">Schaden</th><th class="r">Note</th></tr></thead><tbody>
-  ${z.st[side].map(id=>{const p=S.players[id],x=z.ps[id],r=post?z.rt[id]:rating(z,id,side);
-   return `<tr${post&&id===z.mvp?' class="me"':''}><td><span class="chip">${p.role}</span></td><td class="nmcell">${p.name}<div class="dim" style="font-size:11.5px;font-weight:500">${chName(dr.picks[p.role])}</div></td><td class="r mono">${x.k}/${x.d}/${x.a}</td><td class="r mono">${x.cs}</td><td class="r mono hide-s">${Math.round(x.dmg/td*100)}%</td><td class="r"><span class="av ${r>=8?'a5':r>=7?'a4':r>=6?'a3':'a1'}">${r.toFixed(1).replace('.',',')}</span></td></tr>`}).join('')}</tbody></table></div>`}
 const PRESS={win:{q:'Starker Auftritt heute. Wie ordnen Sie den Sieg ein?',a:[['Das Team hat hart dafür gearbeitet.','Die Spieler freuen sich über das Lob.',{mor:3}],['Unser Ziel ist der Titel, nichts anderes.','Die Fans feiern die Ansage, das Team spürt Druck.',{fans:1.5,mor:-1,board:1}],['Wir bleiben bescheiden, nächste Woche zählt.','Ruhige Reaktion, keine Auswirkungen.',{}]]},
   loss:{q:'Das lief nicht nach Plan. Was ist schiefgegangen?',a:[['Das nehme ich auf meine Kappe.','Die Spieler rechnen dir das hoch an.',{mor:3,board:-1}],['Einige Spieler müssen mehr liefern.','Die Profis im Team nehmen es als Ansporn, der Rest ist verärgert.',{crit:1}],['Der Gegner war heute einfach besser.','Neutral aufgenommen.',{}]]}};
 function pressAnswer(i){const s=LIVE.series,won=s.m.w===S.user,P=PRESS[won?'win':'loss'],e=P.a[i][2],U=S.teams[S.user];
   for(const id of U.roster){const p=S.players[id];if(e.mor)p.morale=clamp(p.morale+e.mor,20,100);if(e.crit)p.morale=clamp(p.morale+(p.h.pro>=13?3:-4),20,100)}
   if(e.fans)S.fin.fans=Math.round(S.fin.fans*(1+e.fans/100));if(e.board)S.board=clamp(S.board+e.board,0,100);
   LIVE.press={done:true,i,txt:P.a[i][1]};save()}
-function liveView(){
-  const s=LIVE.series,z=LIVE.sim,t=z.t,A=S.teams[s.a],B=S.teams[s.b],snap=z.tl[z.tl.length-1],me=myS();
-  const evs=z.ev.slice().reverse(),gd=snap.G,lead=gd>=0?A:B,post=LIVE.phase==='post';
-  const span=Math.max(30,t+(post?0:5)),pts=z.tl.map(x=>[x.t/span*600,70-clamp(x.G/14000,-1,1)*62]);
-  const path=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
-  const area=pts.length>1?path+` L${pts[pts.length-1][0].toFixed(1)} 70 L0 70 Z`:'';
-  let res='';
-  if(post){const won=z.winner===me,mvp=S.players[z.mvp],F=z.first,fx=k=>F[k]==null?'-':(F[k]===0?A:B).id;
-    const P=PRESS[s.done?(s.m.w===S.user?'win':'loss'):'win'];
-    res=`<div class="banner" style="background:color-mix(in srgb,${won?'var(--good)':'var(--bad)'} 12%,var(--panel))"><h2 class="${won?'good':'bad'}">${won?'Sieg':'Niederlage'}</h2>
-     <div style="display:flex;justify-content:center;margin:8px 0 4px">${avatar(mvp,'lg')}</div><p class="muted" style="margin:4px 0 12px">Spieler des Spiels: ${mvp.name} (${RN[mvp.role]}, Note ${z.rt[z.mvp].toFixed(1).replace('.',',')}) · ${z.end} Minuten${s.bo>1?` · Serie ${s.wins[me]}:${s.wins[1-me]}`:''}</p>
-     ${s.done?`<button class="btn" data-a="after">Weiter</button>`:`<button class="btn" data-a="nextgame">Zum nächsten Spiel</button>`}</div>
-     <div class="grid" style="margin-top:16px"><section class="panel s6"><div class="lab">${A.name}</div>${pTable(z,0,true)}</section><section class="panel s6"><div class="lab">${B.name}</div>${pTable(z,1,true)}</section>
-     <section class="panel s${s.done?6:12}"><div class="lab">Spielfakten</div><div class="stat"><span class="muted">First Blood</span><span>${fx('fb')}</span></div><div class="stat"><span class="muted">Erster Turm</span><span>${fx('tw')}</span></div><div class="stat"><span class="muted">Erster Drache</span><span>${fx('dr')}</span></div>
-      <div class="stat"><span class="muted">Größter Goldvorsprung</span><span>${A.id} ${eurK(Math.max(0,...z.tl.map(x=>x.G))).replace(' €','')} · ${B.id} ${eurK(Math.max(0,...z.tl.map(x=>-x.G))).replace(' €','')}</span></div>
-      <div class="stat"><span class="muted">Comps</span><span style="font-family:var(--f-body)">${compTag(z.dr[0].picks)||'Gemischt'} vs ${compTag(z.dr[1].picks)||'Gemischt'}</span></div></section>
-     ${s.done?`<section class="panel s6"><div class="lab">Pressekonferenz</div><p style="margin:0 0 10px"><b>„${P.q}“</b></p>
-      ${LIVE.press&&LIVE.press.done?`<div class="note">${P.a[LIVE.press.i][0]}<br><span class="muted">${LIVE.press.txt}</span></div>`:`<div class="rows">${P.a.map((a,i)=>`<button class="btn ghost" style="text-transform:none;letter-spacing:0;font-family:var(--f-body);font-weight:500;text-align:left;white-space:normal" data-a="press" data-v="${i}">${a[0]}</button>`).join('')}</div>`}</section>`:''}</div>`}
-  return `<div class="board"><div class="side-t">${crest(A)}<div style="min-width:0"><b>${A.name}</b><small>Blau · ${compTag(z.dr[0].picks)||'Gemischt'}${s.bo>1?' · '+s.wins[0]+' Siege':''}</small></div></div>
-   <div><div class="kills"><span class="b">${snap.k[0]}</span><span class="dim" style="font-size:.5em">:</span><span class="r">${snap.k[1]}</span></div><div class="clock">${String(t).padStart(2,'0')}:00${!post&&LIVE.speed===3?' · Pause':''}</div></div>
-   <div class="side-t r">${crest(B)}<div style="min-width:0"><b>${B.name}</b><small>Rot · ${compTag(z.dr[1].picks)||'Gemischt'}${s.bo>1?' · '+s.wins[1]+' Siege':''}</small></div></div></div>
-  ${post?res:''}
-  <div class="grid" style="margin-top:16px">
-   <section class="panel s5"><div class="lab"><span>Minimap</span><span>${t<14?'Lane-Phase':t<25?'Midgame':'Lategame'}</span></div>${miniMap(z)}
-    <div class="objs"><div>${snap.tw[0]}</div><div>Türme</div><div>${snap.tw[1]}</div><div>${snap.dr[0]}</div><div>Drachen</div><div>${snap.dr[1]}</div><div>${snap.bn[0]}</div><div>Baron</div><div>${snap.bn[1]}</div></div></section>
-   <section class="panel s7"><div class="lab"><span>Goldverlauf</span><span class="mono" style="color:${gd>=0?'var(--blue)':'var(--red)'}">${Math.abs(gd)<300?'ausgeglichen':lead.id+' +'+(Math.abs(gd)/1000).toFixed(1).replace('.',',')+'k'}</span></div>
-    <svg viewBox="0 0 600 140" style="width:100%;height:auto;display:block" role="img" aria-label="Goldvorsprung über die Zeit"><defs><linearGradient id="gg" x1="0" y1="0" x2="0" y2="140" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="var(--blue)" stop-opacity=".45"/><stop offset=".5" stop-color="var(--blue)" stop-opacity=".05"/><stop offset=".5" stop-color="var(--red)" stop-opacity=".05"/><stop offset="1" stop-color="var(--red)" stop-opacity=".45"/></linearGradient></defs>
-     <line x1="0" x2="600" y1="70" y2="70" stroke="var(--line)"/>${[10,20,30,40,50].filter(m=>m<span).map(m=>`<line x1="${m/span*600}" x2="${m/span*600}" y1="4" y2="136" stroke="var(--line)" stroke-dasharray="2 5"/><text x="${m/span*600+4}" y="134" fill="var(--dim)" font-size="11" font-family="IBM Plex Mono,monospace">${m}'</text>`).join('')}
-     ${area?`<path d="${area}" fill="url(#gg)"/><path d="${path}" fill="none" stroke="var(--fg)" stroke-width="2"/>`:''}</svg>
-    ${post?'':`<div class="lab" style="margin-top:14px"><span>Anweisung an dein Team</span><span>${INS[z.ins[me]].n}</span></div>
-     <div class="seg">${Object.entries(INS).map(([k,v])=>`<button class="${z.ins[me]===k?'on':''}" data-a="ins" data-v="${k}" title="${v.d}">${v.n}</button>`).join('')}<button data-a="bcall" ${t<20||z.call[me]||z.buff[0]>=t||z.buff[1]>=t?'disabled':''}>${z.call[me]?'Baron-Call läuft':'Baron callen'}</button></div>
-     <p class="muted" style="font-size:13px;margin:8px 0 0">${INS[z.ins[me]].d} Baron-Call ab Minute 20: riskanter Versuch, den Baron sofort zu nehmen.</p>
-     <div class="speed" style="margin-top:14px">${['1×','3×','8×','Pause'].map((l,i)=>`<button class="btn ${LIVE.speed===i?'':'ghost'} sm" data-a="speed" data-v="${i}">${l}</button>`).join('')}<button class="btn ghost sm" data-a="skip">Zum Ende</button></div>`}</section>
-   ${post?'':`<section class="panel s6"><div class="lab">${A.name}</div>${pTable(z,0,false)}</section><section class="panel s6"><div class="lab">${B.name}</div>${pTable(z,1,false)}</section>`}
-   <section class="panel s12"><div class="lab"><span>Spielverlauf</span><span>${s.m.label}</span></div><div class="feed">${evs.map(e=>`<div class="ev ${e.big?'big':''}"><span class="tm">${String(e.t).padStart(2,'0')}'</span><span class="dot" style="background:${e.side===0?'var(--blue)':'var(--red)'}"></span><span>${e.text}</span></div>`).join('')||'<p class="empty">Die Champions laufen in ihre Lanes.</p>'}</div></section></div>`;
-}

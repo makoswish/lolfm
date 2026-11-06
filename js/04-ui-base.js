@@ -17,7 +17,7 @@ function isStarter(p){const T=S.teams[p.team];return !!T&&T.starters[p.role]===p
 function tname(id,short){const T=S.teams[id];return `<span class="tn ${id===S.user?'me':''}">${short?T.id:T.name}</span><span class="rg">${T.reg}</span>`}
 
 function sideNav(){
-  const locked=LIVE&&(LIVE.phase==='live'||LIVE.phase==='draft'),U=S.teams[S.user],cg=grpOf(),pend=!LIVE&&S.phase!=='offseason'?userPending():null,opp=pend?S.teams[pend.a===S.user?pend.b:pend.a]:null;
+  const locked=liveLocked(),U=S.teams[S.user],cg=grpOf(),pend=!LIVE&&S.phase!=='offseason'?userPending():null,opp=pend?S.teams[pend.a===S.user?pend.b:pend.a]:null;
   const grp=g=>{const[k,l,main,items]=g,open=cg===k,gb=items.map(i=>navBadge(i[1],i[3])).join('');
     return `<div class="ngrp ${open?'open':''}"><button class="navbtn ${open?'on':''}" data-a="nav2" data-v="${main}" data-k="${items[0][2]||''}" data-t="${items[0][3]||''}" ${locked?'disabled':''}><svg viewBox="0 0 24 24">${GICON[k]}</svg><span class="nl">${l}</span><span class="ns">${g[4]||l}</span>${gb&&!open?'<span class="ndot"></span>':''}</button>
      <div class="nsub">${items.map(([il,v,tk,tv])=>{const on=S.view===v&&(!tk||tabVal(tk)===tv);return `<button class="nitem ${on?'on':''}" data-a="nav2" data-v="${v}" data-k="${tk||''}" data-t="${tv||''}" ${locked?'disabled':''}><span>${il}</span>${navBadge(v,tv)}</button>`}).join('')}</div></div>`};
@@ -31,7 +31,7 @@ function sideNav(){
 function topBar(){
   const U=S.teams[S.user],lbl=S.ev?evLabel(S.ev):`Saisonpause ${S.year}`;
   let btn='';
-  if(LIVE&&LIVE.phase==='live')btn='';
+  if(LIVE&&(LIVE.phase==='live'||LIVE.phase==='intro'))btn='';
   else if(LIVE&&S.view!=='live'&&S.view!=='prematch')btn=`<button class="btn" data-a="resume">Zum Spiel</button>`;
   else if(!LIVE)btn=`${S.phase!=='offseason'?`<button class="btn ghost simbtn" data-a="simmenu" title="Mehrere Wochen simulieren" aria-label="Simulieren"><svg viewBox="0 0 24 24"><path d="M4 6l8 6-8 6zM12 6l8 6-8 6z"/></svg><span>Simulieren</span></button>`:''}<button class="btn" data-a="next">${S.phase==='offseason'?(S.jobless?'Job wählen':'Neue Saison'):userPending()?'Zum Spiel':'Weiter'}</button>`;
   const pend=!LIVE&&S.phase!=='offseason'?userPending():null,opp=pend?S.teams[pend.a===S.user?pend.b:pend.a]:null;

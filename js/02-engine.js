@@ -75,15 +75,24 @@ function newSim(A,B,ctx,drafts,live){
   const da=draftBonus(A,dr[0],dr[1]),db=draftBonus(B,dr[1],dr[0]);for(const k in XB)XB[k]+=da[k]-db[k];
   const st=[ROLES.map(r=>S.players[A.starters[r]].id),ROLES.map(r=>S.players[B.starters[r]].id)],ps={};
   for(const ids of st)for(const id of ids)ps[id]={k:0,d:0,a:0,cs:0,dmg:0};
-  return{tac:[tacOf(A),tacOf(B)],A:A.id,B:B.id,ctx,dr,live:!!live,P:[teamPower(A,B),teamPower(B,A)],XB,luck:gauss()*4.6*lscale,XO,G:0,t:0,fb:false,nextDrag:5,nextBaron:20,buff:[-1,-1],elder:[-1,-1],soul:-1,winner:-1,end:0,
-    s:{k:[0,0],tw:[0,0],dr:[0,0],bn:[0,0]},st,ps,ev:[],tl:[{t:0,G:0,k:[0,0],tw:[0,0],dr:[0,0],bn:[0,0]}],ins:['std','std'],human:[false,false],call:[false,false],lost:[{top:0,mid:0,bot:0,nex:0},{top:0,mid:0,bot:0,nex:0}],dead:{},pos:null,evLoc:null,first:{}};
+  const z={tac:[tacOf(A),tacOf(B)],A:A.id,B:B.id,ctx,dr,live:!!live,P:[teamPower(A,B),teamPower(B,A)],XB,luck:gauss()*4.6*lscale,XO,G:0,t:0,fb:false,nextDrag:5,nextBaron:20,buff:[-1,-1],elder:[-1,-1],soul:-1,winner:-1,end:0,
+    s:{k:[0,0],tw:[0,0],dr:[0,0],bn:[0,0]},st,ps,ev:[],tl:[{t:0,G:0,k:[0,0],tw:[0,0],dr:[0,0],bn:[0,0]}],ins:['std','std'],lost:[{top:0,mid:0,bot:0,nex:0},{top:0,mid:0,bot:0,nex:0}],dead:{},pos:null,evLoc:null,first:{}};
+  z.pw=((z.P[0].e+z.P[0].m+z.P[0].l)-(z.P[1].e+z.P[1].m+z.P[1].l))/3+(XB.e+XB.m+XB.l)/3;z.tl[0].wp=winProb(z);
+  return z;
 }
+/* Geschätzte Siegchance von Blau (Seite 0) aus dem sichtbaren Spielstand: Stärke und Draft vorab, mit der Zeit zählen Gold und Objectives mehr.
+   Nur Anzeige, verändert nichts am Spiel. */
+function winProb(z){const t=z.t,s=z.s,x0=.235*(z.pw||0)*Math.max(.25,1-t/45);
+  const x=x0+(z.G/7000)*(.5+Math.min(1,t/30)*.9)+(s.tw[0]-s.tw[1])*.12+(s.dr[0]-s.dr[1])*.12+(s.bn[0]-s.bn[1])*.35+(z.soul===0?.5:z.soul===1?-.5:0)+(z.elder[0]>=t?.6:0)-(z.elder[1]>=t?.6:0)+(z.buff[0]>=t?.3:0)-(z.buff[1]>=t?.3:0);
+  return clamp(sig(x),.02,.98)}
+/* Ereignisarten: Gewicht 0 Nebensache, 1 Wichtig, 2 Highlight, 3 Wendepunkt-Kandidat */
+const EVK={duel:[0,'Duell'],gank:[1,'Gank'],fight:[1,'Teamfight'],bigfight:[2,'Teamfight'],fb:[2,'First Blood'],ace:[3,'Ace'],drake:[2,'Drache'],soul:[3,'Drachenseele'],elder:[3,'Elder'],herald:[2,'Herold'],tower:[1,'Turm'],inhib:[2,'Inhibitor'],baron:[3,'Baron'],decide:[3,'Entscheidung'],nexus:[3,'Nexus']};
 function simTick(z){
   if(z.winner>=0)return true;
   const t=++z.t,ph=t<14?'e':t<25?'m':'l',T=[S.teams[z.A],S.teams[z.B]],P=z.ps,s=z.s;
   const pl=i=>z.st[i].map(id=>S.players[id]);
   const sg=w=>w===0?1:-1,tn=w=>T[w].name;
-  for(const i of[0,1])if(!z.human[i]&&t%4===1){const lead=sg(i)*z.G;z.ins[i]=lead>2500?'obj':lead<-3500?pick(['safe','agg','split']):pick(['std','std','obj','agg'])}
+  for(const i of[0,1])if(t%4===1){const lead=sg(i)*z.G;z.ins[i]=lead>2500?'obj':lead<-3500?pick(['safe','agg','split']):pick(['std','std','obj','agg'])}
   const I=z.ins;
   let d=z.P[0][ph]-z.P[1][ph]+z.luck+z.XB[ph];if(z.soul===0)d+=3;if(z.soul===1)d-=3;
   for(const i of[0,1]){const v=I[i],q=sg(i);if(v==='agg'&&ph!=='l')d+=1.2*q;if(v==='safe')d-=.6*q;if(v==='split'&&ph==='l')d-=1*q}
@@ -92,7 +101,7 @@ function simTick(z){
   const tk=(k,i)=>OBJF[z.tac[i].obj][1][k]+VISION[z.tac[i].vision][2];
   const pA=(div,ob)=>sig((d+(ob?objB+tk(ob,0)-tk(ob,1)+(z.XO||0):0)+z.G/(div||2200))/10);
   let loc=null;
-  const add=(side,text,big)=>z.ev.push({t,side,text,big:!!big});
+  const add=(side,text,big,kind)=>{kind=kind||'duel';z.ev.push({t,side,text,big:!!big,k:kind,w:EVK[kind][0]})};
   const killer=w=>{let x=R(),acc=0;const a=pl(w);for(const p of a){acc+=KW[p.role];if(x<acc)return p}return a[3]};
   const kill=w=>{const k=killer(w),v=pick(pl(1-w));P[k.id].k++;P[v.id].d++;s.k[w]++;z.dead[v.id]=t;
     const helpers=shuffle(pl(w).filter(p=>p.id!==k.id)).slice(0,ri(0,3));for(const h of helpers)P[h.id].a++;return[k,v]};
@@ -104,41 +113,38 @@ function simTick(z){
   let fp=(ph==='e'?.3:ph==='m'?.4:.45)*(TEMPO[z.tac[0].tempo][2]+TEMPO[z.tac[1].tempo][2])/2;for(const v of I){if(v==='agg')fp*=1.3;if(v==='safe')fp*=.75}
   if(R()<Math.min(.85,fp)){
     const w=R()<pA()?0:1;
-    if(!z.fb){const[k,v]=kill(w);swing(w,400);add(w,`First Blood! ${k.name} erwischt ${v.name}.`,true);z.fb=true;z.first.fb=w;loc=LANEPOS[v.role]||pick(JPOS[1-w]);fightDmg(w,.4)}
+    if(!z.fb){const[k,v]=kill(w);swing(w,400);add(w,`First Blood! ${k.name} erwischt ${v.name}.`,true,'fb');z.fb=true;z.first.fb=w;loc=LANEPOS[v.role]||pick(JPOS[1-w]);fightDmg(w,.4)}
     else if(ph==='e'){
       const n=R()<.32?2:1,ln=R()<.2?1:0;let k,v;for(let i=0;i<n;i++)[k,v]=kill(w);for(let i=0;i<ln;i++)kill(1-w);swing(w,(n-ln)*300);fightDmg(w,.5);
       loc=LANEPOS[v.role]||pick(JPOS[1-w]);
-      if(n===2){const j=pl(w)[1];add(w,`Gank von ${j.name}: ${tn(w)} holt ${n} Kills${ln?', verliert aber einen Spieler':''}.`)}
-      else add(w,ln?`Trade auf der Lane: ${k.name} und ${tn(1-w)} tauschen je einen Kill.`:`${k.name} gewinnt das Duell gegen ${v.name}.`);
+      if(n===2){const j=pl(w)[1];add(w,`Gank von ${j.name}: ${tn(w)} holt ${n} Kills${ln?', verliert aber einen Spieler':''}.`,false,'gank')}
+      else add(w,ln?`Trade auf der Lane: ${k.name} und ${tn(1-w)} tauschen je einen Kill.`:`${k.name} gewinnt das Duell gegen ${v.name}.`,false,'duel');
     }else{
       const n=ri(2,ph==='l'?5:4),ln=ri(0,Math.min(2,n-1));for(let i=0;i<n;i++)kill(w);for(let i=0;i<ln;i++)kill(1-w);swing(w,(n-ln)*320);fightDmg(w,1);
       loc=[50+clamp(z.G/600,-22,22),50-clamp(z.G/600,-22,22)];
-      add(w,n===5&&ln===0?`ACE! ${tn(w)} löscht das gegnerische Team aus.`:`Teamfight: ${tn(w)} gewinnt ${n} zu ${ln}.`,n>=4);
+      add(w,n===5&&ln===0?`ACE! ${tn(w)} löscht das gegnerische Team aus.`:`Teamfight: ${tn(w)} gewinnt ${n} zu ${ln}.`,n>=4,n===5&&ln===0?'ace':n>=4?'bigfight':'fight');
     }
   }
   // Drachen
   if(t===z.nextDrag){
     if(z.soul===-1){const w=R()<pA(1200,'d')?0:1;s.dr[w]++;swing(w,250);z.nextDrag=t+5;loc=[70,70];if(z.first.dr==null)z.first.dr=w;
-      if(s.dr[w]===4){z.soul=w;add(w,`Drachenseele für ${tn(w)}! Das Team ist im Lategame klar stärker.`,true)}
-      else add(w,`${tn(w)} sichert den ${pick(DRAKES)}-Drachen (${s.dr[w]}).`)}
-    else if(t>=30){const w=R()<pA(1000,'d')?0:1;z.elder[w]=t+2;swing(w,600);z.nextDrag=t+6;loc=[70,70];add(w,`${tn(w)} holt den Elder-Drachen.`,true)}
+      if(s.dr[w]===4){z.soul=w;add(w,`Drachenseele für ${tn(w)}! Das Team ist im Lategame klar stärker.`,true,'soul')}
+      else add(w,`${tn(w)} sichert den ${pick(DRAKES)}-Drachen (${s.dr[w]}).`,false,'drake')}
+    else if(t>=30){const w=R()<pA(1000,'d')?0:1;z.elder[w]=t+2;swing(w,600);z.nextDrag=t+6;loc=[70,70];add(w,`${tn(w)} holt den Elder-Drachen.`,true,'elder')}
     else z.nextDrag=t+5;
   }
   // Herold & Türme
   const tower=w=>{const L=z.lost[1-w],lanes=['top','mid','bot'].filter(l=>L[l]<3);let ln,pos;
     if(lanes.length){ln=pick(lanes);pos=TWR[1-w][ln][L[ln]];L[ln]++}else if(L.nex<2){ln='nex';pos=TWR[1-w].nex[L.nex];L.nex++}else return null;
     s.tw[w]++;swing(w,250);if(z.first.tw==null)z.first.tw=w;return{ln,pos,c:s.tw[w]}};
+  const tkind=r=>r.ln==='nex'||r.c>6?'inhib':'tower';
   const twTxt=(w,r)=>`${tn(w)} zerstört ${r.ln==='nex'?'einen Nexus-Turm':(r.c<=3?'einen Außenturm':r.c<=6?'einen Innenturm':'einen Inhibitor-Turm')+(r.ln==='top'?' auf der Toplane':r.ln==='mid'?' auf der Midlane':' auf der Botlane')}.`;
-  if(t===8||t===14){const w=R()<pA(1200,'b')?0:1;const r=tower(w);swing(w,100);loc=[30,30];add(w,`${tn(w)} setzt den Herold ein${r?' und reißt einen Turm':''}.`)}
+  if(t===8||t===14){const w=R()<pA(1200,'b')?0:1;const r=tower(w);swing(w,100);loc=[30,30];add(w,`${tn(w)} setzt den Herold ein${r?' und reißt einen Turm':''}.`,false,'herald')}
   if(t>=11){let ch=Math.min(.45,.08+Math.abs(z.G)/14000);const lead=z.G>=0?0:1;if(I[lead]==='obj')ch*=1.2;
-    if(R()<ch){const w=R()<.8?lead:1-lead,r=tower(w);if(r){add(w,twTxt(w,r));loc=r.pos}}
-    for(const i of[0,1])if(I[i]==='split'&&R()<.12){const r=tower(i);if(r){add(i,`Splitpush: ${twTxt(i,r)}`);loc=r.pos}}}
+    if(R()<ch){const w=R()<.8?lead:1-lead,r=tower(w);if(r){add(w,twTxt(w,r),false,tkind(r));loc=r.pos}}
+    for(const i of[0,1])if(I[i]==='split'&&R()<.12){const r=tower(i);if(r){add(i,`Splitpush: ${twTxt(i,r)}`,false,tkind(r));loc=r.pos}}}
   // Baron
-  const baron=(w,txt)=>{s.bn[w]++;swing(w,1200);z.buff[w]=t+3;z.nextBaron=t+6;loc=[30,30];add(w,txt,true);if(R()<.6){const n=ri(1,3);for(let i=0;i<n;i++)kill(w)}};
-  for(const i of[0,1])if(z.call[i]){z.call[i]=false;
-    if(t>=20&&z.buff[0]<t&&z.buff[1]<t){const pi=sig(((i===0?d:-d)+(i===0?z.G:-z.G)/1000-1.5)/6);
-      if(R()<pi)baron(i,`Baron-Call von ${tn(i)} geht auf! Der Baron gehört ihnen.`);
-      else{const n=ri(2,4);for(let k=0;k<n;k++)kill(1-i);swing(1-i,n*300);loc=[30,30];add(1-i,`Baron-Call von ${tn(i)} geht schief: ${tn(1-i)} kontert mit ${n} Kills.`,true);if(R()<.5)baron(1-i,`${tn(1-i)} nimmt den Baron gleich mit.`)}}}
+  const baron=(w,txt)=>{s.bn[w]++;swing(w,1200);z.buff[w]=t+3;z.nextBaron=t+6;loc=[30,30];add(w,txt,true,'baron');if(R()<.6){const n=ri(1,3);for(let i=0;i<n;i++)kill(w)}};
   if(t>=z.nextBaron&&z.buff[0]<t&&z.buff[1]<t&&R()<.3){const w=R()<pA(1000,'b')?0:1;baron(w,R()<.12?`Steal! ${pl(w)[1].name} klaut den Baron für ${tn(w)}.`:`${tn(w)} erlegt den Baron.`)}
   // Ende
   if(t>=25){
@@ -146,12 +152,12 @@ function simTick(z){
     let pusher=L,ch=(z.buff[L]>=t?.18:0)+Math.max(0,(lead-9000)/17000)+(s.tw[L]>=8?.12:0)+(t>=38?.1:0);
     if(z.elder[0]>=t||z.elder[1]>=t){pusher=z.elder[0]>=t?0:1;ch=Math.max(ch,.45)}
     if(R()<ch)z.winner=pusher;
-    else if(t>=31&&R()<.08){const w=R()<pA(2000)?0:1;z.winner=w;const n=ri(3,5);for(let i=0;i<n;i++)kill(w);fightDmg(w,1.2);loc=[50,50];add(w,`Entscheidender Teamfight in Minute ${t}: ${tn(w)} gewinnt ${n} zu 0 und rennt durch.`,true)}
+    else if(t>=31&&R()<.08){const w=R()<pA(2000)?0:1;z.winner=w;const n=ri(3,5);for(let i=0;i<n;i++)kill(w);fightDmg(w,1.2);loc=[50,50];add(w,`Entscheidender Teamfight in Minute ${t}: ${tn(w)} gewinnt ${n} zu 0 und rennt durch.`,true,'decide')}
   }
   if(t>=55&&z.winner<0)z.winner=z.G>=0?0:1;
-  z.tl.push({t,G:Math.round(z.G),k:[...s.k],tw:[...s.tw],dr:[...s.dr],bn:[...s.bn]});
-  z.evLoc=loc;
-  if(z.winner>=0){add(z.winner,`${tn(z.winner)} zerstört den Nexus. Sieg nach ${t} Minuten.`,true);z.end=t;z.evLoc=z.winner===0?[92,8]:[8,92];finishSim(z);return true}
+  z.tl.push({t,G:Math.round(z.G),k:[...s.k],tw:[...s.tw],dr:[...s.dr],bn:[...s.bn],wp:+winProb(z).toFixed(3)});
+  z.evLoc=loc;for(let i=z.ev.length-1;i>=0&&z.ev[i].t===t;i--)z.ev[i].loc=loc;
+  if(z.winner>=0){add(z.winner,`${tn(z.winner)} zerstört den Nexus. Sieg nach ${t} Minuten.`,true,'nexus');z.tl[z.tl.length-1].wp=z.winner===0?1:0;z.end=t;z.evLoc=z.winner===0?[92,8]:[8,92];finishSim(z);return true}
   if(z.live)z.pos=simPos(z,ph);
   return false;
 }

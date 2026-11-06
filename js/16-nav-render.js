@@ -33,7 +33,7 @@ function newsView(){const L=(S.news||[]).filter(n=>NWF==='ALL'||n.cat===NWF);
 /* Offenes Overlay: Seite dahinter nicht scrollen lassen */
 function ovOpen(){return !!(MODAL&&(MODAL.team||MODAL.cf||MODAL.loan||MODAL.lin||MODAL.qs||MODAL==='sim'))||!!SIMRUN||!!(SIMREP&&!SIMRUN)}
 function render(){
-  const app=$('#app');try{document.documentElement.classList.toggle('ovopen',ovOpen())}catch(e){}
+  const app=$('#app');try{const hc=document.documentElement.classList;hc.toggle('ovopen',ovOpen());hc.toggle('islive',!!(S&&S.view==='live'&&LIVE&&LIVE.phase==='live'))}catch(e){}
   if(!S){document.documentElement.style.removeProperty('--team');app.innerHTML=startView()+(MODAL&&MODAL.cf?confirmView():'');HKEY=null;return}
   try{document.documentElement.style.setProperty('--team',S.teams[S.user].color)}catch(e){}
   if((S.view==='prematch'||S.view==='live'||S.view==='draft')&&!LIVE)S.view='home';
@@ -58,7 +58,7 @@ function histSync(){if(typeof history==='undefined'||!history.pushState||!S)retu
   const st=histState(),k=JSON.stringify(st);if(k===HKEY)return;
   try{if(HKEY===null)history.replaceState(st,'');else history.pushState(st,'')}catch(e){}HKEY=k}
 function histPop(st){if(!S)return;
-  const locked=SIMRUN||(LIVE&&(LIVE.phase==='live'||LIVE.phase==='draft'))||S.view==='nego';
+  const locked=SIMRUN||liveLocked()||S.view==='nego';
   if(MODAL||locked||!st||!st.v){MODAL=null;HKEY=null;try{history.pushState(histState(),'')}catch(e){}HKEY=JSON.stringify(histState());render();return}
   KTAB=st.K||KTAB;TACTAB=st.TA||TACTAB;TTAB=st.T||TTAB;LTAB=st.L||LTAB;CLUBTAB=st.C||CLUBTAB;
   if(st.v==='player'&&!(st.pv&&S.players[st.pv.id]))st.v='squad';
@@ -85,7 +85,7 @@ function qsHtml(){QS.items=qsItems(QS.q);if(QS.i>=QS.items.length)QS.i=Math.max(
   if(!QS.items.length)return '<p class="empty" style="padding:14px 6px">Nichts gefunden. Suche nach Spielern, Teams oder Seiten.</p>';
   return QS.items.map((x,i)=>`<button class="qsr ${i===QS.i?'on':''}" data-a="qsgo" data-i="${i}"><span class="qsk">${QSK[x.k]}</span><span class="qst"><b>${esc(x.label)}</b><small>${esc(x.sub||'')}</small></span><em>${i===QS.i?'Enter':''}</em></button>`).join('')}
 function qsModal(){return `<div class="ov qsov" data-a="cfno"><div class="qsbox" role="dialog" aria-modal="true" aria-label="Schnellsuche"><input id="qsin" class="inp qsin" type="search" placeholder="Spieler, Team oder Seite suchen" value="${esc(QS.q)}" autocomplete="off" spellcheck="false" aria-label="Suche"><div id="qsres" class="qsres">${qsHtml()}</div><div class="qsft"><span><kbd>↑</kbd><kbd>↓</kbd> wählen</span><span><kbd>Enter</kbd> öffnen</span><span><kbd>Esc</kbd> schließen</span></div></div></div>`}
-function qsOpen(){if(!S||SIMRUN||(LIVE&&(LIVE.phase==='live'||LIVE.phase==='draft'))||MODAL&&MODAL.qs)return;QS={q:'',i:0,items:[]};MODAL={qs:true};render()}
+function qsOpen(){if(!S||SIMRUN||liveLocked()||MODAL&&MODAL.qs)return;QS={q:'',i:0,items:[]};MODAL={qs:true};render()}
 function qsRefresh(){const r=$('#qsres');if(r)r.innerHTML=qsHtml()}
 function qsGo(i){const x=QS.items[i];if(!x)return;MODAL=null;
   if(x.k==='page'){if(x.v==='jobs')ACT.jobs();else ACT.nav2({v:x.v,k:x.tk,t:x.tv})}
