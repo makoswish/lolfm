@@ -47,18 +47,18 @@ function newsView(){const L=(S.news||[]).filter(n=>NWF==='ALL'||n.cat===NWF);
   <div class="grid"><section class="panel s12">${L.map(n=>`<div class="news"><span class="w"><span class="mc" style="--mc:var(--brass)">${NCAT[n.cat]||'Liga'}</span> ${n.when}</span><span>${n.t}</span></div>`).join('')||'<p class="empty">Noch keine Meldungen.</p>'}</section></div>`}
 /* ===== Render ===== */
 /* Offenes Overlay: Seite dahinter nicht scrollen lassen */
-function ovOpen(){return !!(MODAL&&(MODAL.team||MODAL.cf||MODAL.loan||MODAL.lin||MODAL.qs||MODAL==='sim'))||!!SIMRUN||!!(SIMREP&&!SIMRUN)}
+function ovOpen(){return !!(MODAL&&(MODAL.team||MODAL.cf||MODAL.loan||MODAL.lin||MODAL.qs||MODAL.opt||MODAL==='sim'))||!!SIMRUN||!!(SIMREP&&!SIMRUN)}
 function render(){
   const app=$('#app');try{const hc=document.documentElement.classList;hc.toggle('ovopen',ovOpen());hc.toggle('islive',!!(S&&S.view==='live'&&LIVE&&LIVE.phase==='live'))}catch(e){}
-  if(!S){document.documentElement.style.removeProperty('--team');app.innerHTML=startView()+(MODAL&&MODAL.cf?confirmView():'');HKEY=null;return}
+  if(!S){document.documentElement.style.removeProperty('--team');app.innerHTML=startView()+(MODAL&&MODAL.cf?confirmView():'')+(MODAL&&MODAL.opt?optModal():'');HKEY=null;try{i18nApply(app)}catch(e){}return}
   try{document.documentElement.style.setProperty('--team',S.teams[S.user].color)}catch(e){}
   if((S.view==='prematch'||S.view==='live'||S.view==='draft')&&!LIVE)S.view='home';
   if(S.view==='nego'&&!NG)S.view='squad';
   if(S.view==='mh'&&!MHV)S.view='league';
   const v={home:homeView,squad:squadView,tactic:tacticView,transfer:transferView,league:leagueView,club:clubView,prematch:preView,live:liveView,player:playerView,draft:draftView,nego:negoView,mh:mhView,inbox:inboxView,news:newsView,save:saveView,jobs:jobsView,cmp:cmpView,hof:hofView,review:reviewView,mgr:mgrView}[S.view]||homeView;
-  try{app.innerHTML=`<div class="shell">${sideNav()}<div class="main">${topBar()}<main class="content">${ERR?errView():v()}</main></div></div>${MODAL&&MODAL.team?teamModal():''}${MODAL==='sim'&&!SIMRUN?simMenu():''}${SIMRUN?simOverlay():''}${SIMREP&&!SIMRUN?simReport():''}${MODAL&&MODAL.cf?confirmView():''}${MODAL&&MODAL.loan?loanModal():''}${MODAL&&MODAL.lin?loanInModal():''}${MODAL&&MODAL.qs?qsModal():''}`;histSync();if(MODAL&&MODAL.qs){const n=$('#qsin');if(n){n.focus();try{n.setSelectionRange(n.value.length,n.value.length)}catch(e){}}}}
+  try{app.innerHTML=`<div class="shell">${sideNav()}<div class="main">${topBar()}<main class="content">${ERR?errView():v()}</main></div></div>${MODAL&&MODAL.team?teamModal():''}${MODAL==='sim'&&!SIMRUN?simMenu():''}${SIMRUN?simOverlay():''}${SIMREP&&!SIMRUN?simReport():''}${MODAL&&MODAL.cf?confirmView():''}${MODAL&&MODAL.opt?optModal():''}${MODAL&&MODAL.loan?loanModal():''}${MODAL&&MODAL.lin?loanInModal():''}${MODAL&&MODAL.qs?qsModal():''}`;histSync();if(MODAL&&MODAL.qs){const n=$('#qsin');if(n){n.focus();try{n.setSelectionRange(n.value.length,n.value.length)}catch(e){}}}}
   catch(e){ERR=e.message;try{app.innerHTML=`<main class="content">${errView()}</main>`}catch(_){app.innerHTML='<p style="padding:20px">Fehler im Spielstand.</p>'}}
-  try{navScroll();chatBottom();pageFx();musSync()}catch(e){}
+  try{navScroll();chatBottom();pageFx();musSync();i18nApply(app)}catch(e){}
 }
 function errView(){return `<section class="panel"><div class="lab">Fehler</div><p style="margin:0 0 6px">Hier ist etwas schiefgelaufen (${ERR}). Dein Spielstand ist gespeichert.</p><p class="muted" style="margin:0 0 12px;font-size:14px">"Phase neu starten" setzt die aktuelle Turnierphase neu auf. Die bisherigen Ergebnisse der Saison bleiben erhalten.</p><div class="acts"><button class="btn" data-a="repair">Phase neu starten</button><button class="btn ghost" data-a="nav" data-v="home">Zur Übersicht</button></div></section>`}
 
@@ -103,7 +103,7 @@ function qsHtml(){QS.items=qsItems(QS.q);if(QS.i>=QS.items.length)QS.i=Math.max(
   return QS.items.map((x,i)=>`<button class="qsr ${i===QS.i?'on':''}" data-a="qsgo" data-i="${i}"><span class="qsk">${QSK[x.k]}</span><span class="qst"><b>${esc(x.label)}</b><small>${esc(x.sub||'')}</small></span><em>${i===QS.i?'Enter':''}</em></button>`).join('')}
 function qsModal(){return `<div class="ov qsov" data-a="cfno"><div class="qsbox" role="dialog" aria-modal="true" aria-label="Schnellsuche"><input id="qsin" class="inp qsin" type="search" placeholder="Spieler, Team oder Seite suchen" value="${esc(QS.q)}" autocomplete="off" spellcheck="false" aria-label="Suche"><div id="qsres" class="qsres">${qsHtml()}</div><div class="qsft"><span><kbd>↑</kbd><kbd>↓</kbd> wählen</span><span><kbd>Enter</kbd> öffnen</span><span><kbd>Esc</kbd> schließen</span></div></div></div>`}
 function qsOpen(){if(!S||SIMRUN||liveLocked()||MODAL&&MODAL.qs)return;QS={q:'',i:0,items:[]};MODAL={qs:true};render()}
-function qsRefresh(){const r=$('#qsres');if(r)r.innerHTML=qsHtml()}
+function qsRefresh(){const r=$('#qsres');if(r){r.innerHTML=qsHtml();i18nApply(r)}}
 function qsGo(i){const x=QS.items[i];if(!x)return;MODAL=null;
   if(x.k==='page'){if(x.v==='jobs')ACT.jobs();else ACT.nav2({v:x.v,k:x.tk,t:x.tv})}
   else if(x.k==='player')ACT.player({id:x.id});else{MODAL={team:x.id};render()}}

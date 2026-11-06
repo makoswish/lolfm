@@ -78,7 +78,7 @@ const NATS=['DE','FR','ES','KR','CN','US','BR','VN','PL','DK'];
 const PRE=['Kae','Vy','Mir','Tor','Zen','Ral','Sko','Fen','Ixa','Bru','Nok','Sel','Var','Qui','Dra','Lum','Hex','Ory','Pax','Tyv','Kro','Elu','Sab','Jin','Ruk','Wen','Ash','Cal','Oz','Yri','Mav','Gil','Rho','Fy','Nim','Tez','Baz','Lio','Sor','Xan','Hyu','Doy','Mei','Kai','Lux','Rin','Sha','Tao','Vel','Zu'];
 const SUF=['ro','rex','len','ix','ka','dor','vyn','ard','ess','nik','u','os','ay','eth','im','ark','ula','ez','o','yx','an','is','ko','ven','ra','jin','ho','zy','mo','ki'];
 const MAXR=9;
-const BUILD=15; /* gleich der Zahl hinter ?v= in index.html: bei jeder Veröffentlichung erhöhen, damit Browser keine alten Dateien zeigen */
+const BUILD=16; /* gleich der Zahl hinter ?v= in index.html: bei jeder Veröffentlichung erhöhen, damit Browser keine alten Dateien zeigen */
 const BRANDS=['Vektor Hardware','Kaiju Snacks','Pulsar Peripherals','Atlas Mobile','Quanta Cloud','Ember Drinks','Orbit Chairs','Nimbus Airlines','Sora Headsets','Zenit Sports'];
 /* Sponsoren sind regional: Jede Liga hat eigene Marken aus ihrem Markt, dazu kommen internationale Konzerne. */
 const BRANDR={

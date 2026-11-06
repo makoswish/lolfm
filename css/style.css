@@ -1013,3 +1013,6 @@ body::before{background:transparent}
 .musb.on{color:var(--team)}
 @media (max-width:760px){.musb{display:none}}
 @media (max-width:899px){.navbtn.on::before{display:none}.mecard{display:none}}
+.optb{padding:6px 10px}.optb svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;display:block}
+.mast{display:flex;align-items:center;gap:14px}.mast .optb{margin-left:12px}
+@media (max-width:760px){.optb{padding:6px 8px}}

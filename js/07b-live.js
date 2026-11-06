@@ -29,7 +29,7 @@ function loop(){clearInterval(LIVE.timer);const sp=LIVE.speed;if(sp===3)return;
 function gameDone(){clearInterval(LIVE.timer);finishSim(LIVE.sim);LIVE.phase='post';LIVE.tab='feed';LIVE.sel=null;recordGame(LIVE.sim);if(seriesOver())commitSeries();LIVE.talk=null}
 /* Zeichnet nur die Bereiche neu, die sich pro Minute ändern. Ohne Ids (Tests, erste Anzeige) die ganze Seite. */
 function liveRefresh(){const z=LIVE&&LIVE.sim;if(!z)return;if(!$('#lvhead')){render();return}
-  const set=(id,h)=>{const n=$('#'+id);if(n)n.innerHTML=h};
+  const set=(id,h)=>{const n=$('#'+id);if(n){n.innerHTML=h;i18nApply(n)}};
   set('lvhead',lvHead(z));set('lvmap',lvMapBox(z));set('lvtimers',lvTimers(z));set('lvgraph',lvGraph(z));set('lvfeed',lvFeed(z));set('lvpl',lvTables(z))}
 /* Töne und Vibration bei großen Momenten, standardmäßig aus */
 let AC=null;
