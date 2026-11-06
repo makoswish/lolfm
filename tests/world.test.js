@@ -225,3 +225,22 @@ newGame('LYL','Tester');
 newGame('LSN','Tester');playSeason();
 {S.board=5;S.summary=S.summary||{place:8,exp:2,splits:[],intl:[]};careerSeason();ok(S.jobless&&S.jobs.list.length>=2&&S.jobs.list.every(id=>S.teams[id].vac&&!S.teams[id].mgr),'Entlassung: Angebote von Vereinen mit Manager')}
 `;
+module.exports+=`
+function ok(c,msg){if(!c){console.log('FEHLER',msg);bad++}}
+function html(){return document.querySelector('#app').innerHTML}
+// Personal nach dem Vereinswechsel: Einstellen und Entlassen geben immer eine Rückmeldung
+newGame('LYL','Tester');playSeason();
+{const T=Object.values(S.teams).filter(t=>t.tier!==2&&!t.academy&&t.reg==='LCK').sort((a,b)=>b.rep-a.rep)[4];ok(switchTeam(T.id)===null,'Wechsel');
+ ACT.nav2({v:'club',k:'CLUBTAB',t:'staff'});chk('Trainerstab');
+ // Rolle voll: Analyst
+ const an=S.staffPool.find(s=>s.role==='an');S.fin.balance=900000;const n0=S.staffs.length;ACT.sthire({id:an.id});ok(S.staffs.length===n0,'Analyst trotz voller Rolle eingestellt');ok(html().includes('besetzt')&&html().includes('class="note warn"'),'Keine Rückmeldung bei voller Rolle');
+ACT.nav2({v:'club',k:'CLUBTAB',t:'staff'});ok(!html().includes('Entlasse zuerst'),'Hinweis erscheint nur einmal');
+ // Konto zu klein
+ const ac=S.staffPool.find(s=>s.role==='ac');S.fin.balance=ac.fee-1;ACT.sthire({id:ac.id});ok(html().includes('Das Konto reicht nicht'),'Keine Rückmeldung bei leerem Konto');
+ // Veto
+ S.fin.balance=ac.fee+5000;S.fin.weeks=[-9000,-9000,-9000];ACT.sthire({id:ac.id});ok(html().includes('Veto'),'Keine Rückmeldung beim Veto');
+ // Letzten Head Coach entlassen
+ const hc=S.staffs.find(s=>s.role==='hc');ACT.stfire({id:hc.id});ok(html().includes('Head Coach'),'Keine Rückmeldung beim letzten Head Coach');
+ // Erfolg
+ S.fin.balance=900000;S.fin.weeks=[];ACT.sthire({id:ac.id});ok(S.staffs.some(s=>s.id===ac.id)&&html().includes('ist neuer'),'Einstellung klappt nicht')}
+`;

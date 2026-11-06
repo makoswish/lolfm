@@ -77,3 +77,8 @@ function navScroll(){if(typeof document==='undefined'||typeof window==='undefine
 
 /* Verhandlung: der Verlauf zeigt immer die neueste Nachricht. */
 function chatBottom(){if(typeof document==='undefined')return;const c=document.querySelector('.ngchat .chat');if(c)c.scrollTop=c.scrollHeight}
+
+/* Rückmeldung auf Aktionen, die sonst still scheitern (Einstellungen, Vetos): erscheint einmal oben auf der Seite. */
+let NOTE=null;
+function say(t,k){NOTE={t,k:k||'warn'}}
+function noteBox(){if(!NOTE)return '';const n=NOTE;NOTE=null;return `<div class="note ${n.k}" style="margin-bottom:12px;grid-column:1/-1">${n.t}</div>`}
