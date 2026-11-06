@@ -306,15 +306,19 @@ function coachReport(U){
 function teamModal(){
   const T=S.teams[MODAL.team];if(!T)return'';const mine=T.id===S.user,an=S.staff.analyst;
   const ps=T.roster.map(i=>S.players[i]).sort((a,b)=>(isStarter(b)-isStarter(a))||ROLES.indexOf(a.role)-ROLES.indexOf(b.role));
-  const sp=currentSplit(),row=sp&&sp.reg[T.reg]?tableOf(sp.reg[T.reg].ids,sp.reg[T.reg].res).findIndex(x=>x.id===T.id)+1:0;
-  return `<div class="ov" data-a="close"><div class="sheet wide" role="dialog" aria-modal="true" aria-label="${T.name}">
-  <div style="display:flex;gap:12px;align-items:center">${crest(T,'lg')}<div style="min-width:0"><h2>${T.name}</h2><p class="muted" style="margin:2px 0 0">${T.reg} · Ruf ${T.rep} · ${T.tier===2?'T2':prestigeOf(T)}${rivLbl(T.id)?` · <span class="warn">${rivLbl(T.id)} (${rivOf(T.id).w}-${rivOf(T.id).l})</span>`:''}${row?` · Platz ${row} im ${sp.name}`:''}</p></div></div>
-  <div style="margin-top:14px">
-   <div class="stat"><span class="muted">Team-OVR</span><span>${mine||an>=3?teamOvr(T):'~'+Math.round(teamOvr(T)/5)*5}</span></div>
-   <div class="stat"><span class="muted">Spielstil</span><span style="font-family:var(--f-body)">${mine||an>=2?STYLES[T.style].n:'Analyst Level 2 nötig'}</span></div>
-   <div class="stat"><span class="muted">Jungle-Fokus</span><span style="font-family:var(--f-body)">${mine||an>=3?FOCUS[T.focus]:'Analyst Level 3 nötig'}</span></div></div>
-  <div class="lab" style="margin-top:16px">Kader</div><div class="rows">${ps.map(p=>playerRow(p,!mine)).join('')}</div>
-  <div class="acts" style="margin-top:16px"><button class="btn ghost" data-a="close">Schließen</button></div></div></div>`;
+  const sp=currentSplit(),tab=sp&&sp.reg[T.reg]?tableOf(sp.reg[T.reg].ids,sp.reg[T.reg].res):null,row=tab?tab.findIndex(x=>x.id===T.id)+1:0,me=row?tab[row-1]:null;
+  const st=(l,v)=>`<div class="stat"><span class="muted">${l}</span><span style="font-family:var(--f-body)">${v}</span></div>`;
+  return `<div class="ov" data-a="close"><div class="sheet big" role="dialog" aria-modal="true" aria-label="${esc(T.name)}">
+  <div class="shead">${crest(T,'lg')}<div class="shi"><h2>${T.name}</h2><p class="muted">${T.reg} · Ruf ${T.rep} · ${T.tier===2?'T2':prestigeOf(T)}${rivLbl(T.id)?` · <span class="warn">${rivLbl(T.id)} (${rivOf(T.id).w}-${rivOf(T.id).l})</span>`:''}${row?` · Platz ${row} im ${sp.name}`:''}</p></div>
+   <button class="sx" data-a="close" aria-label="Schließen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="tmgrid"><aside class="tmside">
+   ${st('Team-OVR',mine||an>=3?teamOvr(T):'~'+Math.round(teamOvr(T)/5)*5)}
+   ${st('Spielstil',mine||an>=2?STYLES[T.style].n:'Analyst Level 2 nötig')}
+   ${st('Jungle-Fokus',mine||an>=3?FOCUS[T.focus]:'Analyst Level 3 nötig')}
+   ${row?st('Tabelle',`Platz ${row} · ${me.w} S · ${me.l} N`):''}${me&&me.form&&me.form.length?st('Form',formDots(me.form)):''}
+   ${T.tier!==2&&!mine?st('Importe in der Startelf',`${impCount(T)} von ${IMPMAX}`):''}</aside>
+  <section class="tmros"><div class="lab"><span>Kader</span><span>${ps.length} Spieler</span></div><div class="rows">${ps.map(p=>playerRow(p,!mine)).join('')}</div></section></div>
+  <div class="acts sfoot"><button class="btn ghost" data-a="close">Schließen</button></div></div></div>`;
 }
 
 /* ===== Spielervergleich =====
