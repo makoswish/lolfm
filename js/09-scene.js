@@ -18,7 +18,13 @@ function genT2(){const U=S.teams[S.user];
   if(!aca())mkT2Team(acaId(),U.name+' Academy',U.reg,clamp(U.rep-30,38,56),U.color,true);
   t2Init()}
 function t2Init(){S.t2={};for(const r of REGS){const ids=t2Of(r).map(t=>t.id);const tab={};ids.forEach(i=>tab[i]={w:0,l:0,form:[]});S.t2[r]={sched:ids.length%2?[]:circle(shuffle(ids.slice())),round:0,tab,last:[]}}}
-function t2Week(){if(!S.t2)t2Init();
+/* Jede T2-Mannschaft braucht auf allen fünf Rollen einen Spieler. Fehlt einer (zum Beispiel weil die Academy für dich eingesprungen ist), rückt der Beste der Rolle nach, sonst kommt ein Talent aus der Jugend. */
+function t2Fix(){for(const T of Object.values(S.teams)){if(T.tier!==2)continue;T.roster=T.roster.filter(i=>S.players[i]);
+  for(const r of ROLES){if(S.players[T.starters[r]])continue;delete T.starters[r];
+    const c=T.roster.map(i=>S.players[i]).filter(x=>x.role===r).sort((a,b)=>ovr(b)-ovr(a))[0];
+    if(c){T.starters[r]=c.id;continue}
+    const p=genPlayer(r,ri(44,50)+Math.round(Math.max(0,T.rep-40)/4),ri(16,18),T.reg);p.pot=clamp(ovr(p)+ri(8,20),ovr(p),92);p.salary=Math.min(p.salary,400);sign(p,T,true)}}}
+function t2Week(){if(!S.t2)t2Init();t2Fix();
   for(const r of REGS){const L=S.t2[r];if(!L||!L.sched.length)continue;const rd=L.sched[L.round%L.sched.length];L.round++;L.last=[];const win=[];
     for(const[a,b]of rd){const A=S.teams[a],B=S.teams[b];if(!A||!B)continue;const w=R()<sig((teamOvr(A)-teamOvr(B)+gauss()*3)/4)?a:b,l=w===a?b:a;
       for(const[id,won]of[[w,1],[l,0]]){const e=L.tab[id]||(L.tab[id]={w:0,l:0,form:[]});won?e.w++:e.l++;e.form.push(won);if(e.form.length>5)e.form.shift()}
