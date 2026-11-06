@@ -63,7 +63,7 @@ function uiAuto(w){return w<900?1:w>=2800?1.5:w>=2200?1.3:w>=1700?1.15:1}
 function uiScale(){const p=uiPref(),w=typeof window!=='undefined'?(window.innerWidth||1200):1200;if(p==='auto')return uiAuto(w);const v=+p;return w<900?Math.min(v,1.15):v}
 function applyScale(){try{const z=uiScale();if(typeof document!=='undefined'&&document.body){document.body.style.zoom=z===1?'':String(z);document.documentElement.style.setProperty('--vh',(window.innerHeight/z)+'px')}}catch(e){}}
 function setUiScale(v){try{localStorage.setItem('riftmgr_ui',v)}catch(e){}applyScale()}
-function uiPanel(){const p=uiPref();return `<section class="panel s12"><div class="lab"><span>Darstellung</span><span>Skalierung ${Math.round(uiScale()*100)} %</span></div>
+function uiPanel(){const p=uiPref();return `<section class="panel s12"><div class="lab"><span>Darstellung</span><span>Version ${BUILD} · Skalierung ${Math.round(uiScale()*100)} %</span></div>
   <div class="seg">${UISC.map(([v,l])=>`<button class="${p===v?'on':''}" data-a="uisc" data-v="${v}">${l}</button>`).join('')}</div>
   <p class="muted" style="font-size:13px;margin:10px 0 0">Automatisch wächst die Oberfläche mit dem Bildschirm: ab 1700 px Breite 115 %, ab 2200 px 130 %, ab 2800 px 150 %. Am Handy bleibt sie bei 100 %. Mit einer festen Stufe lässt sie sich selbst bestimmen.</p></section>`}
 function maintPanel(){return `<section class="panel s12"><div class="lab">Wartung</div>
