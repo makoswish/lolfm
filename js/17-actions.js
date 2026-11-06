@@ -73,6 +73,7 @@ const ACT={
   intens(d){S.training.intensity=d.v;save();render()},
   frole(d){FILT.role=d.v;FILT.n=40;render()},
   fsrc(d){FILT.src=d.v;FILT.n=40;render()},
+  fnoimp(){FILT.noimp=!FILT.noimp;FILT.n=40;render()},
   faff(){FILT.afford=!FILT.afford;FILT.n=40;render()},
   fmore(){FILT.n+=40;render()},
   cfno(){MODAL=null;render()},
@@ -89,6 +90,9 @@ const ACT={
   jobs(){S.view='jobs';window.scrollTo(0,0);render()},
   jobtake(d){if(d.ok!=='1'){const T=S.teams[d.v];return askConfirm('jobtake',{v:d.v},`${T.name} übernehmen?`,`Du verlässt ${S.teams[S.user].name}. Trainerstab, Scouts, Finanzen und Academy bleiben beim alten Verein. Dein Spielstand läuft mit ${T.name} weiter.`,'Übernehmen')}
     MODAL=null;const e=switchTeam(d.v);if(e)mail('Wechsel nicht möglich',e);save();window.scrollTo(0,0);render()},
+  reha(d){const e=startReha(d.id);if(e)pmsg(d.id,e,false);save();render()},
+  drop(){merchDrop();save();render()},
+  revcopy(){const t=reviewText();try{navigator.clipboard.writeText(t)}catch(e){}mail('Saisonrückblick kopiert',t);render()},
   jobstay(){if(S.jobless)return;S.jobs=null;S.view='home';save();render()},
   trial(d){const e=startTrial(d.id);pmsg(d.id,e||'Er trainiert diese Woche bei euch mit. Der Bericht kommt nächste Woche.',!e);save();render()},
   linmenu(d){const p=S.players[d.id];if(!p)return;MODAL={lin:p.id};render()},

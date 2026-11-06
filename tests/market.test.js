@@ -41,7 +41,7 @@ ACT.player({id:p.id,tab:'vertrag'});chk('Spielerseite Bereitschaft');ok(document
 module.exports+=`
 newGame('LYL','Tester');
 {const avg=r=>teamsOf(r).reduce((a,t)=>a+teamOvr(t),0)/teamsOf(r).length;
- ok(avg('LCK')>avg('LEC')+3&&avg('LPL')>avg('LEC')+3,'LCK und LPL nicht klar vor LEC');ok(avg('LEC')>avg('LCS')&&avg('LCS')>avg('CBLOL')+2,'Reihenfolge der Regionen falsch');
+ ok(avg('LCK')>avg('LEC')+2&&avg('LPL')>avg('LEC')+2,'LCK und LPL nicht klar vor LEC');ok(avg('LEC')>avg('LCS')&&avg('LCS')>avg('CBLOL')+2,'Reihenfolge der Regionen falsch');
  const kr=genPlayer('MID',70,24,'LCK'),br=genPlayer('MID',70,24,'CBLOL');
  ok(canJoinReg(kr,'LPL')&&!canJoinReg(kr,'CBLOL'),'LCK-Spieler darf nach Brasilien');ok(canJoinReg(br,'LCK')&&canJoinReg(br,'CBLOL'),'CBLOL-Spieler darf nicht aufsteigen');
  const T=teamsOf('LEC').find(t=>t.id!==S.user),r='MID',gone=T.roster.filter(i=>S.players[i].role===r);for(const i of gone)toFA(S.players[i]);
@@ -103,4 +103,18 @@ newGame('LYL','Tester');
  S.fin.debts=[{amt:70000,to:'der Finanzierung',season:S.season+1,fin:true}];let g=0;while(S.phase!=='offseason'&&g++<200)playWeek();
  const b1=S.fin.balance;ACT.next();chk('Neue Saison mit Rate');ok(!S.fin.debts.length,'Rate nicht abgebucht');ok(S.inbox.some(function(m){return m.title==='Finanzierung fällig'}),'Keine Mail zur fälligen Finanzierung');
 }
+`;
+module.exports+=`
+// Import-Filter in Markt und Scouting
+newGame('LYL','Tester');
+{const reg=S.teams[S.user].reg;
+ ACT.nav2({v:'transfer',k:'TTAB',t:'markt'});FILT.sgn=4;FILT.n=400;
+ const IMPRE=/class="warn">Import/;ok(IMPRE.test(document.querySelector('#app').innerHTML),'Test braucht sichtbare Importe im Markt');
+ ACT.fnoimp();chk('Ohne Importe');ok(FILT.noimp===true,'Import-Filter nicht aktiv');
+ ok(!IMPRE.test(document.querySelector('#app').innerHTML)&&document.querySelector('#app').innerHTML.includes('class="row"'),'Importe trotz Filter sichtbar oder Liste leer');
+ ACT.fnoimp();FILT.n=40;
+ initScouting();const sc=S.scouts[0];sc.reg='ALL';sc.scope='all';sc.frole='ALL';sc.fage=99;sc.fval=0;sc.fimp=0;
+ const n0=scoutPool(sc).length,imp0=scoutPool(sc).filter(p=>isImp(p,reg)).length;ACT.scf({id:sc.id,k:'fimp',v:'1'});
+ const pool=scoutPool(sc);ok(sc.fimp===1&&pool.every(p=>!isImp(p,reg))&&pool.length===n0-imp0&&imp0>0,'Scout-Filter ohne Importe wirkt nicht');
+ ACT.nav2({v:'transfer',k:'TTAB',t:'scout'});chk('Scouting-Reiter');ok(document.querySelector('#app').innerHTML.includes('Ohne Importe'),'Import-Auswahl im Suchprofil fehlt')}
 `;

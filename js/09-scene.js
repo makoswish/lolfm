@@ -131,7 +131,7 @@ function genScout(lvl){return{id:'s'+(S.nextId++),name:genRealName(pick(['DE','K
 function initScouting(){S.kn=S.kn||{};S.short=S.short||[];S.reports=S.reports||[];if(!S.scouts){const s=genScout(1);s.fee=0;S.scouts=[s]}if(!S.scoutPool)S.scoutPool=[genScout(ri(1,2)),genScout(ri(2,3)),genScout(ri(3,4))]}
 function scoutPool(sc){return Object.values(S.players).filter(p=>{if(isMine(p))return false;const T=p.team?S.teams[p.team]:null;
   if(T&&sc.reg!=='ALL'&&T.reg!==sc.reg)return false;if(!T&&!S.fa.includes(p.id))return false;
-  if(sc.frole&&sc.frole!=='ALL'&&p.role!==sc.frole)return false;if(sc.fage&&p.age>sc.fage)return false;if(sc.fval&&valueFor(p)>sc.fval)return false;
+  if(sc.frole&&sc.frole!=='ALL'&&p.role!==sc.frole)return false;if(sc.fage&&p.age>sc.fage)return false;if(sc.fimp&&isImp(p,S.teams[S.user].reg))return false;if(sc.fval&&valueFor(p)>sc.fval)return false;
   if(sc.scope==='t1')return !!T&&T.tier!==2;if(sc.scope==='t2')return !!T&&T.tier===2;if(sc.scope==='u20')return p.age<=20;return true})}
 function grade(p,sc){const U=S.teams[S.user],cur=S.players[U.starters[p.role]],o=ovr(p)+gauss()*(5-sc.lvl),pot=p.pot+gauss()*(5-sc.lvl),co=cur?ovr(cur):0;
   if(o>=co+2)return['A','Sofort eine Verstärkung'];if(pot>=co+3&&p.age<=21)return['B','Spannende Perspektive'];if(o>=co-5)return['C','Solider Ersatz'];return['D','Kein Bedarf']}
@@ -202,6 +202,7 @@ function scoutTab(){initScouting();
    ${S.scouts.map(sc=>`<div class="scard"><div class="scd"><b>${sc.name}</b><span class="muted">Level ${sc.lvl} · ${eur(sc.wage)}/Woche</span>${bar(sc.lvl*20,'var(--brass)')}</div>
     <div><div class="lab" style="margin-bottom:4px">Suchprofil</div><div class="seg" style="margin-bottom:6px">${['ALL',...ROLES].map(r=>`<button class="${(sc.frole||'ALL')===r?'on':''}" data-a="scf" data-k="frole" data-id="${sc.id}" data-v="${r}">${r==='ALL'?'Alle Rollen':r}</button>`).join('')}</div>
      <div class="seg" style="margin-bottom:6px">${[[99,'Jedes Alter'],[23,'bis 23'],[20,'bis 20']].map(([v,l])=>`<button class="${(sc.fage||99)===v?'on':''}" data-a="scf" data-k="fage" data-id="${sc.id}" data-v="${v}">${l}</button>`).join('')}${[[0,'Jeder Preis'],[100000,'bis 100k'],[300000,'bis 300k']].map(([v,l])=>`<button class="${(sc.fval||0)===v?'on':''}" data-a="scf" data-k="fval" data-id="${sc.id}" data-v="${v}">${l}</button>`).join('')}</div>
+     <div class="seg" style="margin-bottom:6px">${[[0,'Mit Importen'],[1,'Ohne Importe']].map(([v,l])=>`<button class="${(sc.fimp||0)===v?'on':''}" data-a="scf" data-k="fimp" data-id="${sc.id}" data-v="${v}">${l}</button>`).join('')}</div>
      <div class="lab" style="margin:8px 0 4px">Region</div><div class="seg">${['ALL',...REGS].map(r=>`<button class="${sc.reg===r?'on':''}" data-a="screg" data-id="${sc.id}" data-v="${r}">${r==='ALL'?'Weltweit':r}</button>`).join('')}</div>
      <div class="lab" style="margin:8px 0 4px">Auftrag</div><div class="seg">${Object.entries(SCOPE).map(([k,l])=>`<button class="${sc.scope===k?'on':''}" data-a="scscope" data-id="${sc.id}" data-v="${k}">${l}</button>`).join('')}</div></div>
     ${S.scouts.length>1?`<button class="btn danger sm" data-a="scfire" data-id="${sc.id}">Entlassen</button>`:''}</div>`).join('')}

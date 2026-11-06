@@ -1,14 +1,14 @@
 /* ===== Stärke & Simulation ===== */
 function teamPower(T,O){
   const ph={e:0,m:0,l:0};
-  for(const r of ROLES){const p=S.players[T.starters[r]];const m=(1+(p.form-70)/400+(p.morale-65)/500)*carryW(T,r);
+  for(const r of ROLES){const p=S.players[T.starters[r]];const m=(1+(p.form-70)/400+(p.morale-65)/500)*carryW(T,r)*metaRoleW(r);
     ph.e+=(p.a.lane*.5+p.a.mech*.3+p.a.macro*.2)*m;
     ph.m+=(p.a.macro*.5+p.a.comm*.3+p.a.mech*.2)*m;
     ph.l+=(p.a.tf*.6+p.a.mech*.2+p.a.comm*.2)*m}
   for(const k in ph)ph[k]/=5;
   const ts=styleOf(T),sm=STYLES[ts].mod;ph.e+=sm[0];ph.m+=sm[1];ph.l+=sm[2];
   {const cp=chemPow(T);ph.e+=cp;ph.m+=cp;ph.l+=cp}
-  ph.m+=capPow(T);
+  ph.m+=capPow(T);{const mp=metaPow(T);ph.e+=mp;ph.m+=mp;ph.l+=mp}
   if(O){const c=COUNTER[ts];if(c.vs===styleOf(O))ph[c.ph]+=2.5;
     const mine=S.players[T.starters[T.focus]],th=S.players[O.starters[T.focus]];ph.e+=ovr(mine)>ovr(th)?2:.8}
   const an=T.id===S.user?S.staff.analyst:2;ph.m+=(an-2)*.6;ph.l+=(an-2)*.4;

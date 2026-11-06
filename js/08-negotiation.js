@@ -18,12 +18,12 @@ const SOFTGAP=14;
 function hurdleGap(p){if(isMine(p))return 0;return Math.max(0,signNeed(p)-S.teams[S.user].rep)}
 function hurdleF(p,renew){if(renew||isMine(p))return 1;return hurdleCut(hurdleGap(p))}
 function hurdleCut(g){return Math.min(2.5,1+Math.min(g,SOFTGAP)*.025+Math.max(0,g-SOFTGAP)*.05)}
-function demandFor(p,renew){const o=ovr(p);let d=salaryFor(o)*(p.team&&p.team!==S.user?1.15:1)*(.9+p.h.amb/20*.3)*prestF(p,renew)*hurdleF(p,renew);
+function demandFor(p,renew){const o=ovr(p);let d=salaryFor(o)*(p.team&&p.team!==S.user?1.15:1)*(.9+p.h.amb/20*.3)*prestF(p,renew)*hurdleF(p,renew)*agF(p,renew);
   if(renew){d=Math.max(d,p.salary*1.05);if(p.morale<50)d*=1.1}return r100(d)}
 /* ===== Wechselbereitschaft =====
    Wie schwer ist ein Spieler zu holen? Nutzt dieselbe Ruf-Hürde wie die Verhandlung, dazu Rolle, Verein und Stimmung. */
 const SIGNL=[['Leicht','var(--good)'],['Machbar','var(--good)'],['Schwer','var(--warn)'],['Kaum möglich','var(--bad)'],['Extrem teuer','var(--bad)']];
-function signNeed(p){return Math.ceil(pStatus(p)-13)-Math.round(attract()*2)}
+function signNeed(p){return Math.ceil(pStatus(p)-13)-Math.round(attract()*2)-mgrAttr()}
 function signDiff(p){const U=S.teams[S.user],T=p.team?S.teams[p.team]:null,need=signNeed(p),why=[];
   const gap=need-U.rep;
   if(gap>SOFTGAP)return{lv:4,why:[`Dein Verein liegt ${gap} Ruf-Punkte unter seiner Schmerzgrenze (${need}). Er verhandelt, verlangt aber ${Math.round((hurdleCut(gap)-1)*100)}% Aufschlag aufs Gehalt und hat kaum Geduld.`]};
@@ -45,7 +45,7 @@ function startNego(type,pid){
   if(type!=='renew'&&U.roster.length>=MAXR){pmsg(pid,`Dein Kader ist voll (${MAXR}). Gib zuerst einen Spieler ab.`,false);return false}
   if(p.tried===wkKey()){pmsg(pid,'Diese Woche sind keine weiteren Gespräche möglich.',false);return false}
   if(isLoanIn(p)){pmsg(pid,'Er ist nur ausgeliehen. Über seinen Vertrag verhandelt sein Verein.',false);return false}
-  const hg=type==='renew'?0:hurdleGap(p),at=attract(),pat=clamp(3+Math.round((U.rep-(o+p.h.amb/4-8))/6)+(type==='renew'?1:0)-(p.team&&S.teams[p.team].reg!==U.reg?1:0)+(at>.25?1:at<-.25?-1:0)-Math.ceil(hg/5),1,6);
+  const hg=type==='renew'?0:hurdleGap(p),at=attract(),pat=clamp(3+Math.round((U.rep-(o+p.h.amb/4-8))/6)+(type==='renew'?1:0)-(p.team&&S.teams[p.team].reg!==U.reg?1:0)+(at>.25?1:at<-.25?-1:0)-Math.ceil(hg/5)+agPat(p,type==='renew'),1,6);
   NG={type,pid,hg,stage:type==='buy'?'fee':'contract',pat,patMax:pat,log:[],dem:{sal:demandFor(p,type==='renew'),yrs:prefYears(p),role:expRole(p)},done:false,dead:false};
   NG.terms={sal:NG.dem.sal,yrs:NG.dem.yrs,role:NG.dem.role,sb:0,wb:0,cl:0};
   if(type==='buy'){const T=S.teams[p.team],ask=askFor(p);
@@ -117,6 +117,7 @@ function closeDeal(){const p=S.players[NG.pid],t=NG.terms,U=S.teams[S.user],prev
   else if(NG.type==='fa'){sign(p,U,false);mail('Neuzugang',`${p.name} (${RN[p.role]}) unterschreibt ablösefrei.`)}
   if(t.sb){book('Handgelder',-t.sb);S.fin.budget.transfer-=t.sb}
   p.salary=t.sal;p.contract=t.yrs;p.wb=t.wb;p.clause=t.cl?r1000(valueFor(p)*CLOPT[t.cl]):0;p.promise=t.role==='start'?'start':null;p.pweeks=0;p.listed=false;
+  if(NG.type!=='renew'){const af=agFee(p,t);book('Beraterprovision',-af);NG.log.push(['agent',`${agentOf(p).n} stellt ${eurK(af)} Provision in Rechnung.`])}
   p.morale=clamp(p.morale+5,20,100);NG.done=true;if(NG.type==='renew'){p.wantRaise=false;p.wantAway=false}
   if(NG.type!=='renew')txRec({type:NG.type,pid:p.id,from:from0,fee:NG.fee?NG.fee.amt:0,now:NG.type==='buy'?feeNow():0,inst:NG.fee&&NG.fee.pay==='inst',sb:t.sb,prev,when:shortLabel()});
   NG.log.push(['agent',`Berater: Abgemacht. ${p.name} unterschreibt bis ${S.year+t.yrs-1}.`]);
