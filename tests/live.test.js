@@ -24,6 +24,7 @@ ACT.tick1();ok(LIVE.sim.t===0,'Spiel läuft vor dem Start');
 ACT.gostart();chk('Live');ok(LIVE.phase==='live','Spiel startet nicht');
 let h=html();
 ok(h.includes('id="lvhead"')&&h.includes('class="lvctl"')&&h.includes('id="lvmap"')&&h.includes('id="lvgraph"')&&h.includes('id="lvfeed"')&&h.includes('id="lvpl"'),'Bereiche der Live-Ansicht fehlen');
+ok(h.includes('(du)')&&/class="wa me"|class="wb me"/.test(h),'Siegchance-Leiste markiert die eigene Seite nicht');
 ok(h.includes('Highlights')&&h.includes('Nächster Moment')&&h.includes('Zum Ende')&&h.includes('Pause'),'Steuerleiste unvollständig');
 ok(!h.includes('Baron callen')&&!h.includes('Anweisung an dein Team'),'Eingreifen-Oberfläche noch da');
 ok(LIVE.speed===4,'Standardtempo ist nicht Highlights');

@@ -24,8 +24,8 @@ newGame('LYL','Tester');render();chk('Start');
 {try{localStorage.removeItem('riftmgr_music')}catch(e){}
  ok(musPref().on===false&&musLabel()==='Aus','Musik startet nicht aus');
  ok(html().includes('data-a="music"'),'Musik-Knopf in der Statusleiste fehlt');
- ACT.music();ok(musPref().on===true&&musLabel()==='Mittel','Einschalten greift nicht');
- ACT.musvol({v:'3'});ok(musPref().on&&musPref().vol===3&&musLabel()==='Laut','Lautstärke Laut');
+ ACT.music();ok(musPref().on===true&&musLabel()==='Mittel','Einschalten greift nicht: '+musLabel());
+ ACT.musvol({v:'3'});ok(musPref().on&&musPref().vol===MUSV[3]&&musLabel()==='Laut','Lautstärke Laut');
  ACT.musvol({v:'1'});ok(musLabel()==='Leise','Lautstärke Leise');
  ACT.musvol({v:'0'});ok(!musPref().on&&musLabel()==='Aus','Ausschalten über die Stufen');
  ACT.nav2({v:'save'});chk('Spielstand');ok(html().includes('Musik')&&html().includes('data-a="musvol"'),'Musik-Karte im Spielstand fehlt');

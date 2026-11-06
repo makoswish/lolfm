@@ -29,8 +29,20 @@ function loop(){clearInterval(LIVE.timer);const sp=LIVE.speed;if(sp===3)return;
 function gameDone(){clearInterval(LIVE.timer);finishSim(LIVE.sim);LIVE.phase='post';LIVE.tab='feed';LIVE.sel=null;recordGame(LIVE.sim);if(seriesOver())commitSeries();LIVE.talk=null}
 /* Zeichnet nur die Bereiche neu, die sich pro Minute ändern. Ohne Ids (Tests, erste Anzeige) die ganze Seite. */
 function liveRefresh(){const z=LIVE&&LIVE.sim;if(!z)return;if(!$('#lvhead')){render();return}
-  const set=(id,h)=>{const n=$('#'+id);if(n)n.innerHTML=h};
-  set('lvhead',lvHead(z));set('lvmap',lvMapBox(z));set('lvtimers',lvTimers(z));set('lvgraph',lvGraph(z));set('lvfeed',lvFeed(z));set('lvpl',lvTables(z))}
+  const set=(id,h)=>{const n=$('#'+id);if(n){n.innerHTML=h;i18nApply(n)}};
+  const old={},oldK=[...document.querySelectorAll('#lvhead .kills [data-k]')].map(x=>x.dataset.k);
+  document.querySelectorAll('#lvmap g.mk').forEach(g=>{const c=g.querySelector('circle:nth-of-type(2)');if(c)old[g.dataset.id]=[+c.getAttribute('cx'),+c.getAttribute('cy')]});
+  set('lvhead',lvHead(z));set('lvmap',lvMapBox(z));set('lvtimers',lvTimers(z));set('lvgraph',lvGraph(z));set('lvfeed',lvFeed(z));set('lvpl',lvTables(z));
+  try{lvFx(z,old,oldK)}catch(e){}}
+/* Bewegung: Spieler gleiten über die Karte, die Siegchance-Leiste läuft sanft, neue Kills springen auf */
+function lvFx(z,old,oldK){if(lvReduced())return;const dur=Math.max(250,Math.min(900,(LIVE.speed===2?280:LIVE.speed===1?520:800)));
+  if(typeof Element==='undefined'||!Element.prototype.animate)return;
+  document.querySelectorAll('#lvmap g.mk').forEach(g=>{const c=g.querySelector('circle:nth-of-type(2)'),o=old[g.dataset.id];if(!c||!o)return;
+    const dx=o[0]-(+c.getAttribute('cx')),dy=o[1]-(+c.getAttribute('cy'));if(Math.abs(dx)+Math.abs(dy)<.2)return;
+    g.animate([{transform:`translate(${dx}px,${dy}px)`},{transform:'translate(0,0)'}],{duration:dur,easing:'cubic-bezier(.3,.7,.3,1)'})});
+  const pa=Math.round((z.tl[z.tl.length-1].wp??.5)*100),i=document.querySelector('#lvhead .wbar i');
+  if(i&&LIVE.pwp!=null&&LIVE.pwp!==pa)i.animate([{width:LIVE.pwp+'%'},{width:pa+'%'}],{duration:dur,easing:'ease-out'});LIVE.pwp=pa;
+  document.querySelectorAll('#lvhead .kills [data-k]').forEach((x,n)=>{if(oldK[n]!=null&&oldK[n]!==x.dataset.k)x.animate([{transform:'scale(1.5)',filter:'brightness(1.6)'},{transform:'scale(1)',filter:'none'}],{duration:520,easing:'ease-out'})})}
 /* Töne und Vibration bei großen Momenten, standardmäßig aus */
 let AC=null;
 function lvBeep(e){if(!SND)return;try{const mine=e.side===myS();
@@ -44,9 +56,9 @@ function lvHead(z){const s=LIVE.series,A=S.teams[z.A],B=S.teams[z.B],t=z.t,snap=
   const dots=i=>s.bo>1?`<span class="sdots" title="Serie Bo${s.bo}">${Array.from({length:Math.ceil(s.bo/2)},(_,k)=>`<i class="${k<s.wins[i]?'on':''}"></i>`).join('')}</span>`:'';
   const plan=i=>post?'':` · ${INS[z.ins[i]].n}`,last=[...z.ev].reverse().find(e=>e.w>=1),flash=!post&&last&&last.t===t&&last.w>=2;
   return `<div class="board lvboard"><div class="side-t">${crest(A)}<div style="min-width:0"><b class="${z.A===S.user?'myid':''}">${A.name}</b><small>Blau · ${compTag(z.dr[0].picks)||'Gemischt'}${plan(0)}${dots(0)}</small></div></div>
-   <div><div class="kills"><span class="b">${snap.k[0]}</span><span class="dim" style="font-size:.5em">:</span><span class="r">${snap.k[1]}</span></div><div class="clock">${lvPad(t)}:00${!post&&LIVE.speed===3?' · Pause':''}</div></div>
+   <div><div class="kills"><span class="b" data-k="${snap.k[0]}">${snap.k[0]}</span><span class="dim" style="font-size:.5em">:</span><span class="r" data-k="${snap.k[1]}">${snap.k[1]}</span></div><div class="clock">${lvPad(t)}:00${!post&&LIVE.speed===3?' · Pause':''}</div></div>
    <div class="side-t r">${crest(B)}<div style="min-width:0"><b class="${z.B===S.user?'myid':''}">${B.name}</b><small>Rot · ${compTag(z.dr[1].picks)||'Gemischt'}${plan(1)}${dots(1)}</small></div></div></div>
-   <div class="lvwp" title="Geschätzte Siegchance aus Stärke, Draft, Gold und Objectives. Nur Anzeige."><span class="wa">${pa}%</span><div class="wbar"><i style="width:${pa}%"></i></div><span class="wb">${100-pa}%</span></div>
+   <div class="lvwp" title="Geschätzte Siegchance aus Stärke, Draft, Gold und Objectives. Nur Anzeige."><span class="wa ${z.A===S.user?'me':''}"><small>${A.id}${z.A===S.user?' (du)':''}</small> ${pa}%</span><div class="wbar"><i style="width:${pa}%"></i></div><span class="wb ${z.B===S.user?'me':''}">${100-pa}% <small>${B.id}${z.B===S.user?' (du)':''}</small></span></div>
    <div class="lvtick ${flash?'flash s'+last.side:''}">${last?`<span class="evi s${last.side}">${evIcon(last.k)}</span><span class="tm">${lvPad(last.t)}'</span><span class="evt">${lvTxt(z,last.text)}</span>`:`<span class="evt muted">${post?'Das Spiel ist vorbei.':'Die Champions sind unterwegs.'}</span>`}</div>`}
 /* ---- Steuerleiste: Tempo, nächster Moment, Ton. Wird nur beim vollen Neuzeichnen erzeugt. ---- */
 function lvCtl(){const sp=LIVE.speed,b=(v,l,t)=>`<button class="btn sm ${sp===v?'':'ghost'}" data-a="speed" data-v="${v}" aria-pressed="${sp===v}" ${t?`title="${t}"`:''}>${l}</button>`;
@@ -56,11 +68,12 @@ function lvCtl(){const sp=LIVE.speed,b=(v,l,t)=>`<button class="btn sm ${sp===v?
 
 /* ---- Karte ---- */
 function lvMapBox(z){const post=LIVE.phase==='post',big=post?null:[...z.ev].filter(e=>z.t-e.t<=1&&e.w>=2).pop();
-  return `<div class="mapwrap">${miniMap(z)}${big?`<div class="mapban s${big.side}"><span class="evi s${big.side}">${evIcon(big.k)}</span><b>${EVK[big.k][1]}</b><span class="muted">${S.teams[big.side===0?z.A:z.B].id}</span></div>`:''}</div>
+  return `<div class="mapwrap">${miniMap(z)}${big?`<div class="mapban s${big.side} ${big.w>=3?'big3':''}"><span class="evi s${big.side}">${evIcon(big.k)}</span><b>${EVK[big.k][1]}</b><span class="muted">${S.teams[big.side===0?z.A:z.B].id}</span></div>`:''}</div>
    <p class="maplab">${z.t<14?'Lane-Phase':z.t<25?'Midgame':'Lategame'} · Minute ${z.t}</p>`}
 function miniMap(z){
   const tw=[0,1].map(i=>{const L=z.lost[i],col=i===0?'var(--blue)':'var(--red)';
-    return ['top','mid','bot','nex'].map(l=>TWR[i][l].map((p,k)=>{const dead=k<L[l];return `<rect x="${p[0]-1.6}" y="${p[1]-1.6}" width="3.2" height="3.2" rx=".6" fill="${dead?'var(--dim)':col}" opacity="${dead?.35:1}"/>`}).join('')).join('')}).join('');
+    return ['top','mid','bot','nex'].map(l=>TWR[i][l].map((p,k)=>{const dead=k<L[l],key=i+l+k,fresh=dead&&LIVE&&LIVE.tdead&&!LIVE.tdead[key]&&LIVE.phase==='live';if(dead&&LIVE){(LIVE.tdead=LIVE.tdead||{})[key]=1}
+      return `<rect class="${fresh?'tfall':''}" x="${p[0]-1.6}" y="${p[1]-1.6}" width="3.2" height="3.2" rx=".6" fill="${dead?'var(--dim)':col}" opacity="${dead?.35:1}"/>`}).join('')).join('')}).join('');
   const pin=LIVE&&LIVE.pin;
   const dots=z.pos?[0,1].map(i=>z.st[i].map(id=>{const q=z.pos[id];if(!q)return'';const p=S.players[id],pn=id===pin;
     return `<g class="mk" data-pd="pin" data-id="${id}" opacity="${q[2]?.35:1}"><title>${esc(p.name)} (${RN[p.role]})</title><circle cx="${q[0]}" cy="${q[1]}" r="6" fill="transparent"/><circle cx="${q[0]}" cy="${q[1]}" r="2.9" fill="${i===0?'var(--blue)':'var(--red)'}" stroke="${pn?'var(--brass2)':'var(--bg)'}" stroke-width="${pn?1.2:.7}"/><text x="${q[0]}" y="${q[1]+1.1}" text-anchor="middle" font-size="2.8" font-weight="700" fill="var(--bg)" font-family="Barlow,sans-serif">${p.role[0]}</text>${pn?`<text x="${q[0]}" y="${q[1]-4.4}" text-anchor="middle" font-size="3.4" font-weight="700" fill="var(--fg)" stroke="var(--bg)" stroke-width=".6" paint-order="stroke" font-family="Barlow,sans-serif">${esc(p.name)}</text>`:''}</g>`}).join('')).join(''):'';
@@ -111,7 +124,7 @@ function lvGraph(z){const post=LIVE.phase==='post',span=Math.max(30,z.t+(post?0:
    <div class="lvsel">${cap}</div>`}
 function lvFeed(z){const F=LIVE.filter||'key',pin=LIVE.pin&&S.players[LIVE.pin],hit=e=>pin&&e.text.includes(pin.name);
   const L=z.ev.map((e,i)=>({e,i})).filter(({e})=>F==='all'?true:F==='key'?e.w>=1:F==='hl'?e.w>=2:hit(e)).reverse();
-  return L.map(({e,i})=>`<div class="ev2 ${e.w>=2?'hl':''} ${LIVE.sel===i?'sel':''} ${hit(e)?'pin':''}"><span class="tm">${lvPad(e.t)}'</span><span class="evi s${e.side}">${evIcon(e.k)}</span><span class="evt">${lvTxt(z,e.text)}</span></div>`).join('')||'<p class="empty">Noch nichts Wichtiges passiert.</p>'}
+  return L.map(({e,i})=>`<div class="ev2 ${e.w>=2?'hl':''} ${LIVE.sel===i?'sel':''} ${hit(e)?'pin':''} ${LIVE.phase==='live'&&e.t===z.t?'fresh':''}"><span class="tm">${lvPad(e.t)}'</span><span class="evi s${e.side}">${evIcon(e.k)}</span><span class="evt">${lvTxt(z,e.text)}</span></div>`).join('')||'<p class="empty">Noch nichts Wichtiges passiert.</p>'}
 /* ---- Spielertabellen mit Merken ---- */
 const PINSVG='<svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6-4.5-4.2 6.1-.7z"/></svg>';
 function pTable(z,side,post){const T=S.teams[side===0?z.A:z.B],dr=z.dr[side],pin=LIVE&&LIVE.pin;

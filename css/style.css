@@ -1013,3 +1013,26 @@ body::before{background:transparent}
 .musb.on{color:var(--team)}
 @media (max-width:760px){.musb{display:none}}
 @media (max-width:899px){.navbtn.on::before{display:none}.mecard{display:none}}
+.optb{padding:6px 10px}.optb svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;display:block}
+.mast{display:flex;align-items:center;gap:14px}.mast .optb{margin-left:12px}
+@media (max-width:760px){.optb{padding:6px 8px}}
+
+/* Matchday-Bewegung: neue Ereignisse gleiten ein, große Momente bekommen einen Auftritt, gefallene Türme zerplatzen */
+.lvwp .wa small,.lvwp .wb small{font-size:.72em;opacity:.7;letter-spacing:.06em}
+.lvwp .me{color:var(--team);font-weight:700}
+@media (prefers-reduced-motion:no-preference){
+  .ev2.fresh{animation:evin .45s cubic-bezier(.2,.7,.2,1) both}
+  @keyframes evin{from{opacity:0;transform:translateX(-14px);background:color-mix(in srgb,var(--brass) 30%,transparent)}to{opacity:1;transform:none}}
+  .mapban{animation:banin .5s cubic-bezier(.2,.8,.2,1) both,lvflash .9s ease-out}
+  @keyframes banin{from{opacity:0;transform:translateY(-10px) scale(.94)}to{opacity:1;transform:none}}
+  .mapban.big3{font-size:15.5px;padding:11px 12px;box-shadow:0 0 28px color-mix(in srgb,var(--brass) 55%,transparent),inset 0 0 0 1px var(--brass);animation:ban3 .8s cubic-bezier(.2,.9,.2,1) both}
+  .mapban.big3 b{letter-spacing:.08em;text-transform:uppercase}
+  @keyframes ban3{0%{opacity:0;transform:scale(.7)}60%{opacity:1;transform:scale(1.07)}100%{transform:scale(1)}}
+  .mmap rect.tfall{transform-box:fill-box;transform-origin:center;animation:tfall .8s ease-out}
+  @keyframes tfall{0%{transform:scale(2.6);opacity:1;fill:var(--brass2)}100%{transform:scale(1);opacity:.35}}
+  .lane{animation:laneIn .5s cubic-bezier(.2,.7,.2,1) both}
+  .lane:nth-child(2){animation-delay:.07s}.lane:nth-child(3){animation-delay:.14s}.lane:nth-child(4){animation-delay:.21s}.lane:nth-child(5){animation-delay:.28s}.lane:nth-child(6){animation-delay:.35s}
+  @keyframes laneIn{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:none}}
+  .banner h2{animation:resin .7s cubic-bezier(.2,.9,.2,1) both;text-shadow:0 0 30px currentColor}
+  @keyframes resin{0%{opacity:0;transform:scale(.6) skewX(-8deg)}70%{transform:scale(1.08) skewX(-6deg)}100%{opacity:1;transform:scale(1) skewX(-6deg)}}
+}

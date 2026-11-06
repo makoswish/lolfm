@@ -94,6 +94,11 @@ const ACT={
     MODAL=null;const e=switchTeam(d.v);if(e)mail('Wechsel nicht möglich',e);save();window.scrollTo(0,0);render()},
   resign(d){if(d.v==='off'){S.resign=false;save();render();return}if(d.ok!=='1'){return askConfirm('resign',{},S.phase==='offseason'?'Jetzt kündigen?':'Zum Saisonende kündigen?',S.phase==='offseason'?'Du verlässt '+S.teams[S.user].name+' sofort und wählst einen neuen Verein. Der Manager-Ruf sinkt um 3.':'Du verlässt '+S.teams[S.user].name+' zum Saisonende und wählst dann einen neuen Verein. Der Manager-Ruf sinkt um 3.',S.phase==='offseason'?'Jetzt kündigen':'Kündigen')}MODAL=null;const e=resignAsk();if(e)mail('Kündigung nicht möglich',e);save();render()},
   uisc(d){setUiScale(d.v);render()},
+  opt(){MODAL={opt:true};render()},
+  optclose(){MODAL=null;render()},
+  lang(d){setLang(d.v);render()},
+  musonoff(){musToggle();render()},
+  optsnd(d){SND=d.v==='1';try{localStorage.setItem('riftmgr_snd',SND?'1':'0')}catch(e){}render()},
   music(){musToggle();render()},
   musvol(d){musSetVol(+d.v);render()},
   reha(d){const e=startReha(d.id);if(e)pmsg(d.id,e,false);save();render()},
@@ -218,7 +223,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('change',e=>{const t=e.target;if(t&&t.id==='impfile'&&t.files&&t.files[0]){const r=new FileReader();r.onload=()=>doImport(String(r.result));r.readAsText(t.files[0])}});
 document.addEventListener('keydown',e=>{
   if(MODAL&&MODAL.qs){if(e.key==='Escape'){MODAL=null;render()}else if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();const n=QS.items.length;if(n){QS.i=(QS.i+(e.key==='ArrowDown'?1:n-1))%n;qsRefresh();const on=document.querySelector&&document.querySelector('.qsr.on');if(on&&on.scrollIntoView)on.scrollIntoView({block:'nearest'})}}else if(e.key==='Enter'){e.preventDefault();qsGo(QS.i)}return}
-  if(e.key==='Escape'&&MODAL&&(MODAL.team||MODAL.cf||MODAL.loan||MODAL.lin)){MODAL=null;render();return}
+  if(e.key==='Escape'&&MODAL&&(MODAL.team||MODAL.cf||MODAL.loan||MODAL.lin||MODAL.opt)){MODAL=null;render();return}
   const t=e.target,typing=t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT'||t.isContentEditable);
   if(S&&((e.key==='k'&&(e.ctrlKey||e.metaKey))||(e.key==='/'&&!typing&&!e.ctrlKey&&!e.metaKey))){e.preventDefault();qsOpen()}});
 document.addEventListener('input',e=>{const t=e.target;if(t&&t.id==='qsin'&&!e.isComposing){QS.q=t.value;QS.i=0;qsRefresh()}});
@@ -229,3 +234,6 @@ initSlot();load();render();
 
 document.addEventListener('input',e=>{const t=e.target;if(t&&t.dataset&&t.dataset.rk&&typeof NG!=='undefined'&&NG){try{ngPut(t.dataset.rk,t.value);const w=t.closest('.rng'),rv=w&&w.querySelector('.rv');if(rv)rv.textContent=ngFmt(t.dataset.rk,+t.value);ngLive()}catch(err){}}});
 document.addEventListener('change',e=>{const t=e.target;if(t&&t.dataset&&t.dataset.rk&&typeof NG!=='undefined'&&NG){try{render()}catch(err){}}});
+
+document.addEventListener('input',e=>{const t=e.target;if(t&&t.dataset&&t.dataset.mvol){try{const f=(+t.value)/100;musSetVolF(f);const o=document.querySelector('#optvol');if(o)o.textContent=f>0?Math.round(f*100)+' %':L('Aus','Off')}catch(err){}}});
+document.addEventListener('change',e=>{const t=e.target;if(t&&t.dataset&&t.dataset.mvol){try{render()}catch(err){}}});
