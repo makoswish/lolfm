@@ -88,7 +88,7 @@ newGame('LYL','Tester');
  ACT.ngsend();ok(NG.stage==='contract','Abschicken kommt nicht durch');render();chk('Vertrag');
  const h=html();ok(['sal','sb','wb','tb'].every(k=>h.includes('data-rk="'+k+'"')),'Regler im Vertrag fehlen');ok(h.includes('data-a="ngalt"')&&h.includes('id="ngmeter"')&&h.includes('id="ngwk"'),'Alternativen, Meter oder Gesamtwert fehlen');
  // Alternativen haben denselben Wert wie die Forderung
- for(let i=0;i<3;i++){ACT.ngalt();ok(Math.abs(wkVal(NG.terms)-NG.dem.sal)/NG.dem.sal<.03,'Alternative '+ALTS[NG.alt]+' weicht vom Wert der Forderung ab: '+Math.round(wkVal(NG.terms))+' gegen '+NG.dem.sal);ok(cScore().sc>=.97,'Alternative '+ALTS[NG.alt]+' wird zu schlecht bewertet: '+cScore().sc.toFixed(3))}
+ for(let i=0;i<3;i++){ACT.ngalt();ok(wkVal(NG.terms)>=NG.dem.sal*.97&&wkVal(NG.terms)<=NG.dem.sal*1.15,'Alternative '+ALTS[NG.alt]+' weicht vom Wert der Forderung ab: '+Math.round(wkVal(NG.terms))+' gegen '+NG.dem.sal);ok(cScore().sc>=1,'Alternative '+ALTS[NG.alt]+' wird zu schlecht bewertet: '+cScore().sc.toFixed(3))}
  ok(NG.alt===2&&NG.terms.tb>0&&NG.terms.wb>0,'Prämien-Alternative ohne Prämien');
  // Prämien sind für den Spieler etwas wert
  const t=NG.terms;const w0=wkVal(t);t.tb+=26000;ok(wkVal(t)>w0+90,'Titelprämie ohne Wert');t.tb-=26000;
@@ -99,4 +99,40 @@ newGame('LYL','Tester');
  NG=null;p.addon={team:'BOH',amt:15000,g:20,c:0,l:0};p.st=p.st||{};p.st.g=19;const b0=S.fin.balance;addonWeek();ok(S.fin.balance===b0&&p.addon.c===19,'Ablöse-Bonus zu früh');p.st.g=21;addonWeek();ok(S.fin.balance===b0-15000&&!p.addon,'Ablöse-Bonus wird nicht gezahlt');
  const b1=S.fin.balance;titleBonus();ok(S.fin.balance===b1-30000,'Titelprämie wird nicht gezahlt');
  ACT.player({id:p.id,tab:'vertrag'});chk('Spielerseite');ok(html().includes('Titelprämie'),'Titelprämie nicht auf der Spielerseite')}
+`;
+module.exports+=`
+function ok(c,msg){if(!c){console.log('FEHLER',msg);bad++}}
+function html(){return document.querySelector('#app').innerHTML}
+// Vorstands-Veto: Unbezahlbare Verträge werden blockiert, bezahlbare nicht
+newGame('LSN','Tester');
+{const U=S.teams[S.user];const p=Object.values(S.players).find(x=>x.team&&x.team!==S.user&&S.teams[x.team].tier!==2&&x.team!==acaId()&&ovr(x)>=66&&ovr(x)<74&&!x.loan);
+ while(U.roster.length>=MAXR)toFA(S.players[U.roster.find(i=>!isStarter(S.players[i]))]);
+ S.fin.balance=300000;S.board=60;S.fin.weeks=[];
+ ok(startNego('fa',p.id)===true,'Verhandlung startet nicht');render();ok(html().includes('id="ngproj"'),'Prognose fehlt in der Verhandlung');
+ // Vernünftiges Angebot: kein Veto
+ NG.terms.sal=NG.dem.sal;NG.terms.sb=0;NG.terms.wb=0;NG.terms.tb=0;S.fin.balance=5e6;S.fin.budget.wage+=1e6;S.fin.budget.transfer+=1e6;
+ ok(boardVeto(dealCost().w,dealCost().once,'x')===null,'Vernünftiger Vertrag wird blockiert');
+ // Maximale Prämien bei knappem Konto: Veto, nichts gebucht, Spieler nicht verpflichtet
+ S.fin.balance=250000;S.fin.weeks=[];NG.terms.wb=ngRange('wb')[1];NG.terms.tb=ngRange('tb')[1];NG.terms.sb=ngRange('sb')[1];NG.terms.sal=ngRange('sal')[1];
+ const b0=S.fin.balance,n0=NG.log.length;S.fin.budget.wage+=1e6;S.fin.budget.transfer+=1e6;ACT.ngsign();
+ ok(!NG.done&&p.team!==S.user&&S.fin.balance===b0,'Unbezahlbarer Vertrag geht durch');ok(NG.log.length>n0&&NG.log[NG.log.length-1][1].includes('Veto'),'Kein Veto im Gespräch');
+ const pj=boardProj(dealCost().w,dealCost().once);ok(pj<boardLimit(),'Prognose liegt nicht unter der Schwelle');
+ // Prämienbereiche sind begrenzt
+ ok(ngRange('wb')[1]<=Math.max(3000,r100(NG.dem.sal*.8))&&ngRange('tb')[1]<=Math.max(15000,r1000(NG.dem.sal*10)),'Prämienbereiche zu weit');
+ // Staff-Einstellung bei leerem Konto: Veto
+ NG=null;S.fin.balance=60000;S.fin.weeks=[];const st=genStaff('hc',16);st.fee=1000;st.wage=60000;S.staffPool=[st];const sc0=(S.staffs||[]).length;ACT.sthire({id:st.id});ok((S.staffs||[]).length===sc0&&S.inbox[0].title==='Vorstand: Veto','Teure Einstellung wird nicht blockiert');
+ // Projektion zählt offene Raten
+ S.fin.debts=[];const q0=boardProj(0,0);S.fin.debts=[{amt:100000,to:'x',season:S.season+1}];ok(Math.abs(q0-boardProj(0,0)-100000)<1,'Raten fließen nicht in die Prognose ein')}
+`;
+module.exports+=`
+function ok(c,msg){if(!c){console.log('FEHLER',msg);bad++}}
+// Vereinswechsel nach Asien: Sponsoren stehen, Finanzen tragen sich auch mit hoher Lohnsumme
+newGame('LYL','Tester');playSeason();
+{ok(REGREV.LCK>1&&REGREV.LEC===1,'Marktgröße der Regionen fehlt');
+ const T=Object.values(S.teams).filter(t=>t.tier!==2&&!t.academy&&t.reg==='LCK').sort((a,b)=>b.rep-a.rep)[3];
+ ok(switchTeam(T.id)===null,'Wechsel nach Korea klappt nicht');
+ const open=SLOTS.filter(([k])=>slotOpen(k)).map(x=>x[0]);ok(open.length>=2&&open.every(k=>S.fin.slots[k]),'Nach dem Wechsel fehlen Sponsoren');
+ ok(S.fin.slots.main&&brandOrg(S.fin.slots.main.name)!=='CBLOL','Sponsor aus falschem Markt');
+ ACT.next();let g=0,minB=S.fin.balance;while(S.phase!=='offseason'&&g++<260){playWeek();minB=Math.min(minB,S.fin.balance)}
+ ok(minB>0,'Passiver Verein in der LCK geht pleite: '+Math.round(minB/1000)+'k')}
 `;

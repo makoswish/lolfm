@@ -56,6 +56,20 @@ function startNego(type,pid){
 function hurdleNote(){const hg=NG&&NG.hg;return hg>0?` Ehrlich gesagt ist dein Verein ihm ${hg} Ruf-Punkte zu klein. Er spricht trotzdem mit euch, aber nur mit ${Math.round((hurdleCut(hg)-1)*100)}% Aufschlag aufs Gehalt, und die Geduld ist kürzer.`:''}
 function demandText(){const d=NG.dem,p=S.players[NG.pid];return `Berater von ${p.name}: Wir erwarten etwa ${eurK(d.sal)} pro Woche über ${d.yrs} ${d.yrs===1?'Saison':'Saisons'} und eine Rolle als ${PROM[d.role][0]}.${hurdleNote()}`}
 function ngNeed(){const p=S.players[NG.pid];if(NG.stage==='fee')return{t:feeNow(),w:0};const t=NG.terms,ex=p.team===acaId()?0:t.sal-(NG.type==='renew'?p.salary:0);return{t:feeNow()+t.sb,w:Math.max(0,ex)}}
+/* Vorstands-Veto: Jede neue Belastung wird bis Saisonende hochgerechnet, offene Raten zählen mit. Fällt die Prognose unter die
+   Schwelle (bei hohem Vertrauen etwas lockerer), blockiert der Vorstand. Erwartete Prämien gehen als Wochenkosten ein. */
+function pexp(t){return(t.wb||0)*.55+(t.tb||0)*.2/26}
+function baseNet(){const f=S.fin,U=S.teams[S.user],w=f.weeks.slice(-8);if(w.length>=3)return w.reduce((a,b)=>a+b,0)/w.length;
+  const sp=sponsorBase()||SLOTS.slice(0,2).reduce((a,[k])=>a+(f.offers[k]?f.offers[k][0].base:0),0);
+  return sp+f.fans*.03*regRev()+(LSHARE[U.reg]||4000)+(aca()?2000:0)-weeklyCosts()}
+function boardProj(extraW,once){const wk=Math.max(4,52-S.step);return S.fin.balance-once+(baseNet()-extraW)*wk-finDebts()}
+function boardLimit(){return S.board>=70?-100000:S.board>=50?-30000:0}
+function boardVeto(extraW,once,what){const p=boardProj(extraW,once);if(p>=boardLimit())return null;
+  return `Der Vorstand legt ein Veto ein: ${what} würde das Konto bis Saisonende auf ${eurK(p)} drücken, offene Raten eingerechnet. Senke Gehalt, Prämien oder Handgeld, oder verschaffe dir erst mehr Einnahmen.`}
+function dealCost(){const p=S.players[NG.pid],t=NG.terms,renew=NG.type==='renew';
+  return{w:(NG.stage==='contract'?t.sal-(renew?p.salary:0)+pexp(t):0),once:(NG.type==='buy'?NG.fee.amt:0)+(NG.stage==='contract'?t.sb+(renew?0:agFee(p,t)):0)}}
+function vorstandBox(){const c=dealCost(),p=boardProj(c.w,c.once),lim=boardLimit(),cls=p>=lim?(p>150000?'good':'warn'):'bad';
+  return `<div class="stat"><span class="muted">Vorstand: Prognose Saisonende</span><span id="ngproj" class="${cls}">${eurK(p)}</span></div>`}
 /* Finanzierung auf Raten: Reicht das Konto für die Lücke im Transferbudget nicht, finanziert der Vorstand den Rest bis zu einem Rahmen.
    Aufschlag FINRATE, fällig zum nächsten Saisonstart und dann abgezogen vom Konto und vom Transferbudget. Ohne Vertrauen oder bei Minus gibt es nichts. */
 const FINRATE=.1;
@@ -79,6 +93,7 @@ function fitBox(){const n=ngNeed(),pl=fitPlan(n.t,n.w),b=S.fin.budget;
 function feeVal(){const f=NG.fee;return f.amt*(f.pay==='inst'?.95:1)*(1+f.sell/100*.3)+(f.addon||0)*.5}
 function feeNow(){return NG.fee?(NG.fee.pay==='inst'?Math.round(NG.fee.amt/2):NG.fee.amt):0}
 function sendFee(){const p=S.players[NG.pid],c=NG.club,v=feeVal(),T=S.teams[p.team];
+  {const v=boardVeto(0,NG.fee.amt,'Diese Ablöse');if(v){NG.log.push(['sys',v]);return}}
   autoFit();
   if(feeNow()>S.fin.budget.transfer){const pl=fitPlan(feeNow(),0);NG.log.push(['sys',pl.finOk?`Das Transferbudget reicht nicht (${eurK(S.fin.budget.transfer)} verfügbar). Du kannst die Lücke auf Raten finanzieren, siehe unten.`:`Das Transferbudget reicht nicht (${eurK(S.fin.budget.transfer)} verfügbar), und für eine Finanzierung ist kein Rahmen frei (${eurK(finRoom())}).`]);return}
   NG.log.push(['me',`Angebot: ${eurK(NG.fee.amt)}${NG.fee.pay==='inst'?' in zwei Raten':' sofort'}${NG.fee.sell?`, ${NG.fee.sell}% Weiterverkaufsbeteiligung`:''}.`]);
@@ -86,13 +101,14 @@ function sendFee(){const p=S.players[NG.pid],c=NG.club,v=feeVal(),T=S.teams[p.te
   c.pat--;
   if(c.pat<=0||v<c.min*.65){NG.dead=true;p.tried=wkKey();NG.log.push(['club',`${T.name}: Das ist nicht ernst gemeint. Wir beenden die Gespräche.`]);return}
   const cnt=r1000(c.min*(1+c.pat*.05));NG.log.push(['club',`${T.name}: Zu wenig. Unter ${eurK(cnt)} geben wir ihn nicht ab.${c.pat===1?' Das ist unser letztes Wort.':''}`])}
-function wkVal(t){return t.sal+t.wb*.35+t.sb/(t.yrs*26)+(t.tb||0)*.1/26}
+function wkVal(t){return t.sal+t.wb*.35+t.sb/(t.yrs*26)+(t.tb||0)*.2/26}
 function cScore(){const p=S.players[NG.pid],t=NG.terms,d=NG.dem;let pen=-Math.abs(t.yrs-d.yrs)*.04-(NG.hg||0)*.006;
   const pv=PROM[t.role][1],ev=PROM[d.role][1];if(pv<ev)pen-=.12*(ev-pv);else if(pv>ev)pen+=.04;
   if(t.cl)pen+=p.h.amb>=13?.06:.02;else if(p.h.amb>=15)pen-=.03;
   return{sc:wkVal(t)/d.sal+pen,pen}}
 function sendContract(){const p=S.players[NG.pid],t=NG.terms,d=NG.dem;
   const extra=t.sal-(NG.type==='renew'?p.salary:0);
+  {const c=dealCost(),v=boardVeto(c.w,c.once,'Dieser Vertrag');if(v){NG.log.push(['sys',v]);return}}
   autoFit();
   if(p.team!==acaId()&&extra>wageFree()){NG.log.push(['sys',`Das Gehaltsbudget reicht nicht. Frei sind ${eurK(Math.max(0,wageFree()))} pro Woche.`]);return}
   if(t.sb+feeNow()>S.fin.budget.transfer){const pl=fitPlan(t.sb+feeNow(),0);NG.log.push(['sys',pl.finOk?'Ablöse und Handgeld übersteigen dein Transferbudget. Du kannst die Lücke auf Raten finanzieren, siehe unten.':`Ablöse und Handgeld übersteigen dein Transferbudget, und für eine Finanzierung ist kein Rahmen frei (${eurK(finRoom())}).`]);return}
@@ -105,7 +121,7 @@ function sendContract(){const p=S.players[NG.pid],t=NG.terms,d=NG.dem;
   if(pv<ev)m.push(`Er will als ${PROM[d.role][0]} eingeplant werden.`);
   if(NG.hg>0)m.push('Dein Verein ist ihm eigentlich zu klein, da muss mehr kommen.');
   if(t.yrs!==d.yrs)m.push(`Er bevorzugt ${d.yrs} ${d.yrs===1?'Saison':'Saisons'}.`);
-  const needSal=r100(d.sal*(need-pen)-(t.wb*.35+t.sb/(t.yrs*26)+(t.tb||0)*.1/26));
+  const needSal=r100(d.sal*(need-pen)-(t.wb*.35+t.sb/(t.yrs*26)+(t.tb||0)*.2/26));
   if(needSal>t.sal)m.push(`Unter ${eurK(needSal)} pro Woche unterschreibt er so nicht.`);
   if(!t.cl&&p.h.amb>=15)m.push('Eine Ausstiegsklausel wäre ihm wichtig.');
   NG.log.push(['agent',`Berater: ${insult?'Das Angebot ist weit weg von unseren Vorstellungen. ':''}${m.join(' ')||'Da fehlt noch ein Stück.'}${NG.pat===1?' Wir geben euch noch eine Chance.':''}`])}
@@ -134,8 +150,8 @@ function ngRange(k){const d=NG.dem?NG.dem.sal:0,a=NG.club?NG.club.ask:0;
   if(k==='sell')return[0,30,1];if(k==='addon')return[0,Math.max(10000,r1000(a*.35)),1000];
   if(k==='sal')return[Math.max(800,r100(d*.6)),Math.max(1600,r100(d*1.7)),100];
   if(k==='sb')return[0,Math.max(30000,r1000(d*45)),1000];
-  if(k==='wb')return[0,Math.max(4000,r100(d*3)),100];
-  return[0,Math.max(20000,r1000(d*25)),1000]}
+  if(k==='wb')return[0,Math.max(3000,r100(d*.8)),100];
+  return[0,Math.max(15000,r1000(d*10)),1000]}
 function ngGet(k){return k==='fee'?NG.fee.amt:k==='sell'?NG.fee.sell:k==='addon'?(NG.fee.addon||0):(NG.terms[k]||0)}
 function ngPut(k,v){v=+v;if(k==='fee')NG.fee.amt=v;else if(k==='sell')NG.fee.sell=v;else if(k==='addon')NG.fee.addon=v;else NG.terms[k]=v}
 function ngFmt(k,v){return k==='sell'?v+'%':v?eur(v):'Keine'}
@@ -146,14 +162,15 @@ function slider(k,label,hint){const[mn,mx,st]=ngRange(k),v=clamp(ngGet(k),mn,mx)
 function ngLive(){const el=id=>document.querySelector('#'+id);
   if(NG.stage==='contract'){const{sc}=cScore(),cv=clamp(sc*100,0,130),c=cv>=100?'var(--good)':cv>=90?'var(--warn)':'var(--bad)',m=el('ngmeter'),l=el('ngverd'),o=el('ngonce'),w=el('ngwk');
     if(m){m.style.width=(cv/1.3)+'%';m.style.background=c}if(l)l.innerHTML=cv>=100?'<span class="good">sollte reichen</span>':cv>=90?'<span class="warn">knapp</span>':'<span class="bad">zu wenig</span>';
-    if(o)o.textContent=eur(feeNow()+NG.terms.sb);if(w)w.textContent=eur(Math.round(wkVal(NG.terms)))+' / Wo. (Forderung '+eur(NG.dem.sal)+')'}
-  else{const n=el('ngnow'),v=el('ngfv');if(n)n.textContent=eur(feeNow());if(v)v.textContent=eur(Math.round(feeVal()))+' ('+Math.round(feeVal()/NG.club.ask*100)+'% der Vorstellung)'}}
+    if(o)o.textContent=eur(feeNow()+NG.terms.sb);{const c=dealCost(),pr=boardProj(c.w,c.once),e=el('ngproj');if(e){e.textContent=eurK(pr);e.className=pr>=boardLimit()?(pr>150000?'good':'warn'):'bad'}}if(w)w.textContent=eur(Math.round(wkVal(NG.terms)))+' / Wo. (Forderung '+eur(NG.dem.sal)+')'}
+  else{{const c=dealCost(),pr=boardProj(c.w,c.once),e=el('ngproj');if(e){e.textContent=eurK(pr);e.className=pr>=boardLimit()?(pr>150000?'good':'warn'):'bad'}}const n=el('ngnow'),v=el('ngfv');if(n)n.textContent=eur(feeNow());if(v)v.textContent=eur(Math.round(feeVal()))+' ('+Math.round(feeVal()/NG.club.ask*100)+'% der Vorstellung)'}}
 /* Alternativen des Beraters: gleicher Wert, andere Zusammensetzung */
 const ALTS=['Fixgehalt','Mehr Handgeld','Mehr Prämien'];
 function ngAlt(){const d=NG.dem,t=NG.terms,k=((NG.alt==null?-1:NG.alt)+1)%3;NG.alt=k;t.yrs=d.yrs;t.role=d.role;
   if(k===0){t.sal=d.sal;t.sb=0;t.wb=0;t.tb=0}
   else if(k===1){t.sal=r100(d.sal*.88);t.sb=r1000(d.sal*.12*d.yrs*26);t.wb=0;t.tb=0}
-  else{t.sal=r100(d.sal*.82);t.sb=0;t.wb=r100(d.sal*.10/.35);t.tb=r1000(d.sal*.08*26/.1)}
+  else{t.sal=r100(d.sal*.82);t.sb=0;t.wb=r100(d.sal*.10/.35);t.tb=r1000(d.sal*.08*26/.2)}
+  {const sc=cScore().sc;if(sc<1.02)t.sal+=r100((1.02-sc)*d.sal)+100}
   NG.log.push(['agent',`Berater: Alternative "${ALTS[k]}": ${eurK(t.sal)} pro Woche${t.sb?`, ${eurK(t.sb)} Handgeld`:''}${t.wb?`, ${eur(t.wb)} Siegprämie`:''}${t.tb?`, ${eur(t.tb)} Titelprämie`:''}. Für ihn gleich viel wert wie die Forderung.`])}
 function stepper(act,vals){return `<div class="stepper">${vals.map(v=>`<button class="btn ghost sm" data-a="${act}" data-v="${v}">${v>0?'+':'−'}${eurK(Math.abs(v)).replace(' €','')}</button>`).join('')}</div>`}
 function negoView(){
@@ -170,6 +187,7 @@ function negoView(){
      <div class="stat" style="margin-top:14px"><span class="muted">Marktwert</span><span>${eur(valueFor(p))}</span></div>
      <div class="stat"><span class="muted">Sofort fällig</span><span id="ngnow">${eur(feeNow())}</span></div>
      <div class="stat"><span class="muted">Wert für den Verein</span><span id="ngfv">${eur(Math.round(feeVal()))} (${Math.round(feeVal()/NG.club.ask*100)}% der Vorstellung)</span></div>
+     ${vorstandBox()}
      ${fitBox()}
      <div class="acts" style="margin-top:14px"><button class="btn" data-a="ngsend" ${over?'disabled':''}>Angebot abschicken</button></div></section>`}
   else{const{sc}=cScore(),cv=clamp(sc*100,0,130),val=valueFor(p);
@@ -188,6 +206,7 @@ function negoView(){
      <div class="bar" style="height:8px"><i id="ngmeter" style="width:${cv/1.3}%;background:${cv>=100?'var(--good)':cv>=90?'var(--warn)':'var(--bad)'}"></i></div>
      <div class="stat" style="margin-top:12px"><span class="muted">Einmalig (Ablöse + Handgeld)</span><span id="ngonce">${eur(feeNow()+t.sb)}</span></div>
      <div class="stat"><span class="muted">Wert für den Spieler</span><span id="ngwk">${eur(Math.round(wkVal(t)))} / Wo. (Forderung ${eur(NG.dem.sal)})</span></div>
+     ${vorstandBox()}
      ${fitBox()}
      <div class="acts" style="margin-top:14px"><button class="btn" data-a="ngsign" ${over?'disabled':''}>Angebot machen</button><button class="btn ghost" data-a="ngdem">Forderung übernehmen</button></div></section>`}
   return `<div class="pagehead"><div><h1>Verhandlung</h1><p>${p.name} · ${p.rn||''} · ${RN[p.role]} · ${p.age} J. · OVR ${seeExact(p)||S.staff.analyst>=3?o:'~'+Math.round(o/5)*5}${T?' · '+T.name:' · vereinslos'}</p></div><button class="btn ghost" data-a="ngleave">${over?'Zurück zum Spieler':'Gespräche abbrechen'}</button></div>

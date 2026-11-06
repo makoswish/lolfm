@@ -144,8 +144,8 @@ function weekTick(){
   for(const[k,n]of SLOTS.slice(0,2))if(!f.slots[k]&&f.offers[k]){f.slots[k]=f.offers[k][0];f.slots[k].sat=60;mail('Sponsor unterschrieben',`Der Vorstand hat ${f.slots[k].name} als ${n} unter Vertrag genommen (Festbetrag ${eurK(f.slots[k].base)} pro Woche bis Saisonende).`)}
   const L={};
   L.Sponsoren=sponsorBase();sponsorWeek();
-  L.Streaming=Math.round(f.fans*.018);
-  L.Merchandise=Math.round(f.fans*.012*MERCH[f.merch].m);
+  L.Streaming=Math.round(f.fans*.018*regRev());
+  L.Merchandise=Math.round(f.fans*.012*MERCH[f.merch].m*regRev());
   L['Liga-Ausschüttung']=LSHARE[U.reg]||4000;
   if(S.teams[S.user+'A'])L['T2-Förderung']=2000;
   L.Spielerstreams=f.pstream?Math.round(U.roster.length*500*U.rep/70):0;

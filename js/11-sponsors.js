@@ -16,7 +16,7 @@ function mkOffer(type,b,nm){const o={name:nm(),type,base:r100(b)};
   else if(type==='fan'){o.base=r100(b*.5);o.fanRate=+(b*.5/Math.max(20000,S.fin.fans)).toFixed(4)}
   else if(type==='content'){o.base=r100(b*1.3)}
   return o}
-function genSlotOffers(k,used){const f=S.fin,sl=SLOTS.find(x=>x[0]===k),B=(sponsorFor(S.teams[S.user].rep)+6000)/1.5,b=B*sl[2]*(.9+R()*.2);used=used||new Set(Object.values(f.slots).filter(Boolean).map(o=>o.name));
+function genSlotOffers(k,used){const f=S.fin,sl=SLOTS.find(x=>x[0]===k),B=(sponsorFor(S.teams[S.user].rep)+6000)/1.5*regRev(),b=B*sl[2]*(.9+R()*.2);used=used||new Set(Object.values(f.slots).filter(Boolean).map(o=>o.name));
   const reg=S.teams[S.user].reg,nm=()=>{let n,g=0;do n=pick(R()<.7&&BRANDR[reg]?BRANDR[reg]:BRANDS);while(used.has(n)&&g++<80);if(used.has(n))do n=pick(BRANDS.concat(BRANDR[reg]||[]));while(used.has(n)&&g++<160);used.add(n);return n};
   const pool=shuffle(sl[5].filter(t=>t!=='fix').slice()).slice(0,k==='main'?3:2),types=['fix',...pool];
   const list=types.map(t=>mkOffer(t,b,nm));

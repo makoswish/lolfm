@@ -106,7 +106,7 @@ function switchTeam(tid){const T=S.teams[tid];if(!T||T.tier===2||T.academy||tid=
   const old=S.teams[S.user],oldA=aca();loansReturn();
   if(oldA){for(const id of [...oldA.roster])toFA(S.players[id]);delete S.teams[oldA.id]}
   old.tac=null;S.user=tid;S.jobless=false;S.jobs=null;
-  S.fin=newFin((T.rep-40)*20000,T.rep*2000);S.fin.lshare=1;S.fin.ibase=null;infraInit();genOffers();setBudgets();
+  S.fin=newFin((T.rep-40)*20000,T.rep*2000);S.fin.lshare=1;S.fin.ibase=null;infraInit();genOffers();for(const[k]of SLOTS)if(slotOpen(k)&&S.fin.offers[k]&&S.fin.offers[k][0]){S.fin.slots[k]=S.fin.offers[k][0];S.fin.slots[k].sat=60}setBudgets();
   S.staffs=null;S.staff={coach:1,analyst:1};initStaff();newStaffPool();syncStaff();S.scouts=null;initScouting();S.trials=[];S.ment={};
   S.tacs=['A','B','C'].map(n=>defTac(T,n));S.tacs[1].style='SCL';S.tacs[2].style='AGG';S.tacA=0;applyTac();initKnow();
   S.board=mgrBoard();S.capt=null;S.scrim=null;VIEWREG=T.reg;KTAB='depth';S.goals=null;

@@ -128,7 +128,7 @@ function clubView(){
   }else if(CLUBTAB==='spons'){
     body=sponsorTab();
   }else if(CLUBTAB==='inc'){
-    const merchW=Math.round(f.fans*.012),ps=Math.round(U.roster.length*500*U.rep/70);
+    const merchW=Math.round(f.fans*.012*regRev()),ps=Math.round(U.roster.length*500*U.rep/70);
     body=`<section class="panel s6"><div class="lab">Merchandise-Preise</div><p class="muted" style="font-size:14px;margin:0 0 10px">Teurere Trikots bringen mehr pro Fan, kosten aber langsam Fans. Günstige Preise machen das Team bekannter.</p>
       <div class="seg">${Object.entries(MERCH).map(([k,m])=>`<button class="${f.merch===k?'on':''}" data-a="merch" data-v="${k}">${m.n}</button>`).join('')}</div>
       <div class="stat" style="margin-top:10px"><span class="muted">Merch pro Woche</span><span>${eur(merchW*MERCH[f.merch].m)}</span></div>

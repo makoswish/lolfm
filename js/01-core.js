@@ -98,6 +98,9 @@ const INFRA={tc:{n:'Trainingszentrum',d:'Mehr Fortschritt im Wochentraining. Üb
 const CONTENT=[[0,0,'Keins'],[2500,.25,'Klein'],[6000,.6,'Mittel'],[12000,1.1,'Groß']];
 const MERCH={low:{n:'Günstig',m:.7,f:.35},normal:{n:'Normal',m:1,f:0},high:{n:'Premium',m:1.4,f:-.3}};
 const LOANS=[250000,500000,1000000];
+/* Marktgröße: In Asien sind Gehälter höher, dafür bringen Sponsoren, Streams und Merch mehr. */
+const REGREV={LCK:1.4,LPL:1.35,LEC:1,LCS:1,LCP:1,CBLOL:1};
+function regRev(){return REGREV[S.teams[S.user].reg]||1}
 const LSHARE={LCK:6000,LPL:6000,LEC:4500,LCS:4500,LCP:3500,CBLOL:3000};
 const r100=x=>Math.round(x/100)*100,r1000=x=>Math.round(x/1000)*1000;
 let SAVEKEY='riftmgr_v2',SLOT=1,NEWSLOT=null;
@@ -210,7 +213,7 @@ function sponsorFor(rep){return Math.round((rep-28)**2*7.5/100)*100}
 function newFin(bal,fans){return{weeks:[],balance:bal,fans,slots:Object.fromEntries(SLOTS.map(x=>[x[0],null])),offers:{},merch:'normal',content:0,infra:{tc:0,gh:0,ac:0},loan:null,pstream:false,season:{inc:{},exp:{}},last:null,hist:[bal]}}
 function wageBill(){const A=S.teams[S.user+'A'];return S.teams[S.user].roster.reduce((s,id)=>s+wageOf(S.players[id]),0)+(A?A.roster.reduce((s,id)=>s+S.players[id].salary,0):0)}
 function proWages(){return S.teams[S.user].roster.reduce((s,id)=>s+S.players[id].salary,0)}
-function sustainW(){const f=S.fin,U=S.teams[S.user];const inc=(sponsorBase()||SLOTS.slice(0,2).reduce((a,[k])=>a+(f.offers[k]?f.offers[k][0].base:0),0))+f.fans*.03+(LSHARE[U.reg]||4000)+(S.teams[S.user+'A']?2000:0);const oth=staffWages()+CONTENT[f.content][0]+upkeep()+(S.scouts||[]).reduce((a,x)=>a+x.wage,0);return Math.max(0,(inc-oth)*.95)}
+function sustainW(){const f=S.fin,U=S.teams[S.user];const inc=(sponsorBase()||SLOTS.slice(0,2).reduce((a,[k])=>a+(f.offers[k]?f.offers[k][0].base:0),0))+f.fans*.03*regRev()+(LSHARE[U.reg]||4000)+(S.teams[S.user+'A']?2000:0);const oth=staffWages()+CONTENT[f.content][0]+upkeep()+(S.scouts||[]).reduce((a,x)=>a+x.wage,0);return Math.max(0,(inc-oth)*.95)}
 function wageFree(){return S.fin.budget.wage-wageBill()}
 function setBudgets(){const f=S.fin,U=S.teams[S.user],bill=wageBill(),pos=f.balance>0;
   f.budget={transfer:pos?r1000(Math.min(f.balance*.45,f.balance*.2+U.rep*2500)):0,wage:r100(Math.max(bill+1500,Math.min(Math.max(bill*1.1+2500,U.rep*300),sustainW()))),salePct:clamp(50+Math.round((S.board-50)/2),35,80),asked:false,frozen:!pos}}
