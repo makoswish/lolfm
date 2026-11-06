@@ -94,6 +94,8 @@ const ACT={
     MODAL=null;const e=switchTeam(d.v);if(e)mail('Wechsel nicht möglich',e);save();window.scrollTo(0,0);render()},
   resign(d){if(d.v==='off'){S.resign=false;save();render();return}if(d.ok!=='1'){return askConfirm('resign',{},S.phase==='offseason'?'Jetzt kündigen?':'Zum Saisonende kündigen?',S.phase==='offseason'?'Du verlässt '+S.teams[S.user].name+' sofort und wählst einen neuen Verein. Der Manager-Ruf sinkt um 3.':'Du verlässt '+S.teams[S.user].name+' zum Saisonende und wählst dann einen neuen Verein. Der Manager-Ruf sinkt um 3.',S.phase==='offseason'?'Jetzt kündigen':'Kündigen')}MODAL=null;const e=resignAsk();if(e)mail('Kündigung nicht möglich',e);save();render()},
   uisc(d){setUiScale(d.v);render()},
+  music(){musToggle();render()},
+  musvol(d){musSetVol(+d.v);render()},
   reha(d){const e=startReha(d.id);if(e)pmsg(d.id,e,false);save();render()},
   drop(){merchDrop();save();render()},
   revcopy(){const t=reviewText();try{navigator.clipboard.writeText(t)}catch(e){}mail('Saisonrückblick kopiert',t);render()},

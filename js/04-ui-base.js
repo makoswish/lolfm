@@ -41,7 +41,7 @@ function topBar(){
   return `<header class="top"><div class="who">${crest(U)}<div style="min-width:0"><b>${U.name}</b><div class="meta">${lbl}</div></div></div>
   <button class="qs" data-a="qs" aria-label="Suchen" title="Suchen (Strg+K oder /)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><span>Suchen</span><kbd>Strg K</kbd></button>
   ${opp?`<div class="nextm hide-s"><span class="muted">Nächstes Spiel</span>${crest(opp,'sm')}<b>${opp.id}</b><span class="dim">Bo${pend.bo}</span></div>`:''}
-  <div class="money ${S.fin.balance<0?'bad':''}" title="Kontostand"><span class="dim">Konto</span> ${eurK(S.fin.balance)}</div>${btn}<div class="tprog"><i style="width:${Math.min(100,S.step/52*100)}%"></i></div></header>`;
+  <div class="money ${S.fin.balance<0?'bad':''}" title="Kontostand"><span class="dim">Konto</span> ${eurK(S.fin.balance)}</div>${musBtn()}${btn}<div class="tprog"><i style="width:${Math.min(100,S.step/52*100)}%"></i></div></header>`;
 }
 
 /* ===== Startbildschirm ===== */

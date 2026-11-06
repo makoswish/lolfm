@@ -2,7 +2,7 @@
 // mit einem minimalen DOM- und localStorage-Ersatz. Tests laufen im selben Kontext.
 const fs=require('fs'),path=require('path'),vm=require('vm');
 const ROOT=path.join(__dirname,'..');
-function scriptOrder(){const h=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');return [...h.matchAll(/<script src="([^"]+)"><\/script>/g)].map(m=>m[1])}
+function scriptOrder(){const h=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');return [...h.matchAll(/<script src="([^"]+)"><\/script>/g)].map(m=>m[1].split('?')[0])}
 const STUB=`const store={};globalThis.localStorage={getItem:k=>store[k]??null,setItem:(k,v)=>store[k]=v,removeItem:k=>delete store[k]};
 const appEl={innerHTML:''};globalThis.window={scrollTo(){}};
 globalThis.document={querySelector:s=>s==='#app'?appEl:(s==='#mgr'?{value:'Tester'}:null),addEventListener(){},documentElement:{style:{setProperty(){},removeProperty(){}}}};
