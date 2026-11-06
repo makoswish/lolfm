@@ -9,6 +9,7 @@ function metaNote(){if(!S.mst)return'';return `<div class="stat"><span class="mu
 function hotfix(){if(!S.meta)return;const out=shuffle(S.meta.slice()).slice(0,3),add=shuffle(CH.map((c,i)=>i).filter(c=>!S.meta.includes(c))).slice(0,3);
   S.meta=S.meta.filter(c=>!out.includes(c)).concat(add);const old=S.mst&&S.mst.style;if(R()<.5||!S.mst)metaShift();else S.mst.role=pick(ROLES);
   mail(`Hotfix ${S.year-2000}.${S.patch||1}`,`Der Entwickler ändert das Meta mitten im Split. Neu im Meta: ${add.map(c=>CH[c][0]).join(', ')}. Raus: ${out.map(c=>CH[c][0]).join(', ')}. Stil-Meta: ${STYLES[S.mst.style].n}${old&&old!==S.mst.style?' (vorher '+STYLES[old].n+')':''}, Rollen-Meta: ${RN[S.mst.role]}.`);
+  metaLog(`Hotfix: ${STYLES[S.mst.style].n} und ${RN[S.mst.role]} im Fokus, neu: ${add.map(c=>CH[c][0]).join(', ')}`);
   news(`Hotfix verändert das Meta: ${STYLES[S.mst.style].n} und ${RN[S.mst.role]} im Fokus.`,'liga')}
 
 /* ----- Verletzungen und Reha ----- */
@@ -131,7 +132,7 @@ function reviewText(){const d=reviewData(),U=d.U;const L=[`Saisonrückblick ${S.
   if(S.mst)L.push(`Meta: ${STYLES[S.mst.style].n}, ${RN[S.mst.role]}`);
   return L.join('\n')}
 function reviewView(){const d=reviewData(),U=d.U;
-  return `<div class="pagehead"><div><h1>Saisonrückblick ${S.year}</h1><p>${U.name} · ${S.phase==='offseason'?'Saison abgeschlossen':'Saison läuft'}</p></div><div class="acts"><button class="btn ghost" data-a="revcopy">Als Text kopieren</button></div></div>
+  return `<div class="pagehead"><div><h1>Saisonrückblick ${S.year}</h1><p>${U.name} · ${S.phase==='offseason'?'Saison abgeschlossen':'Saison läuft'}</p></div><div class="acts"><button class="btn ghost" data-a="revcopy">Als Text kopieren</button></div></div>${mgrTabs()}
   <div class="grid"><section class="panel s6"><div class="lab">Bilanz</div>
    <div class="stat"><span class="muted">Ligaplatz</span><span>${d.s?'Platz '+d.s.place+' (Ziel '+d.s.exp+')':'noch offen'}</span></div>
    <div class="stat"><span class="muted">Titel</span><span>${d.titles.length?d.titles.map(t=>t.name).join(', '):'keiner'}</span></div>

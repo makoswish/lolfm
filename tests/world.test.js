@@ -30,7 +30,7 @@ ACT.nav2({v:'tactic'});ok(html().includes('Stil-Meta'),'Meta nicht in der Taktik
 {S.mrep=30;const n0=signNeed(Object.values(S.players).find(x=>x.team&&x.team!==S.user));S.mrep=90;const n1=signNeed(Object.values(S.players).find(x=>x.team&&x.team!==S.user));ok(n1<n0,'Manager-Ruf senkt die Ruf-Hürde nicht');
  S.mrep=30;S.summary={place:1,exp:5,splits:[],intl:[]};S.trophies.unshift({year:S.year,name:'Test'});mgrSeason();ok(S.mrep>30&&S.mgr.length===1,'Gute Saison hebt den Manager-Ruf nicht');
  S.trophies.shift();S.summary=null;ok(mgrTier().includes('Lizenz'),'Lizenz fehlt');ok(mgrBoard()>=45&&mgrBoard()<=75,'Start-Vertrauen außerhalb des Rahmens');
- ACT.ctab({v:'staff'});ACT.nav2({v:'club',k:'CLUBTAB',t:'staff'});chk('Staff');ok(html().includes('Manager-Ruf'),'Manager-Ruf-Karte fehlt')}
+ ACT.nav2({v:'mgr',k:'MTAB',t:'board'});chk('Vorstand');ok(html().includes('Manager-Ruf'),'Manager-Ruf-Karte fehlt')}
 
 // Fans
 {fgInit();ACT.nav2({v:'club',k:'CLUBTAB',t:'fans'});chk('Fans');ok(html().includes('Fan-Gruppen')&&html().includes('Merch-Drop'),'Fan-Tab unvollständig');
@@ -135,4 +135,39 @@ newGame('LYL','Tester');playSeason();
  ok(S.fin.slots.main&&brandOrg(S.fin.slots.main.name)!=='CBLOL','Sponsor aus falschem Markt');
  ACT.next();let g=0,minB=S.fin.balance;while(S.phase!=='offseason'&&g++<260){playWeek();minB=Math.min(minB,S.fin.balance)}
  ok(minB>0,'Passiver Verein in der LCK geht pleite: '+Math.round(minB/1000)+'k')}
+`;
+module.exports+=`
+function ok(c,msg){if(!c){console.log('FEHLER',msg);bad++}}
+function html(){return document.querySelector('#app').innerHTML}
+// Navigation: sechs Gruppen, jede Seite und jeder Reiter rendert ohne Fehler
+newGame('LYL','Tester');render();
+{ok(NAVG.length===6&&NAVG.map(g=>g[0]).join()==='buero,team,markt,comp,verein,mgr','Gruppen der Navigation');
+ let n=0;for(const g of NAVG)for(const [l,v,tk,tv] of g[3]){ACT.nav2({v,k:tk||'',t:tv||''});chk('Seite '+l);n++;
+  ok(S.view===v&&(!tk||tabVal(tk)===tv),'Seite nicht erreichbar: '+l);ok(html().includes('<h1>')&&!html().includes('Fehler ('),'Seite leer oder mit Fehler: '+l)}
+ ok(n>=30,'Zu wenige Seiten in der Navigation: '+n);
+ ACT.nav2({v:'squad',k:'KTAB',t:'med'});ok(html().includes('Verletzungsrisiko')&&html().includes('Belastung'),'Medizin-Reiter fehlt');
+ ACT.nav2({v:'league',k:'LTAB',t:'meta'});ok(html().includes('Stile im Vergleich')&&html().includes('Patch-Verlauf'),'Meta-Reiter fehlt');
+ ACT.nav2({v:'league',k:'LTAB',t:'lage'});ok(html().includes('Formstärkste')&&html().includes('Meldungen aus der Liga'),'Liga-Lage fehlt');
+ ACT.nav2({v:'mgr',k:'MTAB',t:'board'});ok(html().includes('Philosophie')&&html().includes('Kündigung')&&html().includes('Manager-Ruf'),'Vorstand-Seite unvollständig');
+ ok(html().includes('data-a="nav2" data-v="hof"')&&html().includes('data-a="nav2" data-v="save"'),'Reiterleiste der Manager-Seiten fehlt');
+ ACT.nav2({v:'club',k:'CLUBTAB',t:'staff'});ok(!html().includes('Philosophie'),'Vorstand liegt noch im Trainerstab')
+ ACT.nav2({v:'save'});ok(html().includes('Darstellung')&&html().includes('data-a="uisc"')&&html().includes('Phase neu starten'),'Spielstand ohne Darstellung oder Wartung')}
+// Skalierung
+{ok(uiAuto(400)===1&&uiAuto(1400)===1&&uiAuto(1800)===1.15&&uiAuto(2400)===1.3&&uiAuto(3000)===1.5,'Auto-Skalierung');
+ setUiScale('1.3');ok(uiPref()==='1.3'&&uiScale()===1.3||uiScale()<=1.3,'Skalierung wählbar');setUiScale('auto');ok(uiPref()==='auto','Zurück auf Automatisch');ACT.uisc({v:'1.15'});ok(uiPref()==='1.15','Aktion Skalierung');setUiScale('auto')}
+// Kündigung
+newGame('LYL','Tester');
+{const U=S.teams[S.user],old=S.user,m0=S.mrep;
+ ACT.nav2({v:'mgr',k:'MTAB',t:'board'});ACT.resign({});ok(MODAL&&!S.resign,'Kündigung ohne Rückfrage');ACT.resign({ok:'1'});ok(S.resign===true&&!S.jobless,'Kündigung nicht vorgemerkt');
+ ok(html().includes('Kündigung zurückziehen'),'Rückzieh-Knopf fehlt');ACT.resign({v:'off'});ok(S.resign===false,'Kündigung nicht zurückgezogen');
+ ACT.resign({ok:'1'});ok(S.resign===true,'Erneut vorgemerkt');
+ playSeason();chk('Saison mit vorgemerkter Kündigung');ok(S.phase==='offseason'&&S.jobless&&S.jobs&&S.jobs.resigned&&S.jobs.list.length>=4,'Kündigung greift nicht zum Saisonende');ok(S.resign===false,'Vormerkung bleibt');
+ ok(S.mrep===clamp(S.mgr[0].v-3,0,100),'Manager-Ruf sinkt nicht um 3');
+ ok(new Set(S.jobs.list.map(id=>S.teams[id].reg)).size>=2,'Angebote nur aus einer Region');ok(S.jobs.list.every(id=>id!==old&&S.teams[id].tier!==2),'Eigener Verein oder T2 im Angebot');
+ ACT.next();ok(S.view==='jobs'&&html().includes('Ohne Verein'),'Jobseite fehlt');
+ ACT.jobtake({v:S.jobs.list[0]});ACT.jobtake({v:S.jobs.list[0],ok:'1'});chk('Neuer Verein');ok(S.user!==old&&!S.jobless&&S.resign===false,'Wechsel nach Kündigung klappt nicht');
+ ACT.next();ok(S.phase==='season','Neue Saison startet nicht')}
+// In der Saisonpause wirkt die Kündigung sofort
+newGame('LSN','Tester');playSeason();
+{ACT.nav2({v:'mgr',k:'MTAB',t:'board'});ok(html().includes('Jetzt kündigen'),'Sofort-Knopf in der Pause fehlt');ACT.resign({ok:'1'});ok(S.jobless&&S.jobs.resigned&&S.view==='jobs','Sofortige Kündigung greift nicht');chk('Sofort gekündigt')}
 `;

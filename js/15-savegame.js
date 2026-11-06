@@ -34,7 +34,7 @@ function slotList(){const pick=S?null:(NEWSLOT||freeSlot()||SLOT);
    return `<div class="slot ${cur||pick===n?'on':''}">${info}<span class="slacts">${acts}</span></div>`}).join('')}</div>
   ${!S&&slotInfo(pick)?`<p class="warn" style="font-size:13px;margin:8px 0 0">Ein neues Spiel überschreibt den Spielstand in Platz ${pick}.</p>`:''}`}
 function saveView(){const sz=(()=>{try{return saveKB(localStorage.getItem(SAVEKEY)||'')}catch(e){return '?'}})();
-  return `<div class="pagehead"><div><h1>Spielstand</h1><p>${S.teams[S.user].name} · Saison ${S.year} · ${S.manager}</p></div></div>
+  return `<div class="pagehead"><div><h1>Spielstand</h1><p>${S.teams[S.user].name} · Saison ${S.year} · ${S.manager}</p></div></div>${mgrTabs()}
   <div class="grid"><section class="panel s12"><div class="lab"><span>Speicherplätze</span><span>Platz ${SLOT} ist aktiv</span></div>${slotList()}
    <div class="acts" style="margin-top:12px"><button class="btn ghost sm" data-a="mainmenu" ${LIVE?'disabled':''}>Zum Hauptmenü</button>${LIVE?'<span class="muted" style="font-size:13px">Erst die laufende Serie beenden.</span>':''}</div></section>
   <section class="panel s7"><div class="lab"><span>Exportieren</span><span>im Browser: ${sz}</span></div>
@@ -43,4 +43,4 @@ function saveView(){const sz=(()=>{try{return saveKB(localStorage.getItem(SAVEKE
     <div class="acts" style="margin-top:8px"><button class="btn sm" data-a="expcopy">Kopieren (${saveKB(EXP.txt)})</button><button class="btn ghost sm" data-a="expmake">Neu erzeugen</button></div>
     ${EXP.msg?`<div class="note ${EXP.msg[0]}" style="margin-top:10px">${EXP.msg[1]}</div>`:''}<p class="dim" style="font-size:12px;margin:8px 0 0">Stand: ${EXP.when}</p>`)
    :`<button class="btn sm" data-a="expmake">Export erzeugen</button>`}</section>
-   <section class="panel s5">${importBox()}</section></div>`}
+   <section class="panel s5">${importBox()}</section>${uiPanel()}${maintPanel()}</div>`}

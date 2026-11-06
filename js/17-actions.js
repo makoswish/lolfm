@@ -3,7 +3,7 @@ const ACT={
   startreg(d){STARTREG=d.v;render()},
   pickteam(d){const n=($('#mgr')||{}).value;useSlot(NEWSLOT||freeSlot()||SLOT);NEWSLOT=null;newGame(d.id,(n||'').trim()||'Manager');render()},
   nav2(d){if(liveLocked())return;if(MODAL==='reset')MODAL=null;
-    if(d.k==='KTAB')KTAB=d.t;else if(d.k==='TACTAB')TACTAB=d.t;else if(d.k==='TTAB')TTAB=d.t;else if(d.k==='LTAB')LTAB=d.t;else if(d.k==='CLUBTAB')CLUBTAB=d.t;
+    if(d.k==='KTAB')KTAB=d.t;else if(d.k==='TACTAB')TACTAB=d.t;else if(d.k==='TTAB')TTAB=d.t;else if(d.k==='LTAB')LTAB=d.t;else if(d.k==='CLUBTAB')CLUBTAB=d.t;else if(d.k==='MTAB')MTAB=d.t;
     if(d.v==='save'){EXP=null;IMPMSG=null}
     if(d.v==='transfer'&&d.t==='scout')(S.reports||[]).forEach(r=>r.seen=true);S.view=d.v;window.scrollTo(0,0);render()},
   ibf(d){IBF=d.v;render()},
@@ -92,6 +92,8 @@ const ACT={
   jobs(){S.view='jobs';window.scrollTo(0,0);render()},
   jobtake(d){if(d.ok!=='1'){const T=S.teams[d.v];return askConfirm('jobtake',{v:d.v},`${T.name} übernehmen?`,`Du verlässt ${S.teams[S.user].name}. Trainerstab, Scouts, Finanzen und Academy bleiben beim alten Verein. Dein Spielstand läuft mit ${T.name} weiter.`,'Übernehmen')}
     MODAL=null;const e=switchTeam(d.v);if(e)mail('Wechsel nicht möglich',e);save();window.scrollTo(0,0);render()},
+  resign(d){if(d.v==='off'){S.resign=false;save();render();return}if(d.ok!=='1'){return askConfirm('resign',{},S.phase==='offseason'?'Jetzt kündigen?':'Zum Saisonende kündigen?',S.phase==='offseason'?'Du verlässt '+S.teams[S.user].name+' sofort und wählst einen neuen Verein. Der Manager-Ruf sinkt um 3.':'Du verlässt '+S.teams[S.user].name+' zum Saisonende und wählst dann einen neuen Verein. Der Manager-Ruf sinkt um 3.',S.phase==='offseason'?'Jetzt kündigen':'Kündigen')}MODAL=null;const e=resignAsk();if(e)mail('Kündigung nicht möglich',e);save();render()},
+  uisc(d){setUiScale(d.v);render()},
   reha(d){const e=startReha(d.id);if(e)pmsg(d.id,e,false);save();render()},
   drop(){merchDrop();save();render()},
   revcopy(){const t=reviewText();try{navigator.clipboard.writeText(t)}catch(e){}mail('Saisonrückblick kopiert',t);render()},

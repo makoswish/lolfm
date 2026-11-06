@@ -12,7 +12,7 @@ function stageLabel(st){
   return st.label==='Play-In'?'Play-In':roundName(st.alive.length);
 }
 /* Split */
-function newPatch(){S.patch=(S.patch||0)+1;metaShift();S.meta=shuffle(CH.map((c,i)=>i)).slice(0,10);mail(`Patch ${S.year-2000}.${S.patch}`,`Neuer Patch zum Split. Meta-Champions: ${S.meta.map(c=>CH[c][0]).join(', ')}. Meta-Picks geben im Draft einen Bonus.`)}
+function newPatch(){S.patch=(S.patch||0)+1;metaShift();metaLog(`Patch ${S.year-2000}.${S.patch}: ${STYLES[S.mst.style].n} und ${RN[S.mst.role]} im Fokus`);S.meta=shuffle(CH.map((c,i)=>i)).slice(0,10);mail(`Patch ${S.year-2000}.${S.patch}`,`Neuer Patch zum Split. Meta-Champions: ${S.meta.map(c=>CH[c][0]).join(', ')}. Meta-Picks geben im Draft einen Bonus.`)}
 function initSplit(def){newPatch();
   const ev={id:def.id,type:'split',name:def.name,stage:'rr',round:0,reg:{}};
   for(const r of REGS)ev.reg[r]={ids:teamsOf(r).map(t=>t.id),sched:circle(shuffle(teamsOf(r).map(t=>t.id))),res:[],po:null,order:null};

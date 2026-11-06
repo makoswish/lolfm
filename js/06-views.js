@@ -53,8 +53,10 @@ function leagueView(){
      ${!ev&&sp===S.ev&&sp.stage==='rr'?`<div class="lab" style="margin-top:16px">Woche ${sp.round+1}</div>${S.ev.cur.filter(m=>m.tag===reg).map(bmatch).join('')}`:''}</section>`}
   const past=CAL.filter((c,i)=>c.type==='intl'&&S.rec[c.id]).map(c=>{const r=S.rec[c.id];return `<div class="stat"><span>${c.name}</span><span style="font-family:var(--f-body)">${S.teams[r.champ].name} <span class="rg">${S.teams[r.champ].reg}</span></span></div>`}).join('');
   const regseg=`<section class="panel s12" style="padding-block:12px"><div class="seg">${REGS.map(r=>`<button class="${reg===r?'on':''}" data-a="vreg" data-v="${r}">${r} <span style="opacity:.7;font-weight:500">${REG[r].full}</span></button>`).join('')}</div></section>`;
-  const head=`<div class="pagehead"><div><h1>Turniere</h1><p>Saison ${S.year} · ${S.ev?evLabel(S.ev):'Saisonpause'}</p></div></div><div class="seg" style="margin-bottom:16px">${[['comp','Wettbewerbe'],['hist','Meine Spiele'],['stats','Statistiken'],['awards','Auszeichnungen'],['t2','T2-Szene']].map(([k,l])=>`<button class="${LTAB===k?'on':''}" data-a="ltab" data-v="${k}">${l}</button>`).join('')}</div>`;
+  const head=`<div class="pagehead"><div><h1>Turniere</h1><p>Saison ${S.year} · ${S.ev?evLabel(S.ev):'Saisonpause'}</p></div></div><div class="seg" style="margin-bottom:16px">${[['comp','Wettbewerbe'],['hist','Meine Spiele'],['stats','Statistiken'],['awards','Auszeichnungen'],['t2','T2-Szene'],['meta','Meta & Patch'],['lage','Liga-Lage']].map(([k,l])=>`<button class="${LTAB===k?'on':''}" data-a="ltab" data-v="${k}">${l}</button>`).join('')}</div>`;
   if(LTAB==='stats')return head+`<div class="grid">${regseg}${statsView(reg)}</div>`;
+  if(LTAB==='meta')return head+`<div class="grid">${metaTab()}</div>`;
+  if(LTAB==='lage')return head+`<div class="grid">${lageTab()}</div>`;
   if(LTAB==='t2')return head+`<div class="grid">${regseg}${t2View(reg)}</div>`;
   if(LTAB==='hist')return head+`<div class="grid">${mhList()}</div>`;
   if(LTAB==='awards')return head+`<div class="grid">${regseg}${awardsView(reg)}</div>`;
@@ -80,7 +82,7 @@ function qualPanel(reg){const txt=a=>a.length===1?`Platz ${a[0]}`:a[0]===1&&a[1]
 /* ===== Verein ===== */
 function clubView(){
   const f=S.fin,U=S.teams[S.user];
-  const tabs=[['fin','Übersicht'],['budget','Budgets'],['spons','Sponsoren'],['inc','Einnahmen'],['infra','Infrastruktur'],['fans','Fans'],['staff','Staff & Vorstand']];
+  const tabs=[['fin','Übersicht'],['budget','Budgets'],['spons','Sponsoren'],['inc','Einnahmen'],['infra','Infrastruktur'],['fans','Fans'],['staff','Trainerstab']];
   let body='';
   if(CLUBTAB==='fin'){
     const h=f.hist,mn=Math.min(...h,0),mx=Math.max(...h,1),pts=h.map((v,i)=>`${(i/(Math.max(1,h.length-1))*300).toFixed(1)},${(90-(v-mn)/(mx-mn)*80).toFixed(1)}`).join(' ');
@@ -144,10 +146,7 @@ function clubView(){
   }else if(CLUBTAB==='fans'){
     body=fansTab();
   }else{
-    body=`${goalsPanel()}${staffTab()}${mgrPanel()}${careerPanel()}
-    <section class="panel s6"><div class="lab">Spielstand</div>
-     <p class="muted" style="font-size:13px;margin:0 0 8px">Hängt ein Turnier fest, startet "Phase neu starten" die aktuelle Turnierphase neu. Bisherige Ergebnisse bleiben.</p>
-     <div class="acts"><button class="btn ghost sm" data-a="repair">Phase neu starten</button>${MODAL==='reset'?`<button class="btn danger sm" data-a="reset" data-ok="1">Ja, alles löschen</button><button class="btn ghost sm" data-a="reset" data-ok="0">Abbrechen</button>`:`<button class="btn ghost sm" data-a="reset">Neue Karriere</button>`}</div></section>`;
+    body=staffTab();
   }
   return `<div class="pagehead"><div><h1>Verein</h1><p>${U.reg} · Ruf ${U.rep} · Prestige: ${prestigeOf(U)} · ${eurK(f.balance)}${f.loan?' · Kredit offen':''}</p></div></div>
   <div class="seg" style="margin-bottom:16px">${tabs.map(([k,l])=>`<button class="${CLUBTAB===k?'on':''}" data-a="ctab" data-v="${k}">${l}</button>`).join('')}</div>

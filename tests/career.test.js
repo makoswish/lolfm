@@ -72,7 +72,7 @@ newGame('LYL','Tester');
 {const G=S.goals;ok(G&&PHIL[G.phil]&&G.list.length>=3&&G.list.some(g=>g.k==='liga'),'Keine Vorstandsziele');
  ok(G.list.every(g=>g.imp>=1&&g.imp<=3&&g.txt),'Ziel ohne Gewicht oder Text');
  for(const g of G.list){const e=goalEval(g,false);ok(e.st&&e.sc>=-1&&e.sc<=1,'goalEval '+g.k)}
- ACT.nav2({v:'club',k:'CLUBTAB',t:'staff'});chk('Vorstand-Panel');ok(html().includes('Philosophie'),'Philosophie fehlt');
+ ACT.nav2({v:'mgr',k:'MTAB',t:'board'});chk('Vorstand-Panel');ok(html().includes('Philosophie'),'Philosophie fehlt');
  ACT.nav2({v:'home'});chk('Übersicht mit Zielen');
  const b0=S.board=60;S.rec.S3={};for(const r of REGS)S.rec.S3[r]=teamsOf(r).map(t=>t.id).sort((a,b)=>a===S.user?1:b===S.user?-1:0);
  S.fin.balance=G.bal0-5e6;boardSeason();ok(S.board>=b0-30&&S.board<b0,'Schlechte Saison senkt Vertrauen nicht oder zu stark: '+S.board);
