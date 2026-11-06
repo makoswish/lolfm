@@ -30,8 +30,10 @@ function newsView(){const L=(S.news||[]).filter(n=>NWF==='ALL'||n.cat===NWF);
   <div class="seg" style="margin-bottom:16px">${['ALL',...Object.keys(NCAT)].map(c=>`<button class="${NWF===c?'on':''}" data-a="nwf" data-v="${c}">${c==='ALL'?'Alle':NCAT[c]}</button>`).join('')}</div>
   <div class="grid"><section class="panel s12">${L.map(n=>`<div class="news"><span class="w"><span class="mc" style="--mc:var(--brass)">${NCAT[n.cat]||'Liga'}</span> ${n.when}</span><span>${n.t}</span></div>`).join('')||'<p class="empty">Noch keine Meldungen.</p>'}</section></div>`}
 /* ===== Render ===== */
+/* Offenes Overlay: Seite dahinter nicht scrollen lassen */
+function ovOpen(){return !!(MODAL&&(MODAL.team||MODAL.cf||MODAL.loan||MODAL.lin||MODAL.qs||MODAL==='sim'))||!!SIMRUN||!!(SIMREP&&!SIMRUN)}
 function render(){
-  const app=$('#app');
+  const app=$('#app');try{document.documentElement.classList.toggle('ovopen',ovOpen())}catch(e){}
   if(!S){document.documentElement.style.removeProperty('--team');app.innerHTML=startView()+(MODAL&&MODAL.cf?confirmView():'');HKEY=null;return}
   try{document.documentElement.style.setProperty('--team',S.teams[S.user].color)}catch(e){}
   if((S.view==='prematch'||S.view==='live'||S.view==='draft')&&!LIVE)S.view='home';

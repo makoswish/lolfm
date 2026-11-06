@@ -34,4 +34,13 @@ ACT.nav2({v:'home'});const pend=userPending();if(pend){ACT.next();ACT.kickoff();
 // Übersicht in der Saisonpause
 newGame('LYL','Tester');{let g=0;while(S.phase!=='offseason'&&g++<200)playWeek()}
 ACT.nav2({v:'home'});chk('Übersicht Saisonpause');ok(html().includes('Saisonbilanz')&&html().includes('Zu erledigen'),'Saisonpause: Bilanz oder Aufgaben fehlen');
+
+// Overlays
+newGame('LYL','Tester');
+{const T=teamsOf('LEC').find(t=>t.id!==S.user);ok(!ovOpen(),'Overlay offen ohne Overlay');
+ ACT.team({id:T.id});chk('Team-Fenster');ok(ovOpen(),'Scroll-Sperre fehlt bei Team-Fenster');
+ const h=html();ok(h.includes('sheet big')&&h.includes('class="shead"')&&h.includes('tmgrid')&&h.includes('class="sx"'),'Team-Fenster ohne Kopf, Raster oder Schließen-Knopf');
+ ok(T.roster.every(i=>h.includes('data-id="'+i+'"')),'Kader fehlt im Team-Fenster');ACT.close();ok(!ovOpen(),'Sperre bleibt nach Schließen');
+ const b=U=>U.roster.map(i=>S.players[i]).find(p=>!isStarter(p));ACT.release({id:b(S.teams[S.user]).id});ok(ovOpen()&&MODAL.cf,'Rückfrage ohne Sperre');ACT.cfno();ok(!ovOpen(),'Sperre nach Abbrechen');
+ ACT.qs();ok(ovOpen(),'Suche ohne Sperre');ACT.cfno();ACT.simmenu();ok(ovOpen(),'Simulationsmenü ohne Sperre');MODAL=null;render();ok(!ovOpen(),'Sperre bleibt hängen')}
 `;
