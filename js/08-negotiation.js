@@ -83,19 +83,26 @@ function applyFit(pl,useFin){const b=S.fin.budget;
   if(!pl.ok){if(!(useFin&&pl.finOk))return false;const all=releasable();
     b.transfer+=all+pl.fin;b.frozen=false;book('Finanzierung',pl.fin);(S.fin.debts=S.fin.debts||[]).push({amt:pl.finCost,to:'der Finanzierung',season:S.season+1,fin:true});
     if(pl.sw){b.transfer-=pl.shiftT;b.wage+=pl.sw}
-    NG.log.push(['sys',`Finanzierung: ${eurK(all)} vom Konto freigegeben, ${eurK(pl.fin)} auf Raten. Zum nächsten Saisonstart werden ${eurK(pl.finCost)} fällig (${Math.round(FINRATE*100)}% Aufschlag).`]);return true}if(pl.rel){b.transfer+=pl.rel;b.frozen=false}if(pl.sw){b.transfer-=pl.shiftT;b.wage+=pl.sw}
-  if(pl.rel||pl.sw)NG.log.push(['sys',`Budget angepasst: ${pl.rel?`${eurK(pl.rel)} vom Konto freigegeben`:''}${pl.rel&&pl.sw?', ':''}${pl.sw?`${eurK(pl.shiftT)} Transferbudget in ${eurK(pl.sw)} Gehaltsbudget pro Woche umgeschichtet`:''}.`]);return true}
+    NG.log.push(['sys',`Finanzierung: ${eurK(pl.fin)} auf Raten. Zum nächsten Saisonstart werden ${eurK(pl.finCost)} fällig (${Math.round(FINRATE*100)}% Aufschlag).`]);return true}if(pl.rel){b.transfer+=pl.rel;b.frozen=false}if(pl.sw){b.transfer-=pl.shiftT;b.wage+=pl.sw}
+  if(pl.rel||pl.sw)NG.log.push(['sys',`Budget angepasst: ${pl.sw?`${eurK(pl.shiftT)} Transferbudget in ${eurK(pl.sw)} Gehaltsbudget pro Woche umgeschichtet`:''}.`]);return true}
 function autoFit(){if(S.autoFit===false)return;const n=ngNeed(),pl=fitPlan(n.t,n.w);if(pl.need&&pl.ok)applyFit(pl)}
-function fitBox(){const n=ngNeed(),pl=fitPlan(n.t,n.w),b=S.fin.budget;
-  return `<div class="fitbox"><div class="stat"><span class="muted">Transferbudget</span><span>${eur(b.transfer)}</span></div><div class="stat"><span class="muted">Gehalt frei pro Woche</span><span>${eur(Math.max(0,wageFree()))}</span></div><div class="stat"><span class="muted">Freigabe vom Konto möglich</span><span>${eur(releasable())}</span></div>
-   ${pl.need?(pl.ok?`<p style="font-size:13.5px;margin:8px 0">Für dieses Angebot fehlt Budget. Passend machen: ${pl.rel?`<b>${eurK(pl.rel)}</b> vom Konto freigeben`:''}${pl.rel&&pl.sw?' und ':''}${pl.sw?`<b>${eurK(pl.shiftT)}</b> ins Gehaltsbudget umschichten (+${eurK(pl.sw)}/Wo.)`:''}.</p><button class="btn sm" data-a="ngfit">Budget passend machen</button>`:(pl.finOk?`<p style="font-size:13.5px;margin:8px 0">Dein Konto allein reicht dafür nicht. Du kannst die Lücke finanzieren: ${eurK(releasable())} vom Konto, <b>${eurK(pl.fin)}</b> auf Raten. Zum nächsten Saisonstart werden ${eurK(pl.finCost)} fällig (${Math.round(FINRATE*100)}% Aufschlag), dein Transferbudget dann sinkt entsprechend. Rahmen: ${eurK(finRoom())}.</p><button class="btn sm" data-a="ngfin">Finanzieren und Budget passend machen</button>`:`<p class="bad" style="font-size:13.5px;margin:8px 0 0">Auch mit Freigabe vom Konto reicht das Geld nicht. ${pl.fin>0?`Für eine Finanzierung von ${eurK(pl.finCost)} ist kein Rahmen frei (${eurK(finRoom())}).`:''} Senke das Angebot oder verkaufe vorher Spieler.</p>`)):'<p class="good" style="font-size:13.5px;margin:8px 0 0">Das Angebot passt ins Budget.</p>'}
+function fitBox(){const n=ngNeed(),pl=fitPlan(n.t,n.w),b=S.fin.budget,wf=Math.max(0,wageFree());
+  const shiftW=Math.min(Math.floor(Math.max(0,wf-n.w)/625),Math.ceil(pl.rel/25000));
+  let msg='';
+  if(!pl.need)msg='<p class="good" style="font-size:13.5px;margin:8px 0 0">Das Angebot passt ins Budget.</p>';
+  else if(pl.ok)msg=`<p style="font-size:13.5px;margin:8px 0">Das Gehaltsbudget reicht nicht. Passend machen: <b>${eurK(pl.shiftT)}</b> Transferbudget ins Gehaltsbudget umschichten (+${eurK(pl.sw)}/Wo.).</p><button class="btn sm" data-a="ngfit">Budget passend machen</button>`;
+  else{msg=`<p style="font-size:13.5px;margin:8px 0">Das Transferbudget reicht nicht, es fehlen <b>${eurK(pl.rel)}</b>.${shiftW>0?` Ungenutztes Gehaltsbudget lässt sich umschichten (${eurK(shiftW*625)}/Wo. ergeben ${eurK(shiftW*25000)}).`:''}</p>
+    <div class="acts" style="gap:8px;flex-wrap:wrap">${shiftW>0?`<button class="btn ghost sm" data-a="ngshiftw">Gehaltsbudget ins Transferbudget schieben</button>`:''}${pl.finOk?`<button class="btn sm" data-a="ngfin">Auf Raten finanzieren (${eurK(pl.finCost)} zum Saisonstart)</button>`:''}</div>
+    <p class="${pl.finOk?'muted':'bad'}" style="font-size:12.5px;margin:6px 0 0">${pl.finOk?`Finanzierung: ${Math.round(FINRATE*100)}% Aufschlag, Rahmen ${eurK(finRoom())}. Mehr Transferbudget gibt es auch über Verkäufe und die Anfrage beim Vorstand (Finanzen, Budgets).`:`Für eine Finanzierung ist kein Rahmen frei (${eurK(finRoom())}). Frag den Vorstand um mehr Budget (Finanzen, Budgets), verkaufe Spieler oder senke das Angebot.`}</p>`}
+  return `<div class="fitbox"><div class="stat"><span class="muted">Transferbudget</span><span>${eur(b.transfer)}</span></div><div class="stat"><span class="muted">Gehalt frei pro Woche</span><span>${eur(wf)}</span></div>
+   ${msg}
    <label class="tog"><input type="checkbox" id="autofit" data-a="ngauto" ${S.autoFit===false?'':'checked'}> Budget beim Abschicken automatisch anpassen</label></div>`}
 function feeVal(){const f=NG.fee;return f.amt*(f.pay==='inst'?.95:1)*(1+f.sell/100*.3)+(f.addon||0)*.5}
 function feeNow(){return NG.fee?(NG.fee.pay==='inst'?Math.round(NG.fee.amt/2):NG.fee.amt):0}
 function sendFee(){const p=S.players[NG.pid],c=NG.club,v=feeVal(),T=S.teams[p.team];
   {const v=boardVeto(0,NG.fee.amt,'Diese Ablöse');if(v){NG.log.push(['sys',v]);return}}
   autoFit();
-  if(feeNow()>S.fin.budget.transfer){const pl=fitPlan(feeNow(),0);NG.log.push(['sys',pl.finOk?`Das Transferbudget reicht nicht (${eurK(S.fin.budget.transfer)} verfügbar). Du kannst die Lücke auf Raten finanzieren, siehe unten.`:`Das Transferbudget reicht nicht (${eurK(S.fin.budget.transfer)} verfügbar), und für eine Finanzierung ist kein Rahmen frei (${eurK(finRoom())}).`]);return}
+  if(feeNow()>S.fin.budget.transfer){const pl=fitPlan(feeNow(),0);NG.log.push(['sys',pl.finOk?`Das Transferbudget reicht nicht (${eurK(S.fin.budget.transfer)} verfügbar). Du kannst Gehaltsbudget umschichten oder die Lücke auf Raten finanzieren, siehe unten.`:`Das Transferbudget reicht nicht (${eurK(S.fin.budget.transfer)} verfügbar), und für eine Finanzierung ist kein Rahmen frei (${eurK(finRoom())}).`]);return}
   NG.log.push(['me',`Angebot: ${eurK(NG.fee.amt)}${NG.fee.pay==='inst'?' in zwei Raten':' sofort'}${NG.fee.sell?`, ${NG.fee.sell}% Weiterverkaufsbeteiligung`:''}.`]);
   if(v>=c.min){NG.stage='contract';NG.log.push(['club',`${T.name}: Einverstanden. Jetzt müsst ihr euch nur noch mit dem Spieler einigen.`]);NG.log.push(['agent',demandText()]);return}
   c.pat--;
@@ -111,7 +118,7 @@ function sendContract(){const p=S.players[NG.pid],t=NG.terms,d=NG.dem;
   {const c=dealCost(),v=boardVeto(c.w,c.once,'Dieser Vertrag');if(v){NG.log.push(['sys',v]);return}}
   autoFit();
   if(p.team!==acaId()&&extra>wageFree()){NG.log.push(['sys',`Das Gehaltsbudget reicht nicht. Frei sind ${eurK(Math.max(0,wageFree()))} pro Woche.`]);return}
-  if(t.sb+feeNow()>S.fin.budget.transfer){const pl=fitPlan(t.sb+feeNow(),0);NG.log.push(['sys',pl.finOk?'Ablöse und Handgeld übersteigen dein Transferbudget. Du kannst die Lücke auf Raten finanzieren, siehe unten.':`Ablöse und Handgeld übersteigen dein Transferbudget, und für eine Finanzierung ist kein Rahmen frei (${eurK(finRoom())}).`]);return}
+  if(t.sb+feeNow()>S.fin.budget.transfer){const pl=fitPlan(t.sb+feeNow(),0);NG.log.push(['sys',pl.finOk?'Ablöse und Handgeld übersteigen dein Transferbudget. Du kannst Gehaltsbudget umschichten oder die Lücke auf Raten finanzieren, siehe unten.':`Ablöse und Handgeld übersteigen dein Transferbudget, und für eine Finanzierung ist kein Rahmen frei (${eurK(finRoom())}).`]);return}
   NG.log.push(['me',`Angebot: ${eurK(t.sal)} pro Woche, ${t.yrs} ${t.yrs===1?'Saison':'Saisons'}, ${PROM[t.role][0]}${t.sb?`, ${eurK(t.sb)} Handgeld`:''}${t.wb?`, ${eur(t.wb)} Siegprämie`:''}${t.tb?`, ${eur(t.tb)} Titelprämie`:''}${t.cl?`, Klausel ${CLOPT[t.cl]}× Marktwert`:''}.`]);
   const{sc,pen}=cScore(),need=1+(R()-.5)*.05;
   if(sc>=need){closeDeal();return}

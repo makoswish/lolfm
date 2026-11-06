@@ -186,6 +186,7 @@ const ACT={
   advance(){const f=S.fin;if(f.adv||f.advUsed)return;const wk=sponsorBase();if(!wk)return;const amt=r1000(wk*6);book('Sponsor-Vorschuss',amt);f.adv={left:Math.round(amt*1.05)};f.advUsed=true;mail('Sponsor-Vorschuss',`${eurK(amt)} sind sofort auf dem Konto. Die Sponsoren behalten dafür 25% ihrer Wochenzahlung ein, bis ${eurK(f.adv.left)} verrechnet sind.`);save();render()},
   shift(d){const b=S.fin.budget;if(d.v==='w'){if(b.transfer<25000)return;b.transfer-=25000;b.wage+=625}else{if(b.wage-625<wageBill())return;b.wage-=625;b.transfer+=25000}save();render()},
   gobudget(){S.view='club';CLUBTAB='budget';window.scrollTo(0,0);render()},
+  ngshiftw(){const n=ngNeed(),pl=fitPlan(n.t,n.w),b=S.fin.budget,k=Math.min(Math.floor(Math.max(0,wageFree()-n.w)/625),Math.ceil(pl.rel/25000));if(k<1)return;b.transfer+=k*25000;b.wage-=k*625;b.frozen=false;NG.log.push(['sys',`Gehaltsbudget umgeschichtet: ${eurK(k*625)} pro Woche werden zu ${eurK(k*25000)} Transferbudget.`]);save();render()},
   cashrel(d){const a=r1000(releasable()*(+d.v));if(a<1000)return;S.fin.budget.transfer+=a;S.fin.budget.frozen=false;mail('Geld freigegeben',`Der Vorstand gibt ${eurK(a)} vom Konto für Transfers frei.`);save();render()},
   askboard(){const b=S.fin.budget,U=S.teams[S.user];if(b.asked)return;b.asked=true;const ch=S.board/100*(S.fin.balance>0?.9:.25);
     if(R()<ch){const add=r1000(50000+U.rep*1500);b.transfer+=add;if(b.frozen&&S.fin.balance>0)b.frozen=false;mail('Vorstand gibt Geld frei',`Der Vorstand erhöht das Transferbudget um ${eurK(add)}.`)}

@@ -216,15 +216,22 @@ function sponsorFor(rep){return Math.round((rep-28)**2*7.5/100)*100}
 function newFin(bal,fans){return{weeks:[],balance:bal,fans,slots:Object.fromEntries(SLOTS.map(x=>[x[0],null])),offers:{},merch:'normal',content:0,infra:{tc:0,gh:0,ac:0},loan:null,pstream:false,season:{inc:{},exp:{}},last:null,hist:[bal]}}
 function wageBill(){const A=S.teams[S.user+'A'];return S.teams[S.user].roster.reduce((s,id)=>s+wageOf(S.players[id]),0)+(A?A.roster.reduce((s,id)=>s+S.players[id].salary,0):0)}
 function proWages(){return S.teams[S.user].roster.reduce((s,id)=>s+S.players[id].salary,0)}
-function sustainW(){const f=S.fin,U=S.teams[S.user];const inc=(sponsorBase()||SLOTS.slice(0,2).reduce((a,[k])=>a+(f.offers[k]?f.offers[k][0].base:0),0))+f.fans*.03*regRev()+lsh()+(S.teams[S.user+'A']?2000:0);const oth=staffWages()+CONTENT[f.content][0]+upkeep()+(S.scouts||[]).reduce((a,x)=>a+x.wage,0);return Math.max(0,(inc-oth)*.95)}
+/* Wie bei FM: Das Gehaltsbudget ist ein Anteil der erwarteten Einnahmen nach festen Kosten, der Anteil hängt von der Philosophie des Vereins. */
+const WAGERAT={titel:1.02,aufbau:.95,jugend:.9,wirtschaft:.85};
+function incW(){const f=S.fin;return(sponsorBase()||SLOTS.slice(0,2).reduce((a,[k])=>a+(f.offers[k]?f.offers[k][0].base:0),0))+f.fans*.03*regRev()+lsh()+(S.teams[S.user+'A']?Math.round(2000*eco()):0)}
+function fixW(){const f=S.fin;return staffWages()+CONTENT[f.content][0]+upkeep()+(S.scouts||[]).reduce((a,x)=>a+x.wage,0)}
+function wageRat(){return WAGERAT[philOf(S.teams[S.user])]||.95}
+function sustainW(){return Math.max(0,(incW()-fixW())*.95)}
+function wageBudgetCalc(bill){return r100(Math.max(bill+1500,Math.max(0,incW()-fixW())*wageRat()))}
 function wageFree(){return S.fin.budget.wage-wageBill()}
 function setBudgets(){const f=S.fin,U=S.teams[S.user],bill=wageBill(),pos=f.balance>0;
-  f.budget={transfer:pos?r1000(Math.min(f.balance*.45,f.balance*.2+U.rep*2500*eco())):0,wage:r100(Math.max(bill+1500,Math.min(Math.max(bill*1.1+2500,U.rep*300*eco()),sustainW()))),salePct:clamp(50+Math.round((S.board-50)/2),35,80),asked:false,frozen:!pos}}
+  f.budget={transfer:pos?r1000(Math.min(f.balance*.45,f.balance*.2+U.rep*2500*eco())):0,wage:wageBudgetCalc(bill),salePct:clamp(50+Math.round((S.board-50)/2),35,80),asked:false,frozen:!pos}}
 function weeklyCosts(){const f=S.fin;return wageBill()+(HWB[f.hwb]?HWB[f.hwb].c:0)+buildCost()+staffWages()+CONTENT[f.content][0]+upkeep()+(S.scouts||[]).reduce((a,x)=>a+x.wage,0)+(f.loan?f.loan.weekly:0)}
 function reserveAmt(){return r1000(weeklyCosts()*10)}
-function releasable(){const f=S.fin;if(f.balance<=0)return 0;return Math.max(0,r1000((f.balance-reserveAmt()-f.budget.transfer)*(.5+S.board/200)))}
+/* Wie bei FM ist das Transferbudget ein eigener Topf: Es gibt keine Freigabe vom Konto mehr, mehr Budget kommt nur über Verkäufe, den Vorstand, Umschichten oder Finanzierung. */
+function releasable(){return 0}
 function budgetReview(){const f=S.fin,b=f.budget,U=S.teams[S.user];if(f.balance<=0)return;const bill=wageBill();
-  const nt=r1000(Math.min(f.balance*.45,f.balance*.2+U.rep*2500*eco())),nw=r100(Math.max(bill+1500,Math.min(Math.max(bill*1.1+2500,U.rep*300*eco()),sustainW())));
+  const nt=r1000(Math.min(f.balance*.45,f.balance*.2+U.rep*2500*eco())),nw=wageBudgetCalc(bill);
   const dt=Math.max(0,nt-b.transfer),dw=Math.max(0,nw-b.wage);if(!dt&&!dw)return;b.transfer+=dt;b.wage+=dw;b.frozen=false;
   mail('Budgetprüfung des Vorstands',`Vor dem neuen Split hat der Vorstand die Budgets angepasst: ${dt?`Transferbudget +${eurK(dt)}`:''}${dt&&dw?', ':''}${dw?`Gehaltsbudget +${eurK(dw)} pro Woche`:''}.`)}
 function finState(){const f=S.fin,w=f.weeks.slice(-8),avg=w.length?w.reduce((a,b)=>a+b,0)/w.length:0,proj=f.balance+avg*Math.max(0,52-S.step);

@@ -113,11 +113,11 @@ function clubView(){
       <div class="lab" style="margin-top:16px">Vorstand</div>
       <p class="muted" style="font-size:13px;margin:0 0 8px">${b.asked?'Du hast diese Saison schon um mehr Budget gebeten.':'Einmal pro Saison kannst du um mehr Transferbudget bitten. Klappt eher bei hohem Vertrauen und positivem Kontostand.'}</p>
       <button class="btn ghost sm" data-a="askboard" ${b.asked?'disabled':''}>Mehr Budget anfragen</button>
-      <div class="lab" style="margin-top:16px"><span>Geld vom Konto freigeben</span><span>jederzeit</span></div>
-      <div class="stat"><span class="muted">Rücklage (10 Wochen Kosten)</span><span>${eur(reserveAmt())}</span></div>
-      <div class="stat"><span class="muted">Freigabe möglich</span><span class="${releasable()?'good':''}">${eur(releasable())}</span></div>
-      ${releasable()>=1000?`<div class="acts" style="margin-top:8px">${[.25,.5,1].map(x=>`<button class="btn ${x===1?'':'ghost'} sm" data-a="cashrel" data-v="${x}">${x===1?'Alles':Math.round(x*100)+'%'} (${eurK(r1000(releasable()*x))})</button>`).join('')}</div>`:''}
-      <p class="muted" style="font-size:12.5px;margin:6px 0 0">Der Vorstand gibt Geld frei, das über Rücklage und Transferbudget hinaus auf dem Konto liegt. Je höher sein Vertrauen, desto mehr. Vor jedem Split prüft er die Budgets außerdem automatisch.</p></section>
+      <div class="lab" style="margin-top:16px"><span>So rechnet der Vorstand</span><span>${PHIL[philOf(U)][0]}</span></div>
+      <div class="stat"><span class="muted">Erwartete Einnahmen pro Woche</span><span>${eur(Math.round(incW()))}</span></div>
+      <div class="stat"><span class="muted">Feste Kosten (Staff, Infrastruktur)</span><span>${eur(Math.round(fixW()))}</span></div>
+      <div class="stat"><span class="muted">Anteil für Gehälter</span><span>${Math.round(wageRat()*100)}%</span></div>
+      <p class="muted" style="font-size:12.5px;margin:6px 0 0">Gehaltsbudget = (Einnahmen minus feste Kosten) mal Anteil. Die Gehälter gehen einmal pro Woche vom Konto ab, das Budget ist nur die Obergrenze. Das Transferbudget ist ein eigener Topf: Ablösen und Handgelder senken ihn, Verkäufe füllen ihn zu ${b.salePct}% auf. Mehr gibt es auf Anfrage beim Vorstand, durch Umschichten oder auf Raten.</p></section>
      <section class="panel s7"><div class="lab"><span>Budgets ${S.year}</span><span>${b.frozen?'<span class="bad">Transferbudget eingefroren</span>':`${b.salePct}% der Verkäufe fließen zurück`}</span></div>
       <div class="bud"><div><span class="muted">Transferbudget</span><b class="big">${eurK(b.transfer)}</b></div><div><span class="muted">Gehaltsbudget pro Woche</span><b class="big">${eurK(b.wage)}</b></div></div>
       <div class="lab" style="margin:14px 0 6px"><span>Gehälter</span><span>${eurK(bill)} von ${eurK(b.wage)} genutzt</span></div>${bar(bill/b.wage*100,bill>b.wage?'var(--bad)':bill/b.wage>.92?'var(--warn)':'var(--good)')}

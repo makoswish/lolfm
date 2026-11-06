@@ -244,3 +244,26 @@ ACT.nav2({v:'club',k:'CLUBTAB',t:'staff'});ok(!html().includes('Entlasse zuerst'
  // Erfolg
  S.fin.balance=900000;S.fin.weeks=[];ACT.sthire({id:ac.id});ok(S.staffs.some(s=>s.id===ac.id)&&html().includes('ist neuer'),'Einstellung klappt nicht')}
 `;
+module.exports+=`
+function ok(c,msg){if(!c){console.log('FEHLER',msg);bad++}}
+function html(){return document.querySelector('#app').innerHTML}
+// Budgets wie bei FM: Gehaltsbudget aus Einnahmen, Transferbudget als eigener Topf ohne Freigabe vom Konto
+newGame('LYL','Tester');
+{const U=S.teams[S.user];setBudgets();const b=S.fin.budget,bill=wageBill();
+ ok(releasable()===0,'Freigabe vom Konto existiert noch');
+ ok(b.wage>=bill+1500,'Gehaltsbudget unter der Lohnsumme');
+ // Gehaltsbudget folgt den Einnahmen und der Philosophie
+ const w1=wageBudgetCalc(0);S.fin.fans*=3;const w2=wageBudgetCalc(0);ok(w2>w1,'Gehaltsbudget wächst nicht mit den Einnahmen');S.fin.fans=Math.round(S.fin.fans/3);
+ U.phil='titel';const wt=wageBudgetCalc(0);U.phil='wirtschaft';const ww=wageBudgetCalc(0);ok(wt>ww,'Philosophie ändert den Anteil nicht');U.phil='jugend';
+ ACT.nav2({v:'club',k:'CLUBTAB',t:'budget'});chk('Budgets');ok(html().includes('So rechnet der Vorstand')&&html().includes('Anteil für Gehälter')&&!html().includes('Geld vom Konto freigeben')&&!html().includes('data-a="cashrel"'),'Budget-Seite im alten Stil');
+ // Gehalt wird nur einmal pro Woche vom Konto abgezogen, das Budget kostet nichts
+ const bal0=S.fin.balance;S.fin.budget.wage+=50000;ok(S.fin.balance===bal0,'Gehaltsbudget kostet Geld');
+ // Zu hohe Ablöse: Transferbudget reicht nicht, kein Geld vom Konto, Umschichten und Finanzierung als Wege
+ S.fin.balance=2000000;S.board=80;S.fin.budget.transfer=100000;S.fin.budget.wage=bill+40000;
+ const p=Object.values(S.players).find(x=>x.team&&x.team!==S.user&&S.teams[x.team].tier!==2&&x.team!==acaId()&&ovr(x)<66&&!x.loan);while(U.roster.length>=MAXR)toFA(S.players[U.roster.find(i=>!isStarter(S.players[i]))]);
+ ok(startNego('buy',p.id)===true,'Verhandlung');NG.fee.amt=300000;NG.fee.pay='now';render();
+ const pl=fitPlan(feeNow(),0);ok(pl.rel>0&&!pl.ok&&pl.fin===pl.rel,'Fehlbetrag wird nicht als Lücke erkannt');
+ ok(html().includes('data-a="ngshiftw"')&&html().includes('data-a="ngfin"')&&!html().includes('vom Konto freigeben'),'Wege bei zu kleinem Transferbudget fehlen');
+ const t0=S.fin.budget.transfer,w0=S.fin.budget.wage;ACT.ngshiftw();ok(S.fin.budget.transfer>t0&&S.fin.budget.wage<w0&&(S.fin.budget.transfer-t0)/25000===(w0-S.fin.budget.wage)/625,'Umschichten ins Transferbudget falsch');
+ ok(S.fin.budget.wage>=bill,'Umschichten reißt die Lohnsumme über das Budget');chk('Umschichten')}
+`;
