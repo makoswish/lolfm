@@ -325,17 +325,39 @@ function teamModal(){
    Zwei Spieler nebeneinander. Fremde Werte erscheinen nur so genau, wie das Scouting-Wissen reicht. */
 let CMP=null;
 function cmpView(){const[a,b]=(CMP||[]).map(id=>S.players[id]);if(!a||!b)return `<div class="pagehead"><div><h1>Vergleich</h1><p>Wähle zwei Spieler über ihre Spielerseite.</p></div></div>`;
-  const ex=p=>seeExact(p),num=(p,v)=>ex(p)?v:null,cell=(p,v,o,txt)=>{const w=v!=null&&o!=null&&v>o;return `<td class="r ${w?'good':''}" style="${w?'font-weight:700':''}">${txt??(v??'?')}</td>`};
-  const row=(lbl,fa,fb,ta,tb,key)=>`<tr class="${key?'':'benchrow'}"><td class="nmcell">${lbl}</td>${cell(a,fa,fb,ta)}${cell(b,fb,fa,tb)}</tr>`;
-  const head=p=>`<th class="r" style="min-width:120px"><button class="linkbtn" data-a="player" data-id="${p.id}" style="display:inline-flex;gap:8px;align-items:center">${avatar(p,'xs')}${p.name}</button><div class="dim" style="font-weight:500;font-size:11.5px">${p.role} · ${p.age} J. · ${p.team?S.teams[p.team].id:'vereinslos'}</div></th>`;
-  const ka=keyAttrs(a.role);
-  const oa=num(a,ovr(a)),ob=num(b,ovr(b)),pa=potMid(a),pb=potMid(b);
+  const ex=p=>seeExact(p),num=(p,v)=>ex(p)?v:null,ka=keyAttrs(a.role),G=[];let cur=null;
+  const grp=t=>{cur={t,rows:[]};G.push(cur)};
+  /* dir: 1 höher ist besser, -1 niedriger ist besser, 0 kein Urteil. count: zählt in der Bilanz. min und max bestimmen die Balkenlänge. */
+  const add=(l,va,vb,o)=>cur.rows.push(Object.assign({l,va,vb,dir:1,min:0,max:100,key:true,count:true,fd:x=>String(x)},o||{}));
+  const oa=num(a,ovr(a)),ob=num(b,ovr(b)),pa=potMid(a),pb=potMid(b),va=valueFor(a),vb=valueFor(b),sa=isMine(a)?a.salary:demandFor(a,false),sb=isMine(b)?b.salary:demandFor(b,false);
+  grp('Überblick');
+  add('OVR',oa,ob,{min:30,ta:oa==null?'~'+Math.round(ovr(a)/5)*5:null,tb:ob==null?'~'+Math.round(ovr(b)/5)*5:null});
+  add('Potenzial',pa,pb,{min:30,ta:potTxt(a),tb:potTxt(b)});
+  add('Form',Math.round(a.form),Math.round(b.form),{min:30});
+  add('Alter',a.age,b.age,{dir:0,count:false,min:15,max:35});
+  add('Spiele diese Saison',(a.st&&a.st.g)||0,(b.st&&b.st.g)||0,{dir:0,count:false,max:Math.max(30,(a.st&&a.st.g)||0,(b.st&&b.st.g)||0)});
+  grp('Kosten');
+  add('Marktwert',va,vb,{dir:0,count:false,ta:eurK(va),tb:eurK(vb),fd:x=>eurK(x),max:Math.max(va,vb,1)});
+  add(isMine(a)&&isMine(b)?'Gehalt':'Gehalt / Forderung',sa,sb,{dir:-1,count:false,ta:eurK(sa),tb:eurK(sb),fd:x=>eurK(x),max:Math.max(sa,sb,1)});
+  grp('Kernwerte');
+  for(const k of ATTR)add(AN[k],num(a,Math.round(a.a[k])),num(b,Math.round(b.a[k])),{min:30});
+  for(const[g,gn]of Object.entries(DG)){grp(gn);for(const[x,n]of DA.filter(y=>y[2]===g))add(n+(ka.includes(x)?' •':''),num(a,Math.round(a.d[x])),num(b,Math.round(b.d[x])),{max:20,key:ka.includes(x)})}
+  const known=r=>r.va!=null&&r.vb!=null,win=r=>known(r)&&r.va!==r.vb&&r.dir?((r.va-r.vb)*r.dir>0?'a':'b'):null;
+  const all=G.flatMap(g=>g.rows).filter(r=>r.count),kn=all.filter(known),wa=kn.filter(r=>r.va>r.vb).length,wb=kn.filter(r=>r.vb>r.va).length,eq=kn.length-wa-wb,unk=all.length-kn.length;
+  const tri=d=>`<svg class="tri" viewBox="0 0 10 10" aria-hidden="true"><path d="${d==='l'?'M8 1L2 5l6 4z':'M2 1l6 4-6 4z'}"/></svg>`;
+  const pct=(r,v)=>clamp((v-r.min)/(r.max-r.min)*100,3,100);
+  const row=r=>{const k=known(r),w=win(r),d=k?r.va-r.vb:0,ad=Math.abs(d);
+    const mid=!k?'':ad===0?'<span class="dm">=</span>':r.dir?`<span class="dm ${'w'}">${w==='a'?tri('l'):''}${r.fd(ad)}${w==='b'?tri('r'):''}</span>`:`<span class="dm n">Δ ${r.fd(ad)}</span>`;
+    const bars=r.bar===false||!k?'':`<div class="dwrap"><div class="dh l"><i class="${w==='a'?'on':w==='b'?'off':''}" style="width:${pct(r,r.va)}%"></i></div>${mid}<div class="dh r"><i class="${w==='b'?'on':w==='a'?'off':''}" style="width:${pct(r,r.vb)}%"></i></div></div>`;
+    const cell=(v,t,side)=>`<td class="cv ${side} ${w===side?'cb':w?'cw':''}"><span class="vv">${t??(v??'?')}</span></td>`;
+    return `<tr class="${r.key?'':'benchrow'}"><td class="nmcell">${r.l}</td>${cell(r.va,r.ta,'a')}<td class="duel">${bars||mid}</td>${cell(r.vb,r.tb,'b')}</tr>`};
+  const gtal=g=>{const L=g.rows.filter(r=>r.count&&known(r)),x=L.filter(r=>r.va>r.vb).length,y=L.filter(r=>r.vb>r.va).length;return L.length?`<span class="dim">${x} zu ${y}</span>`:''};
+  const head=(p,side)=>`<th class="${side==='a'?'r':''}"><button class="linkbtn" data-a="player" data-id="${p.id}" style="display:inline-flex;gap:8px;align-items:center">${avatar(p,'xs')}${p.name}</button><div class="dim" style="font-weight:500;font-size:11.5px">${p.role} · ${p.age} J. · ${p.team?S.teams[p.team].id:'vereinslos'}</div></th>`;
+  const lead=wa>wb?a:wb>wa?b:null;
   return `<div class="pagehead"><div><h1>Vergleich</h1><p>${a.name} gegen ${b.name}${a.role!==b.role?' · verschiedene Rollen':''}</p></div><button class="btn ghost sm" data-a="cmpclose">Schließen</button></div>
-  <div class="grid"><section class="panel s12"><div class="scroll"><table class="tbl"><thead><tr><th></th>${head(a)}${head(b)}</tr></thead><tbody>
-   ${row('OVR',oa,ob,oa??'~'+Math.round(ovr(a)/5)*5,ob??'~'+Math.round(ovr(b)/5)*5,true)}${row('Potenzial',pa,pb,potTxt(a),potTxt(b),true)}
-   ${row('Marktwert',valueFor(a),valueFor(b),eurK(valueFor(a)),eurK(valueFor(b)),true)}${row('Gehalt / Forderung',null,null,eurK(isMine(a)?a.salary:demandFor(a,false)),eurK(isMine(b)?b.salary:demandFor(b,false)),true)}
-   ${row('Form',Math.round(a.form),Math.round(b.form),null,null,true)}${row('Spiele diese Saison',(a.st&&a.st.g)||0,(b.st&&b.st.g)||0,null,null,true)}
-   <tr><td colspan="3" class="lab" style="padding-top:14px">Kernwerte</td></tr>
-   ${ATTR.map(k=>row(AN[k],num(a,Math.round(a.a[k])),num(b,Math.round(b.a[k])),null,null,true)).join('')}
-   ${Object.entries(DG).map(([g,gn])=>`<tr><td colspan="3" class="lab" style="padding-top:14px">${gn}</td></tr>${DA.filter(x=>x[2]===g).map(([x,n])=>row(n+(ka.includes(x)?' •':''),num(a,Math.round(a.d[x])),num(b,Math.round(b.d[x])),null,null,ka.includes(x))).join('')}`).join('')}
-  </tbody></table></div><p class="muted" style="font-size:13px;margin:10px 0 0">Grün ist der bessere Wert. Mit • markiert: wichtig für ${RN[a.role]}. Fragezeichen heißen zu wenig Scouting-Wissen.</p></section></div>`}
+  <div class="grid"><section class="panel s12 cmpsum"><div class="lab"><span>Bilanz der Werte</span><span>${kn.length} verglichen${unk?` · ${unk} unbekannt`:''}</span></div>
+   ${kn.length?`<div class="cmpmeter"><div class="cside"><b>${wa}</b><span>${a.name}</span></div><div class="mbar"><i class="ma" style="flex:${wa}"></i><i class="me" style="flex:${eq}"></i><i class="mb" style="flex:${wb}"></i></div><div class="cside r"><b>${wb}</b><span>${b.name}</span></div></div>
+   <p class="muted" style="margin:10px 0 0;font-size:13.5px">${lead?`<b style="color:var(--fg)">${lead.name}</b> ist in ${Math.max(wa,wb)} von ${kn.length} Werten besser${eq?`, ${eq} sind gleich`:''}.`:`Beide liegen gleichauf${eq?` bei ${eq} gleichen Werten`:''}.`}</p>`:'<p class="muted" style="margin:0">Zu wenig Scouting-Wissen, um die Werte zu vergleichen.</p>'}</section>
+  <section class="panel s12"><div class="scroll"><table class="tbl cmpt"><thead><tr><th></th>${head(a,'a')}<th></th>${head(b,'b')}</tr></thead><tbody>
+   ${G.map(g=>`<tr><td colspan="4" style="padding:14px 0 0"><div class="lab" style="margin:0"><span>${g.t}</span>${gtal(g)}</div></td></tr>${g.rows.map(row).join('')}`).join('')}
+  </tbody></table></div><p class="muted" style="font-size:13px;margin:10px 0 0">Grün ist der bessere Wert, der Pfeil in der Mitte zeigt auf den besseren Spieler. Beim Gehalt zählt der niedrigere Wert. Marktwert, Gehalt, Alter und Spiele zählen nicht in die Bilanz. Mit • markiert: wichtig für ${RN[a.role]}. Fragezeichen heißen zu wenig Scouting-Wissen.</p></section></div>`}

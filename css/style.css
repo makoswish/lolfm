@@ -785,3 +785,33 @@ html.ovopen,html.ovopen body{overflow:hidden}
   .ln b{font-size:14px}.ln{gap:8px}.ln .ovr{font-size:15px}
   .tmrs{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+/* Spielervergleich: Bilanz, gegenläufige Balken, Pfeil zum besseren Wert */
+.cmpmeter{display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr) minmax(0,auto);gap:14px;align-items:center}
+.cside{display:flex;flex-direction:column;gap:2px;min-width:0}.cside.r{text-align:right}
+.cside b{font-size:30px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}.cside span{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mbar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--panel2);gap:2px}
+.mbar i{display:block;min-width:0}.mbar .ma{background:var(--good)}.mbar .me{background:var(--line)}.mbar .mb{background:var(--blue)}
+.cmpt{table-layout:fixed}
+.cmpt th{vertical-align:bottom;font-family:var(--f-body);font-size:13px;letter-spacing:0;text-transform:none;color:var(--fg)}
+.cmpt td{padding:7px 6px}
+.cmpt .nmcell{width:30%;font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.cmpt .cv{width:15%;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cmpt .cv.a{text-align:right}.cmpt .cv.b{text-align:left}
+.cmpt .vv{display:inline-block;padding:1px 7px;border-radius:5px;min-width:22px;text-align:center}
+.cmpt .cb{color:var(--good);font-weight:800}.cmpt .cb .vv{background:color-mix(in srgb,var(--good) 18%,transparent)}
+.cmpt .cw{color:var(--muted)}
+.duel{width:40%}
+.dwrap{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:center}
+.dh{height:8px;border-radius:4px;background:var(--panel2);display:flex;overflow:hidden}
+.dh.l{justify-content:flex-end}
+.dh i{display:block;height:100%;border-radius:4px;background:var(--dim)}
+.dh i.on{background:var(--good)}.dh i.off{background:color-mix(in srgb,var(--dim) 60%,transparent)}
+.dm{display:inline-flex;align-items:center;gap:3px;min-width:42px;justify-content:center;font-size:12px;font-weight:700;color:var(--good);font-variant-numeric:tabular-nums;white-space:nowrap}
+.dm.n{color:var(--muted);font-weight:500}
+.tri{width:9px;height:9px;fill:currentColor;flex:none}
+@media (max-width:760px){
+  .cmpt td{padding:6px 3px}.cmpt .nmcell{width:33%;font-size:13px}.cmpt .cv{width:14%}.duel{width:39%}
+  .cmpt .vv{padding:1px 4px;min-width:18px}.dwrap{gap:4px}.dm{min-width:30px;font-size:11px}
+  .cside b{font-size:24px}.cmpmeter{gap:10px}
+}
