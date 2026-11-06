@@ -7,7 +7,7 @@ function transferView(){
   const q=FILT.q.trim().toLowerCase();
   if(q)list=list.filter(p=>[p.name,p.rn,p.team&&S.teams[p.team].name,p.team].some(x=>x&&String(x).toLowerCase().includes(q)));
   if(FILT.afford)list=list.filter(canAfford);
-  if((FILT.sgn??4)<4)list=list.filter(p=>signDiff(p).lv<=FILT.sgn);
+  if((FILT.sgn??3)<4)list=list.filter(p=>signDiff(p).lv<=FILT.sgn);
   const sk=MSORT[FILT.sort]||MSORT.ovr;list.sort((a,b)=>sk[1](b)-sk[1](a)||ovr(b)-ovr(a));
   const tabs=`<div class="seg" style="margin-bottom:16px">${[['markt','Markt'],['scout','Scouting'],['short','Beobachtung'],['hist','Verlauf']].map(([k,l])=>`<button class="${TTAB===k?'on':''}" data-a="ttab" data-v="${k}">${l}</button>`).join('')}</div>`;
   const rl=releasable();const head=`<div class="pagehead"><div><h1>Transfers</h1><p>Transferbudget ${eurK(S.fin.budget.transfer)} · Gehalt frei ${eurK(Math.max(0,wageFree()))}/Wo. · Kader ${U.roster.length}/${MAXR}</p></div>${rl>=25000?`<button class="btn ghost sm" data-a="gobudget">${eurK(rl)} freigeben</button>`:''}</div>${tabs}`;
@@ -18,7 +18,7 @@ function transferView(){
   <div class="seg" style="margin-bottom:14px">${[['ALL','Alle'],['SC','Gescoutet'],['FA','Vereinslos'],['T2','T2-Szene'],...REGS.map(r=>[r,r])].map(([k,l])=>`<button class="${FILT.src===k?'on':''}" data-a="fsrc" data-v="${k}">${l}</button>`).join('')}</div>
   <div class="mktbar"><input id="tq" class="inp" type="search" placeholder="Spieler oder Team suchen" value="${esc(FILT.q)}" autocomplete="off" spellcheck="false" aria-label="Suche">
    <label class="mksort"><span class="muted">Sortieren</span><select id="tsort" class="inp">${Object.entries(MSORT).map(([k,[l]])=>`<option value="${k}" ${FILT.sort===k?'selected':''}>${l}</option>`).join('')}</select></label>
-   <label class="mksort"><span class="muted">Bereitschaft</span><select id="tsgn" class="inp">${[[4,'Alle'],[3,'Ohne Unmögliche'],[2,'Höchstens schwer'],[1,'Machbar oder leichter'],[0,'Nur leicht']].map(([v,l])=>`<option value="${v}" ${(FILT.sgn??4)===v?'selected':''}>${l}</option>`).join('')}</select></label>
+   <label class="mksort"><span class="muted">Bereitschaft</span><select id="tsgn" class="inp">${[[4,'Alle'],[3,'Ohne Unmögliche'],[2,'Höchstens schwer'],[1,'Machbar oder leichter'],[0,'Nur leicht']].map(([v,l])=>`<option value="${v}" ${(FILT.sgn??3)===v?'selected':''}>${l}</option>`).join('')}</select></label>
    <button class="tog ${FILT.afford?'on':''}" data-a="faff" title="Ablöse und Gehalt passen ins Budget, notfalls mit Umschichtung vom Konto oder Finanzierung auf Raten"><span class="tbox">${FILT.afford?'✓':''}</span><span>Nur bezahlbar</span></button></div>
   <div class="rows">${list.slice(0,FILT.n).map(p=>playerRow(p,true)).join('')||'<p class="empty">Keine Spieler für diese Suche.</p>'}</div>
   <div class="mkfoot"><span class="muted">${list.length>FILT.n?`${FILT.n} von ${list.length} Spielern`:`${list.length} Spieler`}</span>${list.length>FILT.n?`<button class="btn ghost sm" data-a="fmore">40 weitere zeigen</button>`:''}</div></section></div>`;

@@ -815,3 +815,13 @@ html.ovopen,html.ovopen body{overflow:hidden}
   .cmpt .vv{padding:1px 4px;min-width:18px}.dwrap{gap:4px}.dm{min-width:30px;font-size:11px}
   .cside b{font-size:24px}.cmpmeter{gap:10px}
 }
+
+/* Große Bildschirme: breiterer Inhalt, größere Listenschrift */
+@media (min-width:1200px){
+.content{max-width:min(1560px,100%)}
+.row .kv{font-size:12.5px;min-width:56px}
+.row .kv b{font-size:15px}
+.row .sub{font-size:13.5px}
+.row .nm,.row b.nm{font-size:16px}
+.row{padding:12px 14px}
+}
