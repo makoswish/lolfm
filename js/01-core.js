@@ -120,7 +120,7 @@ const sgn=n=>n>0?'+'+n:n<0?String(n).replace('-','−'):'±0';
 
 let RFILT='ALL',CLUBTAB='fin',ERR=null,KTAB='depth',KSORT='value',KMODE='pos',PV=null,TACE=0,TTAB='markt',LTAB='comp';
 function pmsg(id,msg,ok){PV=Object.assign(PV||{tab:'vertrag',back:'squad'},{id,msg,ok})}
-let S=null,LIVE=null,MODAL=null,FILT={role:'ALL',src:'ALL',q:'',sort:'ovr',afford:false,n:40,sgn:4},VIEWREG=null,STARTREG='LEC';
+let S=null,LIVE=null,MODAL=null,FILT={role:'ALL',src:'ALL',q:'',sort:'ovr',afford:false,n:40,sgn:3},VIEWREG=null,STARTREG='LEC';
 
 /* ===== Spieler ===== */
 function ovr(p){const w=W[p.role];let s=0;for(const k in w)s+=p.a[k]*w[k];return Math.round(s)}
