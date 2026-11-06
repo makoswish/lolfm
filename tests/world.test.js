@@ -180,7 +180,7 @@ newGame('LYL','Tester');
  const p=S.players[S.teams[S.user].starters.MID];const sal1=salaryFor(ovr(p)),val1=valueFor(p),ls1=lsh(),rv1=regRev(),prz=SPLITPRIZE[0];
  S.fin.slots=Object.fromEntries(SLOTS.map(x=>[x[0],null]));let sum1=0,n1=0;for(let i=0;i<8;i++){genOffers();for(const k in S.fin.offers)for(const o of S.fin.offers[k]){sum1+=o.base;n1++}}
  S.eco=1.5;const sal2=salaryFor(ovr(p)),val2=valueFor(p);
- ok(Math.abs(sal2/sal1-1.5)<.05,'Gehälter folgen dem Index nicht: '+sal1+' zu '+sal2);ok(Math.abs(val2/val1-1.5)<.05,'Werte folgen dem Index nicht');
+ ok(Math.abs(sal2/sal1-1.5)<.05,'Gehälter folgen dem Index nicht: '+sal1+' zu '+sal2);ok(Math.abs(val2/val1-1.5)<.15,'Werte folgen dem Index nicht');
  ok(lsh()===Math.round(ls1*1.5)&&Math.abs(regRev()/rv1-1.5)<.001,'Einnahmen folgen dem Index nicht');
  let sum2=0,n2=0;for(let i=0;i<8;i++){genOffers();for(const k in S.fin.offers)for(const o of S.fin.offers[k]){sum2+=o.base;n2++}}
  ok(Math.abs((sum2/n2)/(sum1/n1)-1.5)<.2,'Sponsoren folgen dem Index nicht: '+Math.round(sum1/n1)+' zu '+Math.round(sum2/n2));

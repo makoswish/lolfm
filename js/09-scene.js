@@ -198,7 +198,7 @@ function loanModal(){const p=S.players[MODAL.loan];if(!p)return'';const L=loanTa
   <div class="acts" style="margin-top:14px"><button class="btn ghost" data-a="cfno">Abbrechen</button></div></div></div>`}
 function scoutTab(){initScouting();
   const reps=S.reports.filter(r=>S.players[r.pid]&&!isMine(S.players[r.pid]));
-  return `<section class="panel s12"><div class="lab"><span>Deine Scouts</span><span>${S.scouts.length}/3 · je Woche 1-3 Berichte</span></div>
+  return `<section class="panel s5 fitcol"><div class="lab"><span>Deine Scouts</span><span>${S.scouts.length}/3 · je Woche 1-3 Berichte</span></div>
    ${S.scouts.map(sc=>`<div class="scard"><div class="scd"><b>${sc.name}</b><span class="muted">Level ${sc.lvl} · ${eur(sc.wage)}/Woche</span>${bar(sc.lvl*20,'var(--brass)')}</div>
     <div><div class="lab" style="margin-bottom:4px">Suchprofil</div><div class="seg" style="margin-bottom:6px">${['ALL',...ROLES].map(r=>`<button class="${(sc.frole||'ALL')===r?'on':''}" data-a="scf" data-k="frole" data-id="${sc.id}" data-v="${r}">${r==='ALL'?'Alle Rollen':r}</button>`).join('')}</div>
      <div class="seg" style="margin-bottom:6px">${[[99,'Jedes Alter'],[23,'bis 23'],[20,'bis 20']].map(([v,l])=>`<button class="${(sc.fage||99)===v?'on':''}" data-a="scf" data-k="fage" data-id="${sc.id}" data-v="${v}">${l}</button>`).join('')}${[[0,'Jeder Preis'],[100000,'bis 100k'],[300000,'bis 300k']].map(([v,l])=>`<button class="${(sc.fval||0)===v?'on':''}" data-a="scf" data-k="fval" data-id="${sc.id}" data-v="${v}">${l}</button>`).join('')}</div>
@@ -208,7 +208,7 @@ function scoutTab(){initScouting();
     ${S.scouts.length>1?`<button class="btn danger sm" data-a="scfire" data-id="${sc.id}">Entlassen</button>`:''}</div>`).join('')}
    ${S.scouts.length<3?`<div class="lab" style="margin-top:16px">Scouts auf dem Markt</div><div class="cards">${S.scoutPool.map(sc=>`<div class="card" style="cursor:default"><b>${sc.name}</b><p>Level ${sc.lvl} · ${eur(sc.wage)} pro Woche</p>${bar(sc.lvl*20,'var(--brass)')}<button class="btn sm" style="align-self:flex-start;margin-top:6px" data-a="schire" data-id="${sc.id}" ${S.fin.balance<sc.fee?'disabled':''}>Einstellen (${eurK(sc.fee)})</button></div>`).join('')}</div>`:''}
    <p class="muted" style="font-size:13px;margin:12px 0 0">Scouts erhöhen das Wissen über Spieler. Mit mehr Wissen werden die Attribut-Spannen enger, und Potenzial und Persönlichkeit werden sichtbar. Spieler auf deiner Beobachtungsliste beobachten sie zusätzlich jede Woche.</p></section>
-  <section class="panel s12"><div class="lab"><span>Scouting-Berichte</span><span>${reps.length}</span></div>
+  <section class="panel s7 fitcol"><div class="lab"><span>Scouting-Berichte</span><span>${reps.length}</span></div>
    <div class="seg" style="margin-bottom:10px">${['ALL','A','B','C','D'].map(g=>`<button class="${RFILT===g?'on':''}" data-a="rfilt" data-v="${g}">${g==='ALL'?'Alle':g+' ('+reps.filter(r=>r.g===g).length+')'}</button>`).join('')}</div>
    ${reps.filter(r=>RFILT==='ALL'||r.g===RFILT).map(r=>{const p=S.players[r.pid];return `<button class="row rep" data-a="player" data-id="${p.id}"><span class="grade g${r.g}">${r.g}</span><span style="min-width:0"><div class="nm">${chip(p.role)} ${p.name} <span class="muted" style="font-weight:500;font-size:13px">${r.txt}</span></div>
      <div class="sub">${p.age} J. · ${p.team?S.teams[p.team].name:'vereinslos'} · ${r.sc} (L${r.lvl}) · ${r.when} · ${signTag(p)}</div>${r.st?`<div class="sub">Stärken: ${r.st.map(x=>DN[x]).join(', ')} · Schwäche: ${DN[r.wk[0]]}</div>`:''}</span>

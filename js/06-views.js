@@ -22,7 +22,7 @@ function transferView(){
    <label class="mksort"><span class="muted">Bereitschaft</span><select id="tsgn" class="inp">${[[4,'Alle'],[3,'Ohne Extremfälle'],[2,'Höchstens schwer'],[1,'Machbar oder leichter'],[0,'Nur leicht']].map(([v,l])=>`<option value="${v}" ${(FILT.sgn??3)===v?'selected':''}>${l}</option>`).join('')}</select></label>
    <button class="tog ${FILT.noimp?'on':''}" data-a="fnoimp" title="Blendet Spieler aus, die bei dir als Import zählen"><span class="tbox">${FILT.noimp?'✓':''}</span><span>Ohne Importe</span></button>
    <button class="tog ${FILT.afford?'on':''}" data-a="faff" title="Ablöse und Gehalt passen ins Budget, notfalls mit Umschichtung vom Konto oder Finanzierung auf Raten"><span class="tbox">${FILT.afford?'✓':''}</span><span>Nur bezahlbar</span></button></div>
-  <div class="rows">${list.slice(0,FILT.n).map(p=>playerRow(p,true)).join('')||'<p class="empty">Keine Spieler für diese Suche.</p>'}</div>
+  <div class="rows fitrows">${list.slice(0,FILT.n).map(p=>playerRow(p,true)).join('')||'<p class="empty">Keine Spieler für diese Suche.</p>'}</div>
   <div class="mkfoot"><span class="muted">${list.length>FILT.n?`${FILT.n} von ${list.length} Spielern`:`${list.length} Spieler`}</span>${list.length>FILT.n?`<button class="btn ghost sm" data-a="fmore">40 weitere zeigen</button>`:''}</div></section></div>`;
 }
 /* Sortierung im Markt. Potenzial zählt nur, wenn es gescoutet ist, sonst verrät die Liste mehr als die Spielerseite. */

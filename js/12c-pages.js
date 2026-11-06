@@ -61,7 +61,7 @@ const UISC=[['auto','Automatisch'],['0.9','90 %'],['1','100 %'],['1.15','115 %']
 function uiPref(){try{return localStorage.getItem('riftmgr_ui')||'auto'}catch(e){return 'auto'}}
 function uiAuto(w){return w<900?1:w>=2800?1.5:w>=2200?1.3:w>=1700?1.15:1}
 function uiScale(){const p=uiPref(),w=typeof window!=='undefined'?(window.innerWidth||1200):1200;if(p==='auto')return uiAuto(w);const v=+p;return w<900?Math.min(v,1.15):v}
-function applyScale(){try{const z=uiScale();if(typeof document!=='undefined'&&document.body)document.body.style.zoom=z===1?'':String(z)}catch(e){}}
+function applyScale(){try{const z=uiScale();if(typeof document!=='undefined'&&document.body){document.body.style.zoom=z===1?'':String(z);document.documentElement.style.setProperty('--vh',(window.innerHeight/z)+'px')}}catch(e){}}
 function setUiScale(v){try{localStorage.setItem('riftmgr_ui',v)}catch(e){}applyScale()}
 function uiPanel(){const p=uiPref();return `<section class="panel s12"><div class="lab"><span>Darstellung</span><span>Skalierung ${Math.round(uiScale()*100)} %</span></div>
   <div class="seg">${UISC.map(([v,l])=>`<button class="${p===v?'on':''}" data-a="uisc" data-v="${v}">${l}</button>`).join('')}</div>
@@ -74,3 +74,6 @@ if(typeof window!=='undefined'&&window.addEventListener){window.addEventListener
 /* Handy: Die Leiste unten scrollt waagerecht, die aktive Gruppe bleibt sichtbar. */
 function navScroll(){if(typeof document==='undefined'||typeof window==='undefined'||window.innerWidth>=900)return;const side=document.querySelector('.side'),on=side&&side.querySelector('.ngrp.open');
   if(side&&on)side.scrollLeft=Math.max(0,on.offsetLeft-(side.clientWidth-on.offsetWidth)/2)}
+
+/* Verhandlung: der Verlauf zeigt immer die neueste Nachricht. */
+function chatBottom(){if(typeof document==='undefined')return;const c=document.querySelector('.ngchat .chat');if(c)c.scrollTop=c.scrollHeight}
