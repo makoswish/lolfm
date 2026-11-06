@@ -222,14 +222,14 @@ newGame('LYL','Tester');
  // Zum Saisonstart sind alle Stellen besetzt
  const vac=T1().filter(t=>t.id!==S.user).slice(0,3);for(const t of vac){t.mgr=null;t.vac=true}fillVacancies();ok(vac.every(t=>t.mgr&&!t.vac),'Vakanzen werden nicht besetzt')}
 // Entlassung: ebenfalls nur vakante Vereine
-newGame('LSN','Tester');playSeason();
+newGame('LSN','Tester');playSeason();takeJob();
 {S.board=5;S.summary=S.summary||{place:8,exp:2,splits:[],intl:[]};careerSeason();ok(S.jobless&&S.jobs.list.length>=2&&S.jobs.list.every(id=>S.teams[id].vac&&!S.teams[id].mgr),'Entlassung: Angebote von Vereinen mit Manager')}
 `;
 module.exports+=`
 function ok(c,msg){if(!c){console.log('FEHLER',msg);bad++}}
 function html(){return document.querySelector('#app').innerHTML}
 // Personal nach dem Vereinswechsel: Einstellen und Entlassen geben immer eine Rückmeldung
-newGame('LYL','Tester');playSeason();
+newGame('LYL','Tester');playSeason();takeJob();
 {const T=Object.values(S.teams).filter(t=>t.tier!==2&&!t.academy&&t.reg==='LCK').sort((a,b)=>b.rep-a.rep)[4];ok(switchTeam(T.id)===null,'Wechsel');
  ACT.nav2({v:'club',k:'CLUBTAB',t:'staff'});chk('Trainerstab');
  // Rolle voll: Analyst
@@ -294,7 +294,7 @@ newGame('LYL','Tester');
  let g=0;while(S.phase!=='offseason'&&g++<260){playWeek();reload();chk('Woche '+S.step)}ok(S.phase==='offseason','Saison nach dem Tausch hängt');
 }
 // Nutzer steigt ab: wie Entlassung mit Angeboten
-newGame('LSN','Tester');playSeason();
+newGame('LSN','Tester');playSeason();takeJob();
 {const U=S.teams[S.user],r=U.reg,B=t2Champ(r),old=S.user;ok(B,'Kein T2-Meister');
  swapTiers(U,B);S.relegUser=true;S.summary=S.summary||{place:10,exp:10,splits:[],intl:[]};careerSeason();
  ok(S.jobless&&S.jobs&&S.jobs.relegated&&S.jobs.list.length>=2&&S.jobs.list.every(id=>S.teams[id].tier!==2&&S.teams[id].vac),'Abstieg führt nicht zu Angeboten');
