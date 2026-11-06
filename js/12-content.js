@@ -98,6 +98,7 @@ function genJobs(up){const L=jobCands(up),U=S.teams[S.user];if(!L.length)return[
   for(let i=0;i<(up?2:3)&&pool.length;i++){const tot=pool.reduce((a,t)=>a+w(t),0);let x=R()*tot,k=0;for(;k<pool.length-1;k++){x-=w(pool[k]);if(x<=0)break}out.push(pool.splice(k,1)[0].id)}return out}
 function careerSeason(){const s=S.summary;if(!s)return;S.career=S.career||[];S.career.unshift({year:S.year,team:S.user,place:s.place,exp:s.exp,board:Math.round(S.board),titles:S.trophies.filter(t=>t.year===S.year).length});
   S.jobs=null;
+  if(S.resign){resignDo();return}
   if(S.board<SACK_AT){const L=genJobs(false);S.jobless=true;S.jobs={list:L.length?L:genJobs(true),sacked:true};
     mail('Der Vorstand trennt sich von dir',`Das Vertrauen liegt bei ${Math.round(S.board)}%. Die Bilanz: ${(S.goals&&S.goals.final||[]).map(x=>`${x.txt} ${x.st}`).join(', ')}. Damit ist Schluss bei ${S.teams[S.user].name}. Es liegen ${S.jobs.list.length} Angebote vor. Du musst eins annehmen, bevor die neue Saison startet.`,{type:'job'});news(`${S.teams[S.user].name} trennt sich von ${S.manager}.`,'liga');return}
   const good=s.place<=Math.max(1,s.exp-1)||S.trophies.some(t=>t.year===S.year);
@@ -105,8 +106,8 @@ function careerSeason(){const s=S.summary;if(!s)return;S.career=S.career||[];S.c
 function switchTeam(tid){const T=S.teams[tid];if(!T||T.tier===2||T.academy||tid===S.user||LIVE)return 'Wechsel nicht möglich.';if(S.phase!=='offseason')return 'Gewechselt wird nur in der Saisonpause.';
   const old=S.teams[S.user],oldA=aca();loansReturn();
   if(oldA){for(const id of [...oldA.roster])toFA(S.players[id]);delete S.teams[oldA.id]}
-  old.tac=null;S.user=tid;S.jobless=false;S.jobs=null;
-  S.fin=newFin((T.rep-40)*20000,T.rep*2000);S.fin.lshare=1;S.fin.ibase=null;infraInit();genOffers();setBudgets();
+  old.tac=null;S.user=tid;S.jobless=false;S.jobs=null;S.resign=false;
+  S.fin=newFin((T.rep-40)*20000,T.rep*2000);S.fin.lshare=1;S.fin.ibase=null;infraInit();genOffers();for(const[k]of SLOTS)if(slotOpen(k)&&S.fin.offers[k]&&S.fin.offers[k][0]){S.fin.slots[k]=S.fin.offers[k][0];S.fin.slots[k].sat=60}setBudgets();
   S.staffs=null;S.staff={coach:1,analyst:1};initStaff();newStaffPool();syncStaff();S.scouts=null;initScouting();S.trials=[];S.ment={};
   S.tacs=['A','B','C'].map(n=>defTac(T,n));S.tacs[1].style='SCL';S.tacs[2].style='AGG';S.tacA=0;applyTac();initKnow();
   S.board=mgrBoard();S.capt=null;S.scrim=null;VIEWREG=T.reg;KTAB='depth';S.goals=null;
@@ -117,7 +118,7 @@ function switchTeam(tid){const T=S.teams[tid];if(!T||T.tier===2||T.academy||tid=
   mail(`Neuer Job: ${T.name}`,`Du übernimmst ${T.name} (${T.reg}, Ruf ${T.rep}, ${prestigeOf(T)}). Das Vorstandsziel für die neue Saison: Platz ${expected(tid)}. Trainerstab, Scouts und Finanzen gehören zum Verein, deine Taktik-Ideen musst du dem Team erst beibringen.`);
   news(`${T.name} holt ${S.manager} als neuen Manager.`,'transfer');S.view='home';return null}
 function jobsView(){const J=S.jobs;if(!J||!J.list.length)return `<div class="pagehead"><div><h1>Jobangebote</h1><p>Aktuell keine Angebote.</p></div></div>`;
-  return `<div class="pagehead"><div><h1>${J.sacked?'Entlassen':'Jobangebote'}</h1><p>${J.sacked?'Du musst einen dieser Vereine übernehmen, bevor die neue Saison startet.':'Du kannst bleiben oder zu einem dieser Vereine wechseln. Die Angebote gelten bis zum Saisonstart.'}</p></div></div>
+  return `<div class="pagehead"><div><h1>${J.resigned?'Ohne Verein':J.sacked?'Entlassen':'Jobangebote'}</h1><p>${J.resigned?'Du hast gekündigt. Such dir einen Verein aus allen Regionen aus, bevor die neue Saison startet.':J.sacked?'Du musst einen dieser Vereine übernehmen, bevor die neue Saison startet.':'Du kannst bleiben oder zu einem dieser Vereine wechseln. Die Angebote gelten bis zum Saisonstart.'}</p></div></div>
   <div class="grid">${J.list.map(id=>{const T=S.teams[id];if(!T)return'';const exp=expected(id);return `<section class="panel s4"><div class="lab"><span>${T.name}</span><span>${T.reg}</span></div>
    <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px">${crest(T,'lg')}<div><b style="font-size:18px">${prestigeOf(T)}</b><div class="muted" style="font-size:13px">Ruf ${T.rep} · Team-OVR ${teamOvr(T)}</div></div></div>
    <div class="stat"><span class="muted">Philosophie</span><span>${PHIL[philOf(T)][0]}</span></div><div class="stat"><span class="muted">Budget zum Start</span><span>${eurK((T.rep-40)*20000)}</span></div><div class="stat"><span class="muted">Vorstandsziel</span><span>Platz ${exp}</span></div>
@@ -177,7 +178,7 @@ function hofView(){const C=S.career||[],R=S.recs||{},H=Object.values(S.hof||{}).
   const cur=Object.values(S.players).filter(p=>(p.hist||[]).some(h=>h.t===S.user)||p.team===S.user).map(p=>[p,clubGames(p,S.user),clubMvp(p,S.user)]);
   const most=cur.slice().sort((a,b)=>b[1]-a[1])[0],mvp=cur.slice().sort((a,b)=>b[2]-a[2])[0];
   const rec=(l,v,s)=>`<div class="stat"><span class="muted">${l}</span><span style="text-align:right">${v}${s?` <span class="dim" style="font-size:12px">${s}</span>`:''}</span></div>`;
-  return `<div class="pagehead"><div><h1>Rekorde</h1><p>${S.manager} · ${S.trophies.length} ${S.trophies.length===1?'Titel':'Titel'} · ${C.length} ${C.length===1?'Saison':'Saisons'}</p></div></div>
+  return `<div class="pagehead"><div><h1>Rekorde</h1><p>${S.manager} · ${S.trophies.length} ${S.trophies.length===1?'Titel':'Titel'} · ${C.length} ${C.length===1?'Saison':'Saisons'}</p></div></div>${mgrTabs()}
   <div class="grid"><section class="panel s6"><div class="lab"><span>Rekorde</span><span>Karriere</span></div>
    ${rec('Titel',S.trophies.length,S.trophies.slice(0,3).map(t=>t.name+' '+t.year).join(', '))}
    ${rec('Beste Platzierung im Sommer',best?`Platz ${best.place}`:'-',best?`${best.year}, ${S.teams[best.team]?S.teams[best.team].name:''}`:'')}

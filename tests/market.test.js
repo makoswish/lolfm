@@ -65,7 +65,7 @@ newGame('LYL','Tester');
  // Respekt-Malus, mit Gehalt ausgleichbar
  {const a=cScore().sc;NG.hg=0;const b=cScore().sc;NG.hg=8;ok(a<b,'Kein Respekt-Malus')}
  // Mit genug Gehalt kommt ein Deal zustande
- S.fin.budget.wage+=1e6;S.fin.budget.transfer+=1e6;NG.terms.sal=r100(NG.dem.sal*1.3);NG.terms.sb=50000;ACT.ngsign();ok(NG.done===true,'Deal mit hohem Angebot kommt nicht zustande');
+ S.fin.balance=3e7;S.fin.budget.wage+=1e6;S.fin.budget.transfer+=1e6;NG.terms.sal=r100(NG.dem.sal*1.3);NG.terms.sb=50000;ACT.ngsign();ok(NG.done===true,'Deal mit hohem Angebot kommt nicht zustande');
  NG=null;
  // Eigene Spieler: keine Hürde bei Verlängerung
  const mine=S.players[V.starters.MID];ok(hurdleF(mine,true)===1&&hurdleGap(mine)===0,'Hürde bei eigenem Spieler');
@@ -91,7 +91,7 @@ newGame('LYL','Tester');
  // Kein Rahmen ohne Vertrauen, Geld oder bei Minus
  S.board=20;ok(finLimit()===0,'Rahmen trotz Misstrauen');S.board=70;S.fin.balance=-1;ok(finLimit()===0,'Rahmen bei Minus');S.fin.balance=2000000;
  // Verhandlung: Knopf erscheint, Ablöse über dem Budget wird nach Finanzierung akzeptiert
- S.fin.debts=[];const cheap=Object.values(S.players).filter(function(p){return p.team&&p.team!==S.user&&S.teams[p.team].tier!==2&&p.team!==acaId()&&ovr(p)<66&&!isStarter(p)})[0];
+ S.fin.debts=[];S.fin.weeks=[300000,300000,300000];const cheap=Object.values(S.players).filter(function(p){return p.team&&p.team!==S.user&&S.teams[p.team].tier!==2&&p.team!==acaId()&&ovr(p)<66&&!isStarter(p)})[0];
  while(V.roster.length>=MAXR)toFA(S.players[V.roster.find(function(i){return !isStarter(S.players[i])})]);
  ok(startNego('buy',cheap.id)===true,'Kaufverhandlung startet nicht');NG.fee.pay='now';NG.fee.amt=r1000(S.fin.budget.transfer+releasable()+300000);
  render();chk('Verhandlung mit Finanzierung');ok(html().indexOf('data-a="ngfin"')>=0,'Knopf Finanzieren fehlt');

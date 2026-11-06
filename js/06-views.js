@@ -53,8 +53,10 @@ function leagueView(){
      ${!ev&&sp===S.ev&&sp.stage==='rr'?`<div class="lab" style="margin-top:16px">Woche ${sp.round+1}</div>${S.ev.cur.filter(m=>m.tag===reg).map(bmatch).join('')}`:''}</section>`}
   const past=CAL.filter((c,i)=>c.type==='intl'&&S.rec[c.id]).map(c=>{const r=S.rec[c.id];return `<div class="stat"><span>${c.name}</span><span style="font-family:var(--f-body)">${S.teams[r.champ].name} <span class="rg">${S.teams[r.champ].reg}</span></span></div>`}).join('');
   const regseg=`<section class="panel s12" style="padding-block:12px"><div class="seg">${REGS.map(r=>`<button class="${reg===r?'on':''}" data-a="vreg" data-v="${r}">${r} <span style="opacity:.7;font-weight:500">${REG[r].full}</span></button>`).join('')}</div></section>`;
-  const head=`<div class="pagehead"><div><h1>Turniere</h1><p>Saison ${S.year} · ${S.ev?evLabel(S.ev):'Saisonpause'}</p></div></div><div class="seg" style="margin-bottom:16px">${[['comp','Wettbewerbe'],['hist','Meine Spiele'],['stats','Statistiken'],['awards','Auszeichnungen'],['t2','T2-Szene']].map(([k,l])=>`<button class="${LTAB===k?'on':''}" data-a="ltab" data-v="${k}">${l}</button>`).join('')}</div>`;
+  const head=`<div class="pagehead"><div><h1>Turniere</h1><p>Saison ${S.year} · ${S.ev?evLabel(S.ev):'Saisonpause'}</p></div></div><div class="seg" style="margin-bottom:16px">${[['comp','Wettbewerbe'],['hist','Meine Spiele'],['stats','Statistiken'],['awards','Auszeichnungen'],['t2','T2-Szene'],['meta','Meta & Patch'],['lage','Liga-Lage']].map(([k,l])=>`<button class="${LTAB===k?'on':''}" data-a="ltab" data-v="${k}">${l}</button>`).join('')}</div>`;
   if(LTAB==='stats')return head+`<div class="grid">${regseg}${statsView(reg)}</div>`;
+  if(LTAB==='meta')return head+`<div class="grid">${metaTab()}</div>`;
+  if(LTAB==='lage')return head+`<div class="grid">${lageTab()}</div>`;
   if(LTAB==='t2')return head+`<div class="grid">${regseg}${t2View(reg)}</div>`;
   if(LTAB==='hist')return head+`<div class="grid">${mhList()}</div>`;
   if(LTAB==='awards')return head+`<div class="grid">${regseg}${awardsView(reg)}</div>`;
@@ -80,7 +82,7 @@ function qualPanel(reg){const txt=a=>a.length===1?`Platz ${a[0]}`:a[0]===1&&a[1]
 /* ===== Verein ===== */
 function clubView(){
   const f=S.fin,U=S.teams[S.user];
-  const tabs=[['fin','Übersicht'],['budget','Budgets'],['spons','Sponsoren'],['inc','Einnahmen'],['infra','Infrastruktur'],['fans','Fans'],['staff','Staff & Vorstand']];
+  const tabs=[['fin','Übersicht'],['budget','Budgets'],['spons','Sponsoren'],['inc','Einnahmen'],['infra','Infrastruktur'],['fans','Fans'],['staff','Trainerstab']];
   let body='';
   if(CLUBTAB==='fin'){
     const h=f.hist,mn=Math.min(...h,0),mx=Math.max(...h,1),pts=h.map((v,i)=>`${(i/(Math.max(1,h.length-1))*300).toFixed(1)},${(90-(v-mn)/(mx-mn)*80).toFixed(1)}`).join(' ');
@@ -100,6 +102,7 @@ function clubView(){
      ${f.loan?`<div class="stat"><span class="muted">Restschuld</span><span class="bad">${eur(f.loan.left)}</span></div><div class="stat"><span class="muted">Rate pro Woche</span><span>${eur(f.loan.weekly)}</span></div>
        <div class="acts" style="margin-top:8px"><button class="btn ghost sm" data-a="payloan" ${f.balance<f.loan.left?'disabled':''}>Sofort ablösen (${eurK(f.loan.left)})</button></div>`
       :`<p class="muted" style="font-size:13px;margin:0 0 8px">Rückzahlung über 26 Wochen mit 12% Zinsen. Die Bank leiht dir abhängig vom Ruf bis ${eurK(debtMax)}.</p><div class="acts">${LOANS.map(a=>`<button class="btn ghost sm" data-a="lend" data-v="${a}" ${a>debtMax?'disabled':''}>${eurK(a)} leihen</button>`).join('')}</div>`}</section>`;
+    body+=ecoPanel();
   }else if(CLUBTAB==='budget'){
     const b=f.budget,bill=wageBill(),fs=finState(),wk=f.weeks,months=[];for(let i=0;i<wk.length;i+=4)months.push(wk.slice(i,i+4).reduce((a,c)=>a+c,0));
     const mx=Math.max(1,...months.map(Math.abs)),bw=Math.max(14,Math.min(40,520/Math.max(1,13)));
@@ -128,7 +131,7 @@ function clubView(){
   }else if(CLUBTAB==='spons'){
     body=sponsorTab();
   }else if(CLUBTAB==='inc'){
-    const merchW=Math.round(f.fans*.012),ps=Math.round(U.roster.length*500*U.rep/70);
+    const merchW=Math.round(f.fans*.012*regRev()),ps=Math.round(U.roster.length*500*U.rep/70);
     body=`<section class="panel s6"><div class="lab">Merchandise-Preise</div><p class="muted" style="font-size:14px;margin:0 0 10px">Teurere Trikots bringen mehr pro Fan, kosten aber langsam Fans. Günstige Preise machen das Team bekannter.</p>
       <div class="seg">${Object.entries(MERCH).map(([k,m])=>`<button class="${f.merch===k?'on':''}" data-a="merch" data-v="${k}">${m.n}</button>`).join('')}</div>
       <div class="stat" style="margin-top:10px"><span class="muted">Merch pro Woche</span><span>${eur(merchW*MERCH[f.merch].m)}</span></div>
@@ -144,10 +147,7 @@ function clubView(){
   }else if(CLUBTAB==='fans'){
     body=fansTab();
   }else{
-    body=`${goalsPanel()}${staffTab()}${mgrPanel()}${careerPanel()}
-    <section class="panel s6"><div class="lab">Spielstand</div>
-     <p class="muted" style="font-size:13px;margin:0 0 8px">Hängt ein Turnier fest, startet "Phase neu starten" die aktuelle Turnierphase neu. Bisherige Ergebnisse bleiben.</p>
-     <div class="acts"><button class="btn ghost sm" data-a="repair">Phase neu starten</button>${MODAL==='reset'?`<button class="btn danger sm" data-a="reset" data-ok="1">Ja, alles löschen</button><button class="btn ghost sm" data-a="reset" data-ok="0">Abbrechen</button>`:`<button class="btn ghost sm" data-a="reset">Neue Karriere</button>`}</div></section>`;
+    body=staffTab();
   }
   return `<div class="pagehead"><div><h1>Verein</h1><p>${U.reg} · Ruf ${U.rep} · Prestige: ${prestigeOf(U)} · ${eurK(f.balance)}${f.loan?' · Kredit offen':''}</p></div></div>
   <div class="seg" style="margin-bottom:16px">${tabs.map(([k,l])=>`<button class="${CLUBTAB===k?'on':''}" data-a="ctab" data-v="${k}">${l}</button>`).join('')}</div>
@@ -270,7 +270,7 @@ function playerView(){
       ${p.team?`<div class="stat"><span class="muted">Vertrag</span><span>${p.contract} ${p.contract===1?'Saison':'Saisons'}</span></div>`:''}${agentRow(p)}
       ${isLoanIn(p)?`<div class="stat"><span class="muted">Leihe von</span><span>${S.teams[p.loan.from]?S.teams[p.loan.from].name:'-'} bis Saisonende</span></div><div class="stat"><span class="muted">Dein Gehaltsanteil</span><span>${p.loan.share}% · ${eur(wageOf(p))} / Woche</span></div>`:''}
       ${p.trialDone===S.season&&!mine?`<div class="stat"><span class="muted">Probetraining</span><span class="good">abgeschlossen, alle Werte bekannt</span></div>`:''}
-      ${mine&&p.wb?`<div class="stat"><span class="muted">Siegprämie</span><span>${eur(p.wb)} pro Serie</span></div>`:''}
+      ${mine&&p.wb?`<div class="stat"><span class="muted">Siegprämie</span><span>${eur(p.wb)} pro Serie</span></div>`:''}${mine&&p.tb?`<div class="stat"><span class="muted">Titelprämie</span><span>${eur(p.tb)} pro Titel</span></div>`:''}${mine&&p.addon?`<div class="stat"><span class="muted">Ablöse-Bonus offen</span><span>${eurK(p.addon.amt)} nach ${p.addon.g-p.addon.c} Spielen</span></div>`:''}
       ${p.clause?`<div class="stat"><span class="muted">Ausstiegsklausel</span><span>${eur(p.clause)}</span></div>`:''}
       ${mine&&p.promise==='start'?`<div class="stat"><span class="muted">Versprechen</span><span style="font-family:var(--f-body)" class="${isStarter(p)?'good':'bad'}">Stammspieler${isStarter(p)?'':' (gebrochen)'}</span></div>`:''}
       ${p.sellon?`<div class="stat"><span class="muted">Weiterverkaufsanteil</span><span>${p.sellon.pct}% an ${S.teams[p.sellon.team]?S.teams[p.sellon.team].id:'-'}</span></div>`:''}

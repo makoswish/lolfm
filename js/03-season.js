@@ -12,7 +12,7 @@ function stageLabel(st){
   return st.label==='Play-In'?'Play-In':roundName(st.alive.length);
 }
 /* Split */
-function newPatch(){S.patch=(S.patch||0)+1;metaShift();S.meta=shuffle(CH.map((c,i)=>i)).slice(0,10);mail(`Patch ${S.year-2000}.${S.patch}`,`Neuer Patch zum Split. Meta-Champions: ${S.meta.map(c=>CH[c][0]).join(', ')}. Meta-Picks geben im Draft einen Bonus.`)}
+function newPatch(){S.patch=(S.patch||0)+1;metaShift();metaLog(`Patch ${S.year-2000}.${S.patch}: ${STYLES[S.mst.style].n} und ${RN[S.mst.role]} im Fokus`);S.meta=shuffle(CH.map((c,i)=>i)).slice(0,10);mail(`Patch ${S.year-2000}.${S.patch}`,`Neuer Patch zum Split. Meta-Champions: ${S.meta.map(c=>CH[c][0]).join(', ')}. Meta-Picks geben im Draft einen Bonus.`)}
 function initSplit(def){newPatch();
   const ev={id:def.id,type:'split',name:def.name,stage:'rr',round:0,reg:{}};
   for(const r of REGS)ev.reg[r]={ids:teamsOf(r).map(t=>t.id),sched:circle(shuffle(teamsOf(r).map(t=>t.id))),res:[],po:null,order:null};
@@ -104,18 +104,18 @@ function startMail(ev){
 function finishEvent(ev){
   const U=S.teams[S.user];
   if(ev.type==='split'){S.rec[ev.id]={};for(const r of REGS)S.rec[ev.id][r]=ev.reg[r].order;S.splits[ev.id]=ev;
-    const pl=ev.reg[U.reg].order.indexOf(S.user)+1,pr=SPLITPRIZE[pl-1]||5000;book('Preisgeld',pr);if(pl===1)sponsorBonus('title');
+    const pl=ev.reg[U.reg].order.indexOf(S.user)+1,pr=Math.round((SPLITPRIZE[pl-1]||5000)*eco()/1000)*1000;book('Preisgeld',pr);if(pl===1)sponsorBonus('title');
     const champ=S.teams[ev.reg[U.reg].order[0]];for(const r of REGS){const c=S.teams[ev.reg[r].order[0]];if(c)news(`${c.name} gewinnt den ${ev.name} der ${r}.`,'title')}
     mail(`${ev.name} beendet`,pl===1?`Dein Team gewinnt den ${ev.name} der ${U.reg}! Preisgeld ${eurK(pr)}.`:`${champ.name} gewinnt den ${ev.name}. Dein Team wird ${pl}. Preisgeld ${eurK(pr)}.`);
-    if(pl===1){S.trophies.unshift({year:S.year,name:`${U.reg} ${ev.name}`});raiseDemands()}
+    if(pl===1){S.trophies.unshift({year:S.year,name:`${U.reg} ${ev.name}`});raiseDemands();titleBonus()}
     try{boardSplit(ev.id)}catch(e){}
   }else{
     S.rec[ev.id]={champ:ev.champ,place:ev.place};
     for(const id in ev.place){const b=REPB[ev.place[id]]||0;if(b)S.teams[id].rep=clamp(S.teams[id].rep+b,45,95)}
     const myp=ev.place[S.user];
     news(`${S.teams[ev.champ].name} (${S.teams[ev.champ].reg}) gewinnt ${ev.name} ${S.year}.`,'title');
-    if(myp){const pr=PRZ[ev.id][myp]||0;book('Preisgeld',pr);if(myp==='Sieger')sponsorBonus('title');S.fin.fans=Math.round(S.fin.fans*(1+(REPB[myp]||0)*.02));
-      if(myp==='Sieger')S.trophies.unshift({year:S.year,name:ev.name});
+    if(myp){const pr=Math.round((PRZ[ev.id][myp]||0)*eco()/1000)*1000;book('Preisgeld',pr);if(myp==='Sieger')sponsorBonus('title');S.fin.fans=Math.round(S.fin.fans*(1+(REPB[myp]||0)*.02));
+      if(myp==='Sieger'){S.trophies.unshift({year:S.year,name:ev.name});titleBonus()}
       mail(myp==='Sieger'?`${ev.name}-Sieger!`:`${ev.name}: ${myp}`,myp==='Sieger'?`Dein Team gewinnt ${ev.name} ${S.year}. Preisgeld ${eurK(pr)}.`:`Aus in der Runde ${myp}. ${S.teams[ev.champ].name} (${S.teams[ev.champ].reg}) gewinnt das Turnier. Preisgeld ${eurK(pr)}.`)}
     else mail(`${ev.name} vorbei`,`${S.teams[ev.champ].name} aus der ${S.teams[ev.champ].reg} gewinnt ${ev.name} ${S.year}.`);
   }
@@ -144,11 +144,11 @@ function weekTick(){
   for(const[k,n]of SLOTS.slice(0,2))if(!f.slots[k]&&f.offers[k]){f.slots[k]=f.offers[k][0];f.slots[k].sat=60;mail('Sponsor unterschrieben',`Der Vorstand hat ${f.slots[k].name} als ${n} unter Vertrag genommen (Festbetrag ${eurK(f.slots[k].base)} pro Woche bis Saisonende).`)}
   const L={};
   L.Sponsoren=sponsorBase();sponsorWeek();
-  L.Streaming=Math.round(f.fans*.018);
-  L.Merchandise=Math.round(f.fans*.012*MERCH[f.merch].m);
-  L['Liga-Ausschüttung']=LSHARE[U.reg]||4000;
-  if(S.teams[S.user+'A'])L['T2-Förderung']=2000;
-  L.Spielerstreams=f.pstream?Math.round(U.roster.length*500*U.rep/70):0;
+  L.Streaming=Math.round(f.fans*.018*regRev());
+  L.Merchandise=Math.round(f.fans*.012*MERCH[f.merch].m*regRev());
+  L['Liga-Ausschüttung']=lsh();
+  if(S.teams[S.user+'A'])L['T2-Förderung']=Math.round(2000*eco());
+  L.Spielerstreams=f.pstream?Math.round(U.roster.length*500*U.rep/70*eco()):0;
   L.Gehälter=-U.roster.reduce((s,id)=>s+wageOf(S.players[id]),0);
   if(f.adv){const cut=Math.min(f.adv.left,Math.round(L.Sponsoren*.25));L['Vorschuss-Rückzahlung']=-cut;f.adv.left-=cut;if(f.adv.left<=0){f.adv=null;mail('Vorschuss beglichen','Der Sponsor-Vorschuss ist vollständig verrechnet.')}}
   L.Staff=-staffWages();
@@ -216,7 +216,7 @@ function endSeason(){sponsorSeasonEnd();
   try{pressEval()}catch(e){}try{hofSeason()}catch(e){}try{worldSeasonEnd()}catch(e){}try{careerSeason()}catch(e){}
 }
 function newSeason(){
-  loansReturn();youthSeason();infraSeason();trialsEnd();rivSeason();
+  ecoSeason();loansReturn();youthSeason();infraSeason();trialsEnd();rivSeason();
   for(const p of Object.values(S.players)){(p.hist=p.hist||[]).push(Object.assign({y:S.year,o:ovr(p),t:p.team},p.st||{}));if(p.hist.length>8)p.hist.shift();p.st={g:0,w:0,k:0,d:0,mvp:0};p.sg={};if(p.ch){for(const c of p.ch)if(p.age<=25)c[1]=clamp(c[1]+ri(0,2),1,20);if(p.age<=25&&R()<.4&&p.ch.length<8){const nw=CHR[p.role].filter(c=>!p.ch.some(x=>x[0]===c));if(nw.length)p.ch.push([pick(nw),ri(7,12)])}p.ch.sort((a,b)=>b[1]-a[1])}p.age++;const o=ovr(p),room=clamp((p.pot-o)/6,0,1);
     const gl=growLimit(p),gf=p.dev==='s'&&p.age>=22?1.3:p.dev==='f'&&p.age<=19?1.25:1;
     for(const x of DK){if(p.age<=gl)p.d[x]=clamp(p.d[x]+R()*.55*room*gf,1,20);

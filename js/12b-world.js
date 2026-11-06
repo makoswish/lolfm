@@ -9,6 +9,7 @@ function metaNote(){if(!S.mst)return'';return `<div class="stat"><span class="mu
 function hotfix(){if(!S.meta)return;const out=shuffle(S.meta.slice()).slice(0,3),add=shuffle(CH.map((c,i)=>i).filter(c=>!S.meta.includes(c))).slice(0,3);
   S.meta=S.meta.filter(c=>!out.includes(c)).concat(add);const old=S.mst&&S.mst.style;if(R()<.5||!S.mst)metaShift();else S.mst.role=pick(ROLES);
   mail(`Hotfix ${S.year-2000}.${S.patch||1}`,`Der Entwickler ändert das Meta mitten im Split. Neu im Meta: ${add.map(c=>CH[c][0]).join(', ')}. Raus: ${out.map(c=>CH[c][0]).join(', ')}. Stil-Meta: ${STYLES[S.mst.style].n}${old&&old!==S.mst.style?' (vorher '+STYLES[old].n+')':''}, Rollen-Meta: ${RN[S.mst.role]}.`);
+  metaLog(`Hotfix: ${STYLES[S.mst.style].n} und ${RN[S.mst.role]} im Fokus, neu: ${add.map(c=>CH[c][0]).join(', ')}`);
   news(`Hotfix verändert das Meta: ${STYLES[S.mst.style].n} und ${RN[S.mst.role]} im Fokus.`,'liga')}
 
 /* ----- Verletzungen und Reha ----- */
@@ -102,11 +103,26 @@ function exPool(){S.exs=S.exs||[];if(!S.exs.length)return;S.scoutPool=S.scoutPoo
     const st=genStaff(x.role==='SUP'||x.role==='JGL'?'an':'ac',clamp(x.peak/6,8,15));st.name=`${x.name} (Ex-Profi)`;st.ex=true;st.age=clamp(x.age+1,30,45);st.fee=0;S.staffPool.unshift(st)}
   if(S.scoutPool.length>6)S.scoutPool.length=6;if(S.staffPool.length>14)S.staffPool.length=14;S.exs=[]}
 
+/* ----- Prämien aus Verträgen: Titelprämie an Spieler, Ablöse-Bonus an den Ex-Verein ----- */
+function titleBonus(){const U=S.teams[S.user];let sum=0;for(const id of U.roster){const p=S.players[id];if(p&&p.tb&&!p.loan)sum+=p.tb}
+  if(sum){book('Titelprämien',-sum);mail('Titelprämien ausgezahlt',`Für den Titel gehen ${eurK(sum)} an die Spieler.`)}}
+function addonWeek(){const U=S.teams[S.user];for(const id of U.roster){const p=S.players[id];if(!p||!p.addon)continue;const a=p.addon,g=(p.st&&p.st.g)||0;
+  if(g<a.l)a.l=0;a.c+=g-a.l;a.l=g;
+  if(a.c>=a.g){book('Ablöse-Bonus',-a.amt);mail('Ablöse-Bonus fällig',`${p.name} hat ${a.g} Spiele für dich bestritten. ${eurK(a.amt)} gehen an ${S.teams[a.team]?S.teams[a.team].name:'den Ex-Verein'}.`);delete p.addon}}}
+
+/* ----- Branchenwachstum: Marktindex steigt jede Saison um 3 bis 9 Prozent ----- */
+function ecoSeason(){S.eco=S.eco||1;S.ecoLog=S.ecoLog||[];const g=+(.03+R()*.06).toFixed(3);S.eco=+(S.eco*(1+g)).toFixed(4);S.ecoLog.unshift({year:S.year+1,g,v:S.eco});if(S.ecoLog.length>10)S.ecoLog.length=10;
+  mail(`Marktentwicklung ${S.year+1}`,`Die Branche wächst um ${(g*100).toFixed(1).replace('.',',')} %. Gehälter, Ablösen, Sponsoren, Einnahmen und Preisgelder steigen mit. Marktindex: ${Math.round(S.eco*100)}.`);
+  news(`Die Branche wächst: Gehälter und Sponsoren legen um ${(g*100).toFixed(1).replace('.',',')} % zu.`,'liga')}
+function ecoPanel(){const L=S.ecoLog||[];return `<section class="panel s12"><div class="lab"><span>Marktindex</span><span>${Math.round(eco()*100)}</span></div>
+  <p class="muted" style="font-size:13px;margin:0 0 8px">Die Branche wächst jede Saison um 3 bis 9 Prozent. Gehälter, Ablösen, Sponsoren, Liga-Ausschüttung, Streams, Merch und Preisgelder steigen mit dem Index. Laufende Verträge ändern sich erst bei der Verlängerung, Infrastruktur, Content und Hardware kosten gleich viel.</p>
+  ${L.slice(0,5).map(x=>`<div class="stat"><span class="muted">${x.year}</span><span>+${(x.g*100).toFixed(1).replace('.',',')} % · Index ${Math.round(x.v*100)}</span></div>`).join('')||'<p class="empty">Noch keine Saison abgeschlossen.</p>'}</section>`}
+
 /* ----- Wöchentlicher Haken und Saisonende ----- */
 function worldWeek(){
   if(!S.mst)metaShift();
   if(S.ev&&S.ev.type==='split'&&S.step>0&&S.step%7===3&&S.phase!=='offseason')hotfix();
-  injWeek();fanWeek();
+  injWeek();fanWeek();addonWeek();
   if(R()<.5)leagueEvent()}
 function worldSeasonEnd(){mgrSeason()}
 
@@ -124,7 +140,7 @@ function reviewText(){const d=reviewData(),U=d.U;const L=[`Saisonrückblick ${S.
   if(S.mst)L.push(`Meta: ${STYLES[S.mst.style].n}, ${RN[S.mst.role]}`);
   return L.join('\n')}
 function reviewView(){const d=reviewData(),U=d.U;
-  return `<div class="pagehead"><div><h1>Saisonrückblick ${S.year}</h1><p>${U.name} · ${S.phase==='offseason'?'Saison abgeschlossen':'Saison läuft'}</p></div><div class="acts"><button class="btn ghost" data-a="revcopy">Als Text kopieren</button></div></div>
+  return `<div class="pagehead"><div><h1>Saisonrückblick ${S.year}</h1><p>${U.name} · ${S.phase==='offseason'?'Saison abgeschlossen':'Saison läuft'}</p></div><div class="acts"><button class="btn ghost" data-a="revcopy">Als Text kopieren</button></div></div>${mgrTabs()}
   <div class="grid"><section class="panel s6"><div class="lab">Bilanz</div>
    <div class="stat"><span class="muted">Ligaplatz</span><span>${d.s?'Platz '+d.s.place+' (Ziel '+d.s.exp+')':'noch offen'}</span></div>
    <div class="stat"><span class="muted">Titel</span><span>${d.titles.length?d.titles.map(t=>t.name).join(', '):'keiner'}</span></div>

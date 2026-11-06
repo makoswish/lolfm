@@ -3,7 +3,7 @@ const ACT={
   startreg(d){STARTREG=d.v;render()},
   pickteam(d){const n=($('#mgr')||{}).value;useSlot(NEWSLOT||freeSlot()||SLOT);NEWSLOT=null;newGame(d.id,(n||'').trim()||'Manager');render()},
   nav2(d){if(liveLocked())return;if(MODAL==='reset')MODAL=null;
-    if(d.k==='KTAB')KTAB=d.t;else if(d.k==='TACTAB')TACTAB=d.t;else if(d.k==='TTAB')TTAB=d.t;else if(d.k==='LTAB')LTAB=d.t;else if(d.k==='CLUBTAB')CLUBTAB=d.t;
+    if(d.k==='KTAB')KTAB=d.t;else if(d.k==='TACTAB')TACTAB=d.t;else if(d.k==='TTAB')TTAB=d.t;else if(d.k==='LTAB')LTAB=d.t;else if(d.k==='CLUBTAB')CLUBTAB=d.t;else if(d.k==='MTAB')MTAB=d.t;
     if(d.v==='save'){EXP=null;IMPMSG=null}
     if(d.v==='transfer'&&d.t==='scout')(S.reports||[]).forEach(r=>r.seen=true);S.view=d.v;window.scrollTo(0,0);render()},
   ibf(d){IBF=d.v;render()},
@@ -58,6 +58,8 @@ const ACT={
   ngfee(d){NG.fee.amt=Math.max(0,NG.fee.amt+ +d.v);render()},
   ngpay(d){NG.fee.pay=d.v;render()},ngsell(d){NG.fee.sell=+d.v;render()},
   ngsend(){if(!NG.dead&&!NG.done)sendFee();save();render()},
+  ngnudge(d){const[mn,mx]=ngRange(d.k);ngPut(d.k,clamp(ngGet(d.k)+ +d.v,mn,mx));render()},
+  ngalt(){if(!NG.dead&&!NG.done)ngAlt();render()},
   ngsal(d){NG.terms.sal=Math.max(800,NG.terms.sal+ +d.v);render()},
   ngyrs(d){NG.terms.yrs=+d.v;render()},ngrole(d){NG.terms.role=d.v;render()},
   ngsb(d){NG.terms.sb=+d.v;render()},ngwb(d){NG.terms.wb=+d.v;render()},ngcl(d){NG.terms.cl=+d.v;render()},
@@ -90,6 +92,8 @@ const ACT={
   jobs(){S.view='jobs';window.scrollTo(0,0);render()},
   jobtake(d){if(d.ok!=='1'){const T=S.teams[d.v];return askConfirm('jobtake',{v:d.v},`${T.name} übernehmen?`,`Du verlässt ${S.teams[S.user].name}. Trainerstab, Scouts, Finanzen und Academy bleiben beim alten Verein. Dein Spielstand läuft mit ${T.name} weiter.`,'Übernehmen')}
     MODAL=null;const e=switchTeam(d.v);if(e)mail('Wechsel nicht möglich',e);save();window.scrollTo(0,0);render()},
+  resign(d){if(d.v==='off'){S.resign=false;save();render();return}if(d.ok!=='1'){return askConfirm('resign',{},S.phase==='offseason'?'Jetzt kündigen?':'Zum Saisonende kündigen?',S.phase==='offseason'?'Du verlässt '+S.teams[S.user].name+' sofort und wählst einen neuen Verein. Der Manager-Ruf sinkt um 3.':'Du verlässt '+S.teams[S.user].name+' zum Saisonende und wählst dann einen neuen Verein. Der Manager-Ruf sinkt um 3.',S.phase==='offseason'?'Jetzt kündigen':'Kündigen')}MODAL=null;const e=resignAsk();if(e)mail('Kündigung nicht möglich',e);save();render()},
+  uisc(d){setUiScale(d.v);render()},
   reha(d){const e=startReha(d.id);if(e)pmsg(d.id,e,false);save();render()},
   drop(){merchDrop();save();render()},
   revcopy(){const t=reviewText();try{navigator.clipboard.writeText(t)}catch(e){}mail('Saisonrückblick kopiert',t);render()},
@@ -158,7 +162,7 @@ const ACT={
   tplan(d){S.training.plan=PLANS[d.v].slice();save();render()},
   tses(d){S.training.plan[+d.i]=d.v;save();render()},
   ment(d){S.ment=S.ment||{};if(!d.v)delete S.ment[d.id];else{const mo=S.players[d.v],me=S.players[d.id];if(S.ment[d.id]!==d.v&&!mentorOk(mo,me))return;S.ment[d.id]=d.v}save();render()},
-  sthire(d){const st=S.staffPool.find(x=>x.id===d.id);if(!st||S.fin.balance<st.fee)return;
+  sthire(d){const st=S.staffPool.find(x=>x.id===d.id);if(!st||S.fin.balance<st.fee)return;{const old=st.role==='hc'?staffOf('hc').reduce((a,o)=>a+o.wage,0):0,v=boardVeto(st.wage-old,st.fee+(old?old*6:0),'Diese Einstellung');if(v){mail('Vorstand: Veto',v);save();render();return}}
     if(st.role==='hc'){for(const o of staffOf('hc')){S.staffs=S.staffs.filter(x=>x.id!==o.id);book('Abfindungen',-o.wage*6);mail('Head Coach entlassen',`${o.name} muss gehen.`)}}
     else if(staffOf(st.role).length>=SROLE[st.role][1])return;
     book('Investitionen',-st.fee);S.staffs.push(st);S.staffPool=S.staffPool.filter(x=>x.id!==st.id);syncStaff();mail('Neuer Trainer',`${st.name} ist neuer ${SROLE[st.role][0]} (${eurK(st.wage)} pro Woche).`);save();render()},
@@ -172,7 +176,7 @@ const ACT={
   screg(d){const sc=S.scouts.find(x=>x.id===d.id);sc.reg=d.v;save();render()},
   scscope(d){const sc=S.scouts.find(x=>x.id===d.id);sc.scope=d.v;save();render()},
   scfire(d){if(S.scouts.length<=1)return;S.scouts=S.scouts.filter(x=>x.id!==d.id);save();render()},
-  schire(d){const sc=S.scoutPool.find(x=>x.id===d.id);if(!sc||S.scouts.length>=3||S.fin.balance<sc.fee)return;book('Investitionen',-sc.fee);S.scouts.push(sc);S.scoutPool=S.scoutPool.filter(x=>x.id!==d.id);mail('Scout eingestellt',`${sc.name} (Level ${sc.lvl}) arbeitet ab sofort für dich.`);save();render()},
+  schire(d){const sc=S.scoutPool.find(x=>x.id===d.id);if(!sc||S.scouts.length>=3||S.fin.balance<sc.fee)return;{const v=boardVeto(sc.wage,sc.fee,'Diese Einstellung');if(v){mail('Vorstand: Veto',v);save();render();return}}book('Investitionen',-sc.fee);S.scouts.push(sc);S.scoutPool=S.scoutPool.filter(x=>x.id!==d.id);mail('Scout eingestellt',`${sc.name} (Level ${sc.lvl}) arbeitet ab sofort für dich.`);save();render()},
   spcancel(d){const f=S.fin,o=f.slots[d.k];if(!o)return;if(d.ok==='1'){const pen=r1000(o.base*8);book('Sponsor-Kündigung',-pen);f.slots[d.k]=null;genSlotOffers(d.k);SPCONF=null;mail('Sponsor gekündigt',`Der Vertrag mit ${o.name} ist beendet. Strafe: ${eurK(pen)}.`)}else if(d.ok==='0')SPCONF=null;else SPCONF=d.k;save();render()},
   spreq(d){const m=S.inbox.find(x=>x.id===+d.id);if(!m||m.done)return;const o=S.fin.slots[m.k];m.done=true;
     if(d.ok==='1'){book('Sponsor-Events',m.fee);if(o)o.sat=clamp((o.sat||60)+6,0,100);for(const r of ROLES){const p=S.players[S.teams[S.user].starters[r]];p.morale=clamp(p.morale-2,20,100);p.form=clamp(p.form-1,30,100)}m.result=`Angenommen, ${eurK(m.fee)} erhalten`}
@@ -188,11 +192,11 @@ const ACT={
   team(d){MODAL={team:d.id};render()},
   sponsor(d){const f=S.fin;if(f.slots[d.k]||!slotOpen(d.k))return;f.slots[d.k]=f.offers[d.k][+d.i];f.slots[d.k].sat=60;f.slots[d.k].loyal=false;mail('Sponsor unterschrieben',`${f.slots[d.k].name} ist neuer ${SLOTS.find(x=>x[0]===d.k)[1]} (${STYPE[f.slots[d.k].type].n}).`);save();render()},
   merch(d){S.fin.merch=d.v;save();render()},
-  content(d){S.fin.content=+d.v;save();render()},
+  content(d){const n=+d.v,dc=CONTENT[n][0]-CONTENT[S.fin.content][0];if(dc>0){const v=boardVeto(dc,0,'Dieses größere Content-Team');if(v){mail('Vorstand: Veto',v);save();render();return}}S.fin.content=n;save();render()},
   pstream(d){S.fin.pstream=d.v==='1';save();render()},
   infraask(d){const e=infraAsk(d.v);if(e)mail('Antrag nicht möglich',e);save();render()},
-  hwb(d){if(HWB[d.v])S.fin.hwb=d.v;save();render()},
-  loan(d){const f=S.fin,a=+d.v;if(f.loan)return;book('Kredit',a);f.budget.transfer+=a;if(f.balance>0)f.budget.frozen=false;f.loan={left:Math.round(a*1.12),weekly:Math.round(a*1.12/26)};mail('Kredit aufgenommen',`${eurK(a)} sind auf dem Konto und im Transferbudget. Rückzahlung: ${eurK(f.loan.weekly)} pro Woche über 26 Wochen.`);save();render()},
+  hwb(d){if(HWB[d.v]){const dc=HWB[d.v].c-(HWB[S.fin.hwb]?HWB[S.fin.hwb].c:0);if(dc>0){const v=boardVeto(dc,0,'Dieses höhere Hardware-Budget');if(v){mail('Vorstand: Veto',v);save();render();return}}S.fin.hwb=d.v}save();render()},
+  loan(d){const f=S.fin,a=+d.v;if(f.loan)return;{const v=boardVeto(a*1.12/Math.max(4,52-S.step),-a,'Dieser Kredit');if(v){mail('Vorstand: Veto',v);save();render();return}}book('Kredit',a);f.budget.transfer+=a;if(f.balance>0)f.budget.frozen=false;f.loan={left:Math.round(a*1.12),weekly:Math.round(a*1.12/26)};mail('Kredit aufgenommen',`${eurK(a)} sind auf dem Konto und im Transferbudget. Rückzahlung: ${eurK(f.loan.weekly)} pro Woche über 26 Wochen.`);save();render()},
   payloan(){const f=S.fin;if(!f.loan||f.balance<f.loan.left)return;book('Kredittilgung',-f.loan.left);f.loan=null;save();render()},
   repair(){if(LIVE){clearInterval(LIVE.timer);LIVE=null}restartEvent();ERR=null;S.view='home';save();render()},
   staff(d){const lv=S.staff[d.v],cost=60000*lv;if(lv>=5||S.fin.balance<cost)return;book('Investitionen',-cost);S.staff[d.v]++;save();render()},
@@ -217,3 +221,6 @@ document.addEventListener('input',e=>{const t=e.target;if(t&&t.id==='qsin'&&!e.i
 document.addEventListener('input',e=>{const t=e.target;if(!t||t.id!=='tq'||e.isComposing)return;FILT.q=t.value;FILT.n=40;const pos=t.selectionStart;render();const n=$('#tq');if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(_){}}});
 document.addEventListener('change',e=>{const t=e.target;if(t&&t.id==='tsort'){FILT.sort=t.value;FILT.n=40;render()}if(t&&t.id==='tsgn'){FILT.sgn=+t.value;FILT.n=40;render()}});
 initSlot();load();render();
+
+document.addEventListener('input',e=>{const t=e.target;if(t&&t.dataset&&t.dataset.rk&&typeof NG!=='undefined'&&NG){try{ngPut(t.dataset.rk,t.value);const w=t.closest('.rng'),rv=w&&w.querySelector('.rv');if(rv)rv.textContent=ngFmt(t.dataset.rk,+t.value);ngLive()}catch(err){}}});
+document.addEventListener('change',e=>{const t=e.target;if(t&&t.dataset&&t.dataset.rk&&typeof NG!=='undefined'&&NG){try{render()}catch(err){}}});
