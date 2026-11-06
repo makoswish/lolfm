@@ -82,3 +82,8 @@ function chatBottom(){if(typeof document==='undefined')return;const c=document.q
 let NOTE=null;
 function say(t,k){NOTE={t,k:k||'warn'}}
 function noteBox(){if(!NOTE)return '';const n=NOTE;NOTE=null;return `<div class="note ${n.k}" style="margin-bottom:12px;grid-column:1/-1">${n.t}</div>`}
+
+/* Seitenwechsel: Inhalt blendet kurz ein, bei normalen Klicks innerhalb derselben Seite nicht. */
+let FXKEY=null;
+function pageFx(){if(typeof document==='undefined'||typeof S==='undefined'||!S)return;const k=S.view+'|'+[KTAB,TACTAB,TTAB,LTAB,CLUBTAB,MTAB].join();
+  if(k===FXKEY)return;const had=FXKEY!==null;FXKEY=k;if(!had)return;const c=document.querySelector('.content');if(!c)return;c.classList.add('enter');setTimeout(()=>{try{c.classList.remove('enter')}catch(e){}},500)}

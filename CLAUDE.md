@@ -38,6 +38,7 @@ Die Reihenfolge in `index.html` ist wichtig: Code auf oberster Ebene (zum Beispi
 | 15-savegame | Spielstand exportieren und importieren |
 | 16-nav-render | Seitenleiste (`NAVG`), Postfach- und News-Seite, `render()` |
 | 17-actions | Alle Klick-Aktionen (`ACT`) und Event-Listener, Spielstart |
+| 18-music | Generative Musik per Web Audio (`musStart`, `musMood`, `musNote`), Einstellungen und Knopf |
 
 ## Wie das Spiel aufgebaut ist
 
@@ -60,7 +61,8 @@ Die Reihenfolge in `index.html` ist wichtig: Code auf oberster Ebene (zum Beispi
 - **Managerwechsel und Jobs:** Jeder Verein hat `T.mgr`, vakante Vereine `T.vac`. Zum Saisonende trennen sich KI-Vereine von Managern, die unter den Erwartungen blieben (`mgrCarousel`, `perfGap`), `fillVacancies()` besetzt Reste zum Saisonstart. Jobangebote kommen nur von vakanten Vereinen (`jobCands`). Wer entlassen wird oder kündigt, bekommt notfalls zusätzliche Vakanzen (`ensureVac`).
 - **Layout in Bildschirmhöhe:** Verhandlung (`.ngfit`), Scouting (`.fitcol`) und Transfermarkt (`.fitrows`) füllen am PC die Fensterhöhe, Listen scrollen in ihrer Karte. Die Höhe kommt aus `--vh` (Fensterhöhe geteilt durch die Skalierung, gesetzt in `applyScale`), weil `zoom` mit `vh` sonst überdehnt. Neue Vollbild-Seiten nutzen `var(--vh)` statt `100vh`.
 - **Kündigung:** `S.resign` merkt die Kündigung zum Saisonende vor, in der Saisonpause wirkt `resignDo()` sofort. Danach gilt wie nach einer Entlassung `S.jobless` mit `S.jobs.resigned`, die Angebote kommen aus allen Regionen (`resignJobs`, begrenzt durch Vereinsruf und Manager-Ruf). Der Manager-Ruf sinkt um 3.
-- **Version:** Browser cachen Skripte und CSS. Darum tragen alle Dateien in `index.html` `?v=N`, die Zahl steht auch als `BUILD` in `01-core.js` und im Spielstand unter Darstellung. Bei jeder Veröffentlichung beide erhöhen (`sed -i 's/?v=14/?v=15/' index.html`), sonst sehen Spieler alte Versionen.
+- **Version:** Browser cachen Skripte und CSS. Darum tragen alle Dateien in `index.html` `?v=N`, die Zahl steht auch als `BUILD` in `01-core.js` und im Spielstand unter Darstellung. Bei jeder Veröffentlichung beide erhöhen (`sed -i 's/?v=15/?v=16/' index.html`), sonst sehen Spieler alte Versionen.
+- **Musik:** `18-music.js` erzeugt Musik live per Web Audio, es gibt keine Audiodateien. Gleiche Akkordfolge (D-Moll), vier Stimmungen (`MUSM`: calm, work, tense, match) wechseln Tempo, Dichte und Schlagzeug, `musMood()` leitet sie aus Ansicht und Live-Phase ab. Muster sind deterministisch (`musRnd`), darum testbar. Start erst nach einem Klick, Standard ist aus. Einstellung in `localStorage` (`riftmgr_music`).
 - **Skalierung:** `applyScale()` setzt `zoom` auf dem Body. Automatisch 100 % bis 1700 px, dann 115 %, 130 % ab 2200 px und 150 % ab 2800 px, unter 900 px immer 100 %. Die Wahl liegt in `localStorage` (`riftmgr_ui`), nicht im Spielstand.
 - **Branchenwachstum:** `S.eco` ist der Marktindex (Start 1, `eco()`), `ecoSeason()` hebt ihn zu Beginn jeder neuen Saison um 3 bis 9 %. Er wirkt auf `salaryFor`, `valueFor`, Sponsoren, Liga-Ausschüttung, Streams, Merch (über `regRev()` und `lsh()`), Preisgelder, T2-Förderung, Staff- und Scout-Gehälter, Budgets und den Finanzierungsrahmen. Laufende Verträge ziehen erst bei der Verlängerung nach. Infrastruktur, Content und Hardware kosten gleich viel. Alte Stände starten in `migrate()` bei 1. Neue Geldbeträge im Spiel gehören mit `eco()` skaliert.
 - **Vorstands-Veto:** Jede neue Belastung (Vertrag, Ablöse, Staff, Scout, größeres Content-Team, höheres Hardware-Budget, Kredit) rechnet `boardProj()` bis Saisonende hoch (Kontostand, erwartete Wochenbilanz `baseNet`, Einmalkosten, offene Raten, erwartete Prämien über `pexp`). Unter `boardLimit()` (0, bei Vertrauen ab 50 % -30.000 €, ab 70 % -100.000 €) blockiert `boardVeto()`. Die Verhandlung zeigt die Prognose live. Finanzierung auf Raten umgeht das Veto nicht, weil Raten abgezogen werden.
@@ -105,6 +107,6 @@ Ziel: Der Aufstieg zum Topteam soll mehrere Saisons dauern, wie in Football Mana
 
 ## Darstellung
 
-- Dunkles Design mit CSS-Variablen in `css/style.css` (`--bg`, `--panel`, `--brass`, `--good`, `--bad` ...). `--team` ist die Farbe des eigenen Teams. `--r` (10 px) und `--r2` (7 px) sind die Radien für Karten und Bedienelemente.
+- Broadcast-Look: kühle Blautöne, Teamfarbe (`--team`) als Signal, abgeschnittene Ecken (`--cut`, `clip-path` auf `.panel`, `.tile`, `.btn`, `.sheet`), Schrägen bei Titeln und Markierungen, Seitenwechsel blendet kurz ein (`pageFx`, Klasse `.enter`). Variablen in `css/style.css` (`--bg`, `--panel`, `--brass`, `--good`, `--bad` ...). `clip-path` schneidet Schatten und Tooltips ab, nichts in Karten darf über den Rand ragen. `--r` (10 px) und `--r2` (7 px) sind noch für Bedienelemente da, die Karten selbst sind eckig.
 - Flächen sind ruhige Karten mit Titel ohne Balken. Kennzahlen sind eigene Karten, am Handy eine wischbare Reihe. Spätere Regeln am Ende von `style.css` überschreiben frühere, neue Anpassungen kommen ans Ende.
 - Das Spiel muss am Handy laufen (ab 400 px Breite). Unter 900 px wird die Seitenleiste zur Leiste am unteren Rand.

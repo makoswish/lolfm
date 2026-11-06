@@ -43,4 +43,4 @@ function saveView(){const sz=(()=>{try{return saveKB(localStorage.getItem(SAVEKE
     <div class="acts" style="margin-top:8px"><button class="btn sm" data-a="expcopy">Kopieren (${saveKB(EXP.txt)})</button><button class="btn ghost sm" data-a="expmake">Neu erzeugen</button></div>
     ${EXP.msg?`<div class="note ${EXP.msg[0]}" style="margin-top:10px">${EXP.msg[1]}</div>`:''}<p class="dim" style="font-size:12px;margin:8px 0 0">Stand: ${EXP.when}</p>`)
    :`<button class="btn sm" data-a="expmake">Export erzeugen</button>`}</section>
-   <section class="panel s5">${importBox()}</section>${uiPanel()}${maintPanel()}</div>`}
+   <section class="panel s5">${importBox()}</section>${uiPanel()}${musPanel()}${maintPanel()}</div>`}
