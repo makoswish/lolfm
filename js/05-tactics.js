@@ -61,13 +61,13 @@ function tacticViewFull(){
   <section class="panel s6"><div class="lab"><span>Analyse</span><span>gegen Ø ${U.reg}</span></div>${pb('Früh',P.e,avg('e'))}${pb('Mitte',P.m,avg('m'))}${pb('Spät',P.l,avg('l'))}
    <div class="lab" style="margin-top:14px">Vertrautheit</div>${famBar(famOf(t))}<p class="muted" style="font-size:13px;margin:6px 0 0">Das Team lernt jede Einstellung einzeln. Was die aktive Taktik nutzt, wird jede Woche vertrauter. Ungenutzte Einstellungen werden nur ganz langsam vergessen. Ein Wechsel auf schon bekannte Einstellungen kostet nichts.</p>
    <div class="lab" style="margin-top:14px">Hinweise des Co-Trainers</div><ul class="reasons">${notes.map(([c,x])=>`<li class="${c}">${x}</li>`).join('')}</ul></section>
-  <section class="panel s12"><div class="lab"><span>Spielerrollen</span><span>Eignung aus den Attributen (1-20)</span></div>
+  <!--ROLES--><section class="panel s12"><div class="lab"><span>Spielerrollen</span><span>Eignung aus den Attributen (1-20)</span></div>
    ${ROLES.map(r=>{const p=S.players[U.starters[r]];return `<div class="drow"><div class="dl">${chip(r)}<span class="nmcell">${p.name}</span></div><div class="dchs">${Object.entries(PROLE[r]).map(([k,o])=>{const s=suit(p,r,k);
      return `<button class="chb ${t.roles[r]===k?'on':''}" data-a="trole" data-r="${r}" data-v="${k}" title="${o[1]}"><b>${o[0]}</b><span><span class="av ${dcls(s)}" style="font-size:12px">${s.toFixed(1).replace('.',',')}</span> · ${o[2].map(x=>DSHORT[x]).join('/')}</span></button>`}).join('')}</div></div>`}).join('')}
    <p class="muted" style="font-size:13px;margin:10px 0 0">Gute Eignung (ab 13) verstärkt die Wirkung der Rolle, schlechte Eignung (unter 10) dreht sie ins Negative.</p></section>
   <section class="panel s12"><div class="lab"><span>Patch ${S.year-2000}.${S.patch||1} · Meta</span><span>★ im Draft = Bonus</span></div>${metaNote()}
    <div class="metagrid">${ROLES.map(r=>`<div><div class="lab" style="margin-bottom:4px">${RN[r]}</div>${CHR[r].filter(isMeta).map(c=>`<div style="font-size:14px">${CH[c][0]} <span class="tagc t-${CH[c][6]}">${CH[c][6]}</span></div>`).join('')||'<span class="dim" style="font-size:13px">keine</span>'}</div>`).join('')}</div></section>
-  <!--TRAIN-->${trainPanel()}${scrimPanel()}${mentorPanel()}
+  <!--TRAIN-->${trainPanel()}<!--SCRIM-->${scrimPanel()}<!--MENT-->${mentorPanel()}<!--EINZEL-->
   <section class="panel s6"><div class="lab"><span>Einzeltraining</span><span>Tippe einen Spieler</span></div>
    ${U.roster.map(i=>S.players[i]).sort((a,b)=>ROLES.indexOf(a.role)-ROLES.indexOf(b.role)).map(p=>{const l=S.trainLog.find(x=>x.id===p.id);return `<button class="row" style="grid-template-columns:46px minmax(0,1fr) auto" data-a="player" data-id="${p.id}" data-tab="entw"><span>${chip(p.role)}</span><span style="min-width:0"><div class="nm">${p.name}</div><div class="sub">${p.ifoc?'Fokus: '+DN[p.ifoc]:'kein Einzelfokus'}${l&&l.gains&&l.gains.length?' · '+l.gains.map(([x,v])=>`${DN[x]} +${String(v).replace('.',',')}`).join(', '):''}</div></span><span class="mono ${l&&l.d>0?'good':'dim'}">${l&&l.d>0?'+'+l.d:''}</span></button>`}).join('')}</section></div>`;
 }

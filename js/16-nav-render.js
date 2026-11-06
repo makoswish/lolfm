@@ -1,16 +1,26 @@
 /* ===== Navigation ===== */
 let TACTAB='tac',IBF='ALL',NWF='ALL';
-function tacticView(){const h=tacticViewFull(),g=h.indexOf('<div class="grid">'),m=h.indexOf('<!--TRAIN-->');if(g<0||m<0)return h;
-  if(TACTAB==='train')return `<div class="pagehead"><div><h1>Training</h1><p>Wochenplan, Belastung, Mentoring und Einzeltraining.</p></div></div><div class="grid">`+h.slice(m+12);
-  return h.slice(0,m)+'</div>'}
+/* Taktik-Seite in Reiter geteilt: Marker in tacticViewFull trennen die Bereiche. */
+function tacticView(){const h=tacticViewFull(),gi=h.indexOf('<div class="grid">');if(gi<0)return h;
+  const head=h.slice(0,gi),body=h.slice(gi+'<div class="grid">'.length),M=['<!--ROLES-->','<!--TRAIN-->','<!--SCRIM-->','<!--MENT-->','<!--EINZEL-->'],ix=M.map(m=>body.indexOf(m));
+  if(ix.some(i=>i<0))return h;const cut=(i,j)=>body.slice(ix[i]+M[i].length,j==null?body.length:ix[j]);
+  const ph=(t,p)=>`<div class="pagehead"><div><h1>${t}</h1><p>${p}</p></div></div>${groupTabs()}`;
+  if(TACTAB==='roles')return ph('Rollen & Meta','Rollen der Startelf und das Meta des aktuellen Patches.')+'<div class="grid">'+cut(0,1)+'</div>';
+  if(TACTAB==='train')return ph('Trainingsplan','Wochenplan, Belastung und Einzeltraining.')+'<div class="grid">'+cut(1,2)+cut(4,null);
+  if(TACTAB==='scrim')return ph('Scrims','Trainingspartner und Einblick in fremde Stile.')+'<div class="grid">'+cut(2,3)+'</div>';
+  if(TACTAB==='ment')return ph('Mentoring','Erfahrene Spieler bringen Talente voran.')+'<div class="grid">'+cut(3,4)+'</div>';
+  return head.replace('</div></div>','</div></div>'+groupTabs())+'<div class="grid">'+body.slice(0,ix[0])+'</div>'}
 const NAVG=[
  ['buero','Büro','home',[['Übersicht','home'],['Postfach','inbox'],['News','news']]],
- ['team','Team','squad',[['Kaderübersicht','squad','KTAB','depth'],['Aufstellung','squad','KTAB','list'],['Attribute','squad','KTAB','attr'],['Form & Moral','squad','KTAB','mood'],['Teamchemie','squad','KTAB','chem'],['Medizin','squad','KTAB','med'],['Statistik','squad','KTAB','stats'],['Academy','squad','KTAB','aca'],['Verträge','squad','KTAB','vert'],['Taktik','tactic','TACTAB','tac'],['Training','tactic','TACTAB','train']]],
+ ['team','Kader','squad',[['Kaderübersicht','squad','KTAB','depth'],['Aufstellung','squad','KTAB','list'],['Attribute','squad','KTAB','attr'],['Form & Moral','squad','KTAB','mood'],['Teamchemie','squad','KTAB','chem'],['Medizin','squad','KTAB','med'],['Statistik','squad','KTAB','stats'],['Verträge','squad','KTAB','vert']]],
+ ['taktik','Taktik','tactic',[['Taktik','tactic','TACTAB','tac'],['Rollen & Meta','tactic','TACTAB','roles']]],
+['train','Training','tactic',[['Trainingsplan','tactic','TACTAB','train'],['Scrims','tactic','TACTAB','scrim'],['Mentoring','tactic','TACTAB','ment'],['Trainerstab','club','CLUBTAB','staff']]],
  ['markt','Markt','transfer',[['Transfermarkt','transfer','TTAB','markt'],['Scouting','transfer','TTAB','scout'],['Beobachtung','transfer','TTAB','short'],['Transferverlauf','transfer','TTAB','hist']]],
  ['comp','Wettbewerb','league',[['Turniere','league','LTAB','comp'],['Meine Spiele','league','LTAB','hist'],['Statistiken','league','LTAB','stats'],['Auszeichnungen','league','LTAB','awards'],['T2-Szene','league','LTAB','t2'],['Meta & Patch','league','LTAB','meta'],['Liga-Lage','league','LTAB','lage']],'Liga'],
- ['verein','Verein','club',[['Finanzen','club','CLUBTAB','fin'],['Budgets','club','CLUBTAB','budget'],['Sponsoren','club','CLUBTAB','spons'],['Einnahmen','club','CLUBTAB','inc'],['Infrastruktur','club','CLUBTAB','infra'],['Fans','club','CLUBTAB','fans'],['Trainerstab','club','CLUBTAB','staff']]],
+ ['fin','Finanzen','club',[['Übersicht','club','CLUBTAB','fin'],['Budgets','club','CLUBTAB','budget'],['Sponsoren','club','CLUBTAB','spons'],['Einnahmen','club','CLUBTAB','inc']]],
+ ['verein','Verein','club',[['Infrastruktur','club','CLUBTAB','infra'],['Fans','club','CLUBTAB','fans'],['Academy','squad','KTAB','aca']]],
  ['mgr','Manager','mgr',[['Vorstand','mgr','MTAB','board'],['Karriere','mgr','MTAB','career'],['Rekorde','hof'],['Saisonrückblick','review'],['Spielstand','save']]]];
-const GICON={buero:ICON.home,team:ICON.squad,markt:ICON.transfer,comp:ICON.league,verein:ICON.club,mgr:ICON.mgr};
+const GICON={buero:ICON.home,team:ICON.squad,taktik:ICON.tactic,train:ICON.train,markt:ICON.transfer,comp:ICON.league,fin:ICON.fin,verein:ICON.club,mgr:ICON.mgr};
 function tabVal(k){return{KTAB,TACTAB,TTAB,LTAB,CLUBTAB,MTAB}[k]}
 function navBadge(v,t){if(v==='inbox'){const n=unseen();return n?`<span class="nbadge">${n>9?'9+':n}</span>`:''}
   if(v==='transfer'&&t==='scout'){const n=(S.reports||[]).filter(r=>r.g==='A'&&!r.seen&&S.players[r.pid]&&!isMine(S.players[r.pid])).length;return n?`<span class="nbadge g">${n}</span>`:''}
@@ -18,7 +28,13 @@ function navBadge(v,t){if(v==='inbox'){const n=unseen();return n?`<span class="n
   if(v==='squad'&&t==='vert'){const n=squadAll().filter(([p])=>p.contract<=1&&p.tried!==wkKey()).length;return n?`<span class="nbadge w">${n}</span>`:''}
   return ''}
 function unseen(){return S.inbox.filter(m=>m.id>(S.seenMail||0)).length+S.inbox.filter(m=>['offer','spreq','pev'].includes(m.type)&&!m.done&&m.id<=(S.seenMail||0)).length}
-function grpOf(){for(const g of NAVG)if(g[3].some(i=>i[1]===S.view)||(g[2]===S.view))return g[0];if(['player','nego','mh','prematch','live','draft'].includes(S.view))return{player:'team',nego:'markt',mh:'comp'}[S.view]||'buero';return 'buero'}
+function grpOf(){for(const g of NAVG)for(const i of g[3])if(i[1]===S.view&&(!i[2]||tabVal(i[2])===i[3]))return g[0];
+  for(const g of NAVG)if(g[3].some(i=>i[1]===S.view))return g[0];
+  if(['player','nego','mh','prematch','live','draft'].includes(S.view))return{player:'team',nego:'markt',mh:'comp'}[S.view]||'buero';return 'buero'}
+/* Reiterleiste einer Seite: alle Punkte der aktuellen Gruppe, auch über Ansichten hinweg. */
+function groupTabs(){const g=NAVG.find(x=>x[0]===grpOf());if(!g||g[3].length<2)return '';
+  return `<div class="seg" style="margin-bottom:16px">${g[3].map(([l,v,tk,tv])=>{const on=S.view===v&&(!tk||tabVal(tk)===tv);return `<button class="${on?'on':''}" data-a="nav2" data-v="${v}" data-k="${tk||''}" data-t="${tv||''}">${l}</button>`}).join('')}</div>`}
+function grpLabel(){const g=NAVG.find(x=>x[0]===grpOf());return g?g[1]:''}
 function inboxView(){S.seenMail=Math.max(S.seenMail||0,...S.inbox.map(m=>m.id),0);const cats=['ALL',...Object.keys(MCAT)],L=S.inbox.filter(m=>IBF==='ALL'||mailCat(m.title)===IBF),open=S.inbox.filter(m=>['offer','spreq','pev'].includes(m.type)&&!m.done);
   return `<div class="pagehead"><div><h1>Postfach</h1><p>${S.inbox.length} Nachrichten${open.length?` · ${open.length} warten auf deine Entscheidung`:''}</p></div></div>
   <div class="seg" style="margin-bottom:16px">${cats.map(c=>`<button class="${IBF===c?'on':''}" data-a="ibf" data-v="${c}">${c==='ALL'?'Alle':MCAT[c][0]} ${c==='ALL'?'':`<span class="dim">${S.inbox.filter(m=>mailCat(m.title)===c).length}</span>`}</button>`).join('')}</div>
@@ -42,6 +58,7 @@ function render(){
   const v={home:homeView,squad:squadView,tactic:tacticView,transfer:transferView,league:leagueView,club:clubView,prematch:preView,live:liveView,player:playerView,draft:draftView,nego:negoView,mh:mhView,inbox:inboxView,news:newsView,save:saveView,jobs:jobsView,cmp:cmpView,hof:hofView,review:reviewView,mgr:mgrView}[S.view]||homeView;
   try{app.innerHTML=`<div class="shell">${sideNav()}<div class="main">${topBar()}<main class="content">${ERR?errView():v()}</main></div></div>${MODAL&&MODAL.team?teamModal():''}${MODAL==='sim'&&!SIMRUN?simMenu():''}${SIMRUN?simOverlay():''}${SIMREP&&!SIMRUN?simReport():''}${MODAL&&MODAL.cf?confirmView():''}${MODAL&&MODAL.loan?loanModal():''}${MODAL&&MODAL.lin?loanInModal():''}${MODAL&&MODAL.qs?qsModal():''}`;histSync();if(MODAL&&MODAL.qs){const n=$('#qsin');if(n){n.focus();try{n.setSelectionRange(n.value.length,n.value.length)}catch(e){}}}}
   catch(e){ERR=e.message;try{app.innerHTML=`<main class="content">${errView()}</main>`}catch(_){app.innerHTML='<p style="padding:20px">Fehler im Spielstand.</p>'}}
+  try{navScroll()}catch(e){}
 }
 function errView(){return `<section class="panel"><div class="lab">Fehler</div><p style="margin:0 0 6px">Hier ist etwas schiefgelaufen (${ERR}). Dein Spielstand ist gespeichert.</p><p class="muted" style="margin:0 0 12px;font-size:14px">"Phase neu starten" setzt die aktuelle Turnierphase neu auf. Die bisherigen Ergebnisse der Saison bleiben erhalten.</p><div class="acts"><button class="btn" data-a="repair">Phase neu starten</button><button class="btn ghost" data-a="nav" data-v="home">Zur Übersicht</button></div></section>`}
 

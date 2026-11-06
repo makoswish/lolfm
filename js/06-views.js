@@ -10,7 +10,7 @@ function transferView(){
   if(FILT.noimp)list=list.filter(p=>!isImp(p,S.teams[S.user].reg));
   if((FILT.sgn??3)<4)list=list.filter(p=>signDiff(p).lv<=FILT.sgn);
   const sk=MSORT[FILT.sort]||MSORT.ovr;list.sort((a,b)=>sk[1](b)-sk[1](a)||ovr(b)-ovr(a));
-  const tabs=`<div class="seg" style="margin-bottom:16px">${[['markt','Markt'],['scout','Scouting'],['short','Beobachtung'],['hist','Verlauf']].map(([k,l])=>`<button class="${TTAB===k?'on':''}" data-a="ttab" data-v="${k}">${l}</button>`).join('')}</div>`;
+  const tabs=groupTabs();
   const rl=releasable();const head=`<div class="pagehead"><div><h1>Transfers</h1><p>Transferbudget ${eurK(S.fin.budget.transfer)} · Gehalt frei ${eurK(Math.max(0,wageFree()))}/Wo. · Kader ${U.roster.length}/${MAXR}</p></div>${rl>=25000?`<button class="btn ghost sm" data-a="gobudget">${eurK(rl)} freigeben</button>`:''}</div>${tabs}`;
   if(TTAB==='scout')return head+`<div class="grid">${scoutTab()}</div>`;
   if(TTAB==='short')return head+`<div class="grid">${shortTab()}</div>`;
@@ -53,7 +53,7 @@ function leagueView(){
      ${!ev&&sp===S.ev&&sp.stage==='rr'?`<div class="lab" style="margin-top:16px">Woche ${sp.round+1}</div>${S.ev.cur.filter(m=>m.tag===reg).map(bmatch).join('')}`:''}</section>`}
   const past=CAL.filter((c,i)=>c.type==='intl'&&S.rec[c.id]).map(c=>{const r=S.rec[c.id];return `<div class="stat"><span>${c.name}</span><span style="font-family:var(--f-body)">${S.teams[r.champ].name} <span class="rg">${S.teams[r.champ].reg}</span></span></div>`}).join('');
   const regseg=`<section class="panel s12" style="padding-block:12px"><div class="seg">${REGS.map(r=>`<button class="${reg===r?'on':''}" data-a="vreg" data-v="${r}">${r} <span style="opacity:.7;font-weight:500">${REG[r].full}</span></button>`).join('')}</div></section>`;
-  const head=`<div class="pagehead"><div><h1>Turniere</h1><p>Saison ${S.year} · ${S.ev?evLabel(S.ev):'Saisonpause'}</p></div></div><div class="seg" style="margin-bottom:16px">${[['comp','Wettbewerbe'],['hist','Meine Spiele'],['stats','Statistiken'],['awards','Auszeichnungen'],['t2','T2-Szene'],['meta','Meta & Patch'],['lage','Liga-Lage']].map(([k,l])=>`<button class="${LTAB===k?'on':''}" data-a="ltab" data-v="${k}">${l}</button>`).join('')}</div>`;
+  const head=`<div class="pagehead"><div><h1>Turniere</h1><p>Saison ${S.year} · ${S.ev?evLabel(S.ev):'Saisonpause'}</p></div></div>${groupTabs()}`;
   if(LTAB==='stats')return head+`<div class="grid">${regseg}${statsView(reg)}</div>`;
   if(LTAB==='meta')return head+`<div class="grid">${metaTab()}</div>`;
   if(LTAB==='lage')return head+`<div class="grid">${lageTab()}</div>`;
@@ -82,7 +82,6 @@ function qualPanel(reg){const txt=a=>a.length===1?`Platz ${a[0]}`:a[0]===1&&a[1]
 /* ===== Verein ===== */
 function clubView(){
   const f=S.fin,U=S.teams[S.user];
-  const tabs=[['fin','Übersicht'],['budget','Budgets'],['spons','Sponsoren'],['inc','Einnahmen'],['infra','Infrastruktur'],['fans','Fans'],['staff','Trainerstab']];
   let body='';
   if(CLUBTAB==='fin'){
     const h=f.hist,mn=Math.min(...h,0),mx=Math.max(...h,1),pts=h.map((v,i)=>`${(i/(Math.max(1,h.length-1))*300).toFixed(1)},${(90-(v-mn)/(mx-mn)*80).toFixed(1)}`).join(' ');
@@ -149,8 +148,8 @@ function clubView(){
   }else{
     body=staffTab();
   }
-  return `<div class="pagehead"><div><h1>Verein</h1><p>${U.reg} · Ruf ${U.rep} · Prestige: ${prestigeOf(U)} · ${eurK(f.balance)}${f.loan?' · Kredit offen':''}</p></div></div>
-  <div class="seg" style="margin-bottom:16px">${tabs.map(([k,l])=>`<button class="${CLUBTAB===k?'on':''}" data-a="ctab" data-v="${k}">${l}</button>`).join('')}</div>
+  return `<div class="pagehead"><div><h1>${grpLabel()}</h1><p>${U.reg} · Ruf ${U.rep} · Prestige: ${prestigeOf(U)} · ${eurK(f.balance)}${f.loan?' · Kredit offen':''}</p></div></div>
+  ${groupTabs()}
   <div class="grid">${body}</div>`;
 }
 

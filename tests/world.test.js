@@ -11,7 +11,7 @@ ok(S.mst&&SK.includes(S.mst.style)&&ROLES.includes(S.mst.role),'Meta fehlt');
 {const T=Object.values(S.teams).find(t=>t.tier!==2&&t.id!==S.user);T.style=S.mst.style;const a=teamPower(T);S.mst.style=SK.find(k=>k!==T.style);const b=teamPower(T);
  ok(Math.abs((a.e+a.m+a.l)-(b.e+b.m+b.l)-3)<.01,'Stil-Meta wirkt nicht mit +1 je Phase')}
 {const m0=S.meta.slice();S.step=3;S.ev={type:'split'};const n0=S.inbox.length;hotfix();ok(S.meta.length===m0.length&&S.meta.some(c=>!m0.includes(c)),'Hotfix ändert das Meta nicht');ok(S.inbox.length>n0,'Hotfix ohne Mail');S.ev=null;S.step=0}
-ACT.nav2({v:'tactic'});ok(html().includes('Stil-Meta'),'Meta nicht in der Taktikansicht');
+ACT.nav2({v:'tactic',k:'TACTAB',t:'roles'});ok(html().includes('Stil-Meta'),'Meta nicht in der Taktikansicht');
 
 // Verletzung und Reha
 {const p=S.players[U.starters.MID];p.out=null;p.load=100;let n=0;while(!isOut(p)&&n++<4000){for(const id of U.roster){const q=S.players[id];if(q!==p)q.out={until:99,why:'Pause'}}injWeek();}
@@ -141,7 +141,7 @@ function ok(c,msg){if(!c){console.log('FEHLER',msg);bad++}}
 function html(){return document.querySelector('#app').innerHTML}
 // Navigation: sechs Gruppen, jede Seite und jeder Reiter rendert ohne Fehler
 newGame('LYL','Tester');render();
-{ok(NAVG.length===6&&NAVG.map(g=>g[0]).join()==='buero,team,markt,comp,verein,mgr','Gruppen der Navigation');
+{ok(NAVG.length===9&&NAVG.map(g=>g[0]).join()==='buero,team,taktik,train,markt,comp,fin,verein,mgr','Gruppen der Navigation');
  let n=0;for(const g of NAVG)for(const [l,v,tk,tv] of g[3]){ACT.nav2({v,k:tk||'',t:tv||''});chk('Seite '+l);n++;
   ok(S.view===v&&(!tk||tabVal(tk)===tv),'Seite nicht erreichbar: '+l);ok(html().includes('<h1>')&&!html().includes('Fehler ('),'Seite leer oder mit Fehler: '+l)}
  ok(n>=30,'Zu wenige Seiten in der Navigation: '+n);

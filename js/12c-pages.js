@@ -2,8 +2,7 @@
 let MTAB='board';
 
 /* ----- Manager-Gruppe: alle Seiten über dich als Manager mit gemeinsamer Reiterleiste ----- */
-function mgrItems(){return NAVG.find(g=>g[0]==='mgr')[3]}
-function mgrTabs(){return `<div class="seg" style="margin-bottom:16px">${mgrItems().map(([l,v,tk,tv])=>{const on=S.view===v&&(!tk||tabVal(tk)===tv);return `<button class="${on?'on':''}" data-a="nav2" data-v="${v}" data-k="${tk||''}" data-t="${tv||''}">${l}</button>`}).join('')}</div>`}
+function mgrTabs(){return groupTabs()}
 function mgrView(){
   const head=`<div class="pagehead"><div><h1>${MTAB==='career'?'Karriere':'Vorstand'}</h1><p>${S.manager} · ${mgrTier()} · Ruf ${S.mrep==null?30:S.mrep} · ${S.teams[S.user].name}</p></div></div>${mgrTabs()}`;
   if(MTAB==='career')return head+`<div class="grid">${careerPanel()||'<section class="panel s12"><p class="empty">Noch keine abgeschlossene Saison.</p></section>'}${mgrPanel()}</div>`;
@@ -71,3 +70,7 @@ function maintPanel(){return `<section class="panel s12"><div class="lab">Wartun
   <p class="muted" style="font-size:13px;margin:0 0 8px">Hängt ein Turnier fest, startet "Phase neu starten" die aktuelle Turnierphase neu. Bisherige Ergebnisse bleiben.</p>
   <div class="acts"><button class="btn ghost sm" data-a="repair">Phase neu starten</button>${MODAL==='reset'?`<button class="btn danger sm" data-a="reset" data-ok="1">Ja, alles löschen</button><button class="btn ghost sm" data-a="reset" data-ok="0">Abbrechen</button>`:`<button class="btn ghost sm" data-a="reset">Neue Karriere</button>`}</div></section>`}
 if(typeof window!=='undefined'&&window.addEventListener){window.addEventListener('resize',()=>{try{applyScale()}catch(e){}});window.addEventListener('load',()=>applyScale())}
+
+/* Handy: Die Leiste unten scrollt waagerecht, die aktive Gruppe bleibt sichtbar. */
+function navScroll(){if(typeof document==='undefined'||typeof window==='undefined'||window.innerWidth>=900)return;const side=document.querySelector('.side'),on=side&&side.querySelector('.ngrp.open');
+  if(side&&on)side.scrollLeft=Math.max(0,on.offsetLeft-(side.clientWidth-on.offsetWidth)/2)}
