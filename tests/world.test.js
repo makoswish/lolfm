@@ -287,6 +287,10 @@ newGame('LYL','Tester');playSeason();
  for(let k=0;k<2;k++){nextSeason();playSeason();chk('Insolvenz-Saison '+k);seasons++}
  ok(REGS.map(x=>teamsOf(x).length).join(',')===c0,'Teamzahlen ändern sich');
 }
+// Abgestiegene Altvereine dürfen beim Laden nicht als Erstligist neu entstehen
+newGame('LYL','Tester');
+{const r='LCS',sz=teamsOf(r).length,A=teamsOf(r).filter(t=>t.id!==S.user)[0],B=t2Champ(r);swapTiers(A,B);reload();
+ ok(teamsOf(r).length===sz,'Liga wächst nach dem Laden: '+sz+' gegen '+teamsOf(r).length);}
 // Relegation: Tausch der Ligen, Bo5, Abstieg des Nutzers wie Entlassung
 newGame('LYL','Tester');
 {const count=()=>REGS.map(r=>teamsOf(r).length+':'+t2Of(r).filter(t=>!t.academy).length).join(',');const c0=count();
