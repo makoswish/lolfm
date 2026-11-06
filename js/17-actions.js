@@ -162,11 +162,13 @@ const ACT={
   tplan(d){S.training.plan=PLANS[d.v].slice();save();render()},
   tses(d){S.training.plan[+d.i]=d.v;save();render()},
   ment(d){S.ment=S.ment||{};if(!d.v)delete S.ment[d.id];else{const mo=S.players[d.v],me=S.players[d.id];if(S.ment[d.id]!==d.v&&!mentorOk(mo,me))return;S.ment[d.id]=d.v}save();render()},
-  sthire(d){const st=S.staffPool.find(x=>x.id===d.id);if(!st||S.fin.balance<st.fee)return;{const old=st.role==='hc'?staffOf('hc').reduce((a,o)=>a+o.wage,0):0,v=boardVeto(st.wage-old,st.fee+(old?old*6:0),'Diese Einstellung');if(v){mail('Vorstand: Veto',v);save();render();return}}
+  sthire(d){const st=S.staffPool.find(x=>x.id===d.id);if(!st)return;
+    if(S.fin.balance<st.fee){say(`Das Konto reicht nicht: ${st.name} verlangt ${eurK(st.fee)} Antrittsprämie, auf dem Konto sind ${eurK(S.fin.balance)}.`,'bad');render();return}
+    {const old=st.role==='hc'?staffOf('hc').reduce((a,o)=>a+o.wage,0):0,v=boardVeto(st.wage-old,st.fee+(old?old*6:0),'Diese Einstellung');if(v){say(v,'bad');mail('Vorstand: Veto',v);save();render();return}}
     if(st.role==='hc'){for(const o of staffOf('hc')){S.staffs=S.staffs.filter(x=>x.id!==o.id);book('Abfindungen',-o.wage*6);mail('Head Coach entlassen',`${o.name} muss gehen.`)}}
-    else if(staffOf(st.role).length>=SROLE[st.role][1])return;
-    book('Investitionen',-st.fee);S.staffs.push(st);S.staffPool=S.staffPool.filter(x=>x.id!==st.id);syncStaff();mail('Neuer Trainer',`${st.name} ist neuer ${SROLE[st.role][0]} (${eurK(st.wage)} pro Woche).`);save();render()},
-  stfire(d){const st=S.staffs.find(x=>String(x.id)===String(d.id));if(!st||(st.role==='hc'&&staffOf('hc').length<=1))return;
+    else if(staffOf(st.role).length>=SROLE[st.role][1]){say(`${SROLE[st.role][0]}: Alle ${SROLE[st.role][1]} ${SROLE[st.role][1]===1?'Platz ist':'Plätze sind'} besetzt. Entlasse zuerst jemanden aus dieser Rolle, dann kannst du ${st.name} holen.`,'warn');render();return}
+    book('Investitionen',-st.fee);S.staffs.push(st);S.staffPool=S.staffPool.filter(x=>x.id!==st.id);syncStaff();mail('Neuer Trainer',`${st.name} ist neuer ${SROLE[st.role][0]} (${eurK(st.wage)} pro Woche).`);say(`${st.name} ist neuer ${SROLE[st.role][0]}.`,'good');save();render()},
+  stfire(d){const st=S.staffs.find(x=>String(x.id)===String(d.id));if(!st)return;if(st.role==='hc'&&staffOf('hc').length<=1){say('Der Head Coach lässt sich nicht ersatzlos entlassen. Hol einen neuen Head Coach vom Markt, der alte geht dann automatisch.','warn');render();return}
     if(d.ok!=='1')return askConfirm('stfire',{id:st.id},`${st.name} entlassen?`,`${SROLE[st.role][0]} ${st.name} geht sofort. Die Abfindung von ${eurK(st.wage*6)} geht direkt vom Konto ab. Das lässt sich nicht rückgängig machen.`,`Entlassen für ${eurK(st.wage*6)}`);
     MODAL=null;S.staffs=S.staffs.filter(x=>x.id!==d.id);book('Abfindungen',-st.wage*6);syncStaff();save();render()},
   ttab(d){TTAB=d.v;render()},ltab(d){LTAB=d.v;render()},
@@ -176,7 +178,7 @@ const ACT={
   screg(d){const sc=S.scouts.find(x=>x.id===d.id);sc.reg=d.v;save();render()},
   scscope(d){const sc=S.scouts.find(x=>x.id===d.id);sc.scope=d.v;save();render()},
   scfire(d){if(S.scouts.length<=1)return;S.scouts=S.scouts.filter(x=>x.id!==d.id);save();render()},
-  schire(d){const sc=S.scoutPool.find(x=>x.id===d.id);if(!sc||S.scouts.length>=3||S.fin.balance<sc.fee)return;{const v=boardVeto(sc.wage,sc.fee,'Diese Einstellung');if(v){mail('Vorstand: Veto',v);save();render();return}}book('Investitionen',-sc.fee);S.scouts.push(sc);S.scoutPool=S.scoutPool.filter(x=>x.id!==d.id);mail('Scout eingestellt',`${sc.name} (Level ${sc.lvl}) arbeitet ab sofort für dich.`);save();render()},
+  schire(d){const sc=S.scoutPool.find(x=>x.id===d.id);if(!sc)return;if(S.scouts.length>=3){say('Du hast schon drei Scouts. Entlasse zuerst einen, dann kannst du einen neuen holen.','warn');render();return}if(S.fin.balance<sc.fee){say(`Das Konto reicht nicht: ${eurK(sc.fee)} Antrittsprämie, auf dem Konto sind ${eurK(S.fin.balance)}.`,'bad');render();return}{const v=boardVeto(sc.wage,sc.fee,'Diese Einstellung');if(v){say(v,'bad');mail('Vorstand: Veto',v);save();render();return}}book('Investitionen',-sc.fee);S.scouts.push(sc);S.scoutPool=S.scoutPool.filter(x=>x.id!==d.id);mail('Scout eingestellt',`${sc.name} (Level ${sc.lvl}) arbeitet ab sofort für dich.`);save();render()},
   spcancel(d){const f=S.fin,o=f.slots[d.k];if(!o)return;if(d.ok==='1'){const pen=r1000(o.base*8);book('Sponsor-Kündigung',-pen);f.slots[d.k]=null;genSlotOffers(d.k);SPCONF=null;mail('Sponsor gekündigt',`Der Vertrag mit ${o.name} ist beendet. Strafe: ${eurK(pen)}.`)}else if(d.ok==='0')SPCONF=null;else SPCONF=d.k;save();render()},
   spreq(d){const m=S.inbox.find(x=>x.id===+d.id);if(!m||m.done)return;const o=S.fin.slots[m.k];m.done=true;
     if(d.ok==='1'){book('Sponsor-Events',m.fee);if(o)o.sat=clamp((o.sat||60)+6,0,100);for(const r of ROLES){const p=S.players[S.teams[S.user].starters[r]];p.morale=clamp(p.morale-2,20,100);p.form=clamp(p.form-1,30,100)}m.result=`Angenommen, ${eurK(m.fee)} erhalten`}
@@ -184,6 +186,7 @@ const ACT={
   advance(){const f=S.fin;if(f.adv||f.advUsed)return;const wk=sponsorBase();if(!wk)return;const amt=r1000(wk*6);book('Sponsor-Vorschuss',amt);f.adv={left:Math.round(amt*1.05)};f.advUsed=true;mail('Sponsor-Vorschuss',`${eurK(amt)} sind sofort auf dem Konto. Die Sponsoren behalten dafür 25% ihrer Wochenzahlung ein, bis ${eurK(f.adv.left)} verrechnet sind.`);save();render()},
   shift(d){const b=S.fin.budget;if(d.v==='w'){if(b.transfer<25000)return;b.transfer-=25000;b.wage+=625}else{if(b.wage-625<wageBill())return;b.wage-=625;b.transfer+=25000}save();render()},
   gobudget(){S.view='club';CLUBTAB='budget';window.scrollTo(0,0);render()},
+  ngshiftw(){const n=ngNeed(),pl=fitPlan(n.t,n.w),b=S.fin.budget,k=Math.min(Math.floor(Math.max(0,wageFree()-n.w)/625),Math.ceil(pl.rel/25000));if(k<1)return;b.transfer+=k*25000;b.wage-=k*625;b.frozen=false;NG.log.push(['sys',`Gehaltsbudget umgeschichtet: ${eurK(k*625)} pro Woche werden zu ${eurK(k*25000)} Transferbudget.`]);save();render()},
   cashrel(d){const a=r1000(releasable()*(+d.v));if(a<1000)return;S.fin.budget.transfer+=a;S.fin.budget.frozen=false;mail('Geld freigegeben',`Der Vorstand gibt ${eurK(a)} vom Konto für Transfers frei.`);save();render()},
   askboard(){const b=S.fin.budget,U=S.teams[S.user];if(b.asked)return;b.asked=true;const ch=S.board/100*(S.fin.balance>0?.9:.25);
     if(R()<ch){const add=r1000(50000+U.rep*1500);b.transfer+=add;if(b.frozen&&S.fin.balance>0)b.frozen=false;mail('Vorstand gibt Geld frei',`Der Vorstand erhöht das Transferbudget um ${eurK(add)}.`)}

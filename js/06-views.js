@@ -10,7 +10,7 @@ function transferView(){
   if(FILT.noimp)list=list.filter(p=>!isImp(p,S.teams[S.user].reg));
   if((FILT.sgn??3)<4)list=list.filter(p=>signDiff(p).lv<=FILT.sgn);
   const sk=MSORT[FILT.sort]||MSORT.ovr;list.sort((a,b)=>sk[1](b)-sk[1](a)||ovr(b)-ovr(a));
-  const tabs=`<div class="seg" style="margin-bottom:16px">${[['markt','Markt'],['scout','Scouting'],['short','Beobachtung'],['hist','Verlauf']].map(([k,l])=>`<button class="${TTAB===k?'on':''}" data-a="ttab" data-v="${k}">${l}</button>`).join('')}</div>`;
+  const tabs=groupTabs();
   const rl=releasable();const head=`<div class="pagehead"><div><h1>Transfers</h1><p>Transferbudget ${eurK(S.fin.budget.transfer)} · Gehalt frei ${eurK(Math.max(0,wageFree()))}/Wo. · Kader ${U.roster.length}/${MAXR}</p></div>${rl>=25000?`<button class="btn ghost sm" data-a="gobudget">${eurK(rl)} freigeben</button>`:''}</div>${tabs}`;
   if(TTAB==='scout')return head+`<div class="grid">${scoutTab()}</div>`;
   if(TTAB==='short')return head+`<div class="grid">${shortTab()}</div>`;
@@ -22,7 +22,7 @@ function transferView(){
    <label class="mksort"><span class="muted">Bereitschaft</span><select id="tsgn" class="inp">${[[4,'Alle'],[3,'Ohne Extremfälle'],[2,'Höchstens schwer'],[1,'Machbar oder leichter'],[0,'Nur leicht']].map(([v,l])=>`<option value="${v}" ${(FILT.sgn??3)===v?'selected':''}>${l}</option>`).join('')}</select></label>
    <button class="tog ${FILT.noimp?'on':''}" data-a="fnoimp" title="Blendet Spieler aus, die bei dir als Import zählen"><span class="tbox">${FILT.noimp?'✓':''}</span><span>Ohne Importe</span></button>
    <button class="tog ${FILT.afford?'on':''}" data-a="faff" title="Ablöse und Gehalt passen ins Budget, notfalls mit Umschichtung vom Konto oder Finanzierung auf Raten"><span class="tbox">${FILT.afford?'✓':''}</span><span>Nur bezahlbar</span></button></div>
-  <div class="rows">${list.slice(0,FILT.n).map(p=>playerRow(p,true)).join('')||'<p class="empty">Keine Spieler für diese Suche.</p>'}</div>
+  <div class="rows fitrows">${list.slice(0,FILT.n).map(p=>playerRow(p,true)).join('')||'<p class="empty">Keine Spieler für diese Suche.</p>'}</div>
   <div class="mkfoot"><span class="muted">${list.length>FILT.n?`${FILT.n} von ${list.length} Spielern`:`${list.length} Spieler`}</span>${list.length>FILT.n?`<button class="btn ghost sm" data-a="fmore">40 weitere zeigen</button>`:''}</div></section></div>`;
 }
 /* Sortierung im Markt. Potenzial zählt nur, wenn es gescoutet ist, sonst verrät die Liste mehr als die Spielerseite. */
@@ -53,7 +53,7 @@ function leagueView(){
      ${!ev&&sp===S.ev&&sp.stage==='rr'?`<div class="lab" style="margin-top:16px">Woche ${sp.round+1}</div>${S.ev.cur.filter(m=>m.tag===reg).map(bmatch).join('')}`:''}</section>`}
   const past=CAL.filter((c,i)=>c.type==='intl'&&S.rec[c.id]).map(c=>{const r=S.rec[c.id];return `<div class="stat"><span>${c.name}</span><span style="font-family:var(--f-body)">${S.teams[r.champ].name} <span class="rg">${S.teams[r.champ].reg}</span></span></div>`}).join('');
   const regseg=`<section class="panel s12" style="padding-block:12px"><div class="seg">${REGS.map(r=>`<button class="${reg===r?'on':''}" data-a="vreg" data-v="${r}">${r} <span style="opacity:.7;font-weight:500">${REG[r].full}</span></button>`).join('')}</div></section>`;
-  const head=`<div class="pagehead"><div><h1>Turniere</h1><p>Saison ${S.year} · ${S.ev?evLabel(S.ev):'Saisonpause'}</p></div></div><div class="seg" style="margin-bottom:16px">${[['comp','Wettbewerbe'],['hist','Meine Spiele'],['stats','Statistiken'],['awards','Auszeichnungen'],['t2','T2-Szene'],['meta','Meta & Patch'],['lage','Liga-Lage']].map(([k,l])=>`<button class="${LTAB===k?'on':''}" data-a="ltab" data-v="${k}">${l}</button>`).join('')}</div>`;
+  const head=`<div class="pagehead"><div><h1>Turniere</h1><p>Saison ${S.year} · ${S.ev?evLabel(S.ev):'Saisonpause'}</p></div></div>${groupTabs()}`;
   if(LTAB==='stats')return head+`<div class="grid">${regseg}${statsView(reg)}</div>`;
   if(LTAB==='meta')return head+`<div class="grid">${metaTab()}</div>`;
   if(LTAB==='lage')return head+`<div class="grid">${lageTab()}</div>`;
@@ -82,7 +82,6 @@ function qualPanel(reg){const txt=a=>a.length===1?`Platz ${a[0]}`:a[0]===1&&a[1]
 /* ===== Verein ===== */
 function clubView(){
   const f=S.fin,U=S.teams[S.user];
-  const tabs=[['fin','Übersicht'],['budget','Budgets'],['spons','Sponsoren'],['inc','Einnahmen'],['infra','Infrastruktur'],['fans','Fans'],['staff','Trainerstab']];
   let body='';
   if(CLUBTAB==='fin'){
     const h=f.hist,mn=Math.min(...h,0),mx=Math.max(...h,1),pts=h.map((v,i)=>`${(i/(Math.max(1,h.length-1))*300).toFixed(1)},${(90-(v-mn)/(mx-mn)*80).toFixed(1)}`).join(' ');
@@ -114,11 +113,11 @@ function clubView(){
       <div class="lab" style="margin-top:16px">Vorstand</div>
       <p class="muted" style="font-size:13px;margin:0 0 8px">${b.asked?'Du hast diese Saison schon um mehr Budget gebeten.':'Einmal pro Saison kannst du um mehr Transferbudget bitten. Klappt eher bei hohem Vertrauen und positivem Kontostand.'}</p>
       <button class="btn ghost sm" data-a="askboard" ${b.asked?'disabled':''}>Mehr Budget anfragen</button>
-      <div class="lab" style="margin-top:16px"><span>Geld vom Konto freigeben</span><span>jederzeit</span></div>
-      <div class="stat"><span class="muted">Rücklage (10 Wochen Kosten)</span><span>${eur(reserveAmt())}</span></div>
-      <div class="stat"><span class="muted">Freigabe möglich</span><span class="${releasable()?'good':''}">${eur(releasable())}</span></div>
-      ${releasable()>=1000?`<div class="acts" style="margin-top:8px">${[.25,.5,1].map(x=>`<button class="btn ${x===1?'':'ghost'} sm" data-a="cashrel" data-v="${x}">${x===1?'Alles':Math.round(x*100)+'%'} (${eurK(r1000(releasable()*x))})</button>`).join('')}</div>`:''}
-      <p class="muted" style="font-size:12.5px;margin:6px 0 0">Der Vorstand gibt Geld frei, das über Rücklage und Transferbudget hinaus auf dem Konto liegt. Je höher sein Vertrauen, desto mehr. Vor jedem Split prüft er die Budgets außerdem automatisch.</p></section>
+      <div class="lab" style="margin-top:16px"><span>So rechnet der Vorstand</span><span>${PHIL[philOf(U)][0]}</span></div>
+      <div class="stat"><span class="muted">Erwartete Einnahmen pro Woche</span><span>${eur(Math.round(incW()))}</span></div>
+      <div class="stat"><span class="muted">Feste Kosten (Staff, Infrastruktur)</span><span>${eur(Math.round(fixW()))}</span></div>
+      <div class="stat"><span class="muted">Anteil für Gehälter</span><span>${Math.round(wageRat()*100)}%</span></div>
+      <p class="muted" style="font-size:12.5px;margin:6px 0 0">Gehaltsbudget = (Einnahmen minus feste Kosten) mal Anteil. Die Gehälter gehen einmal pro Woche vom Konto ab, das Budget ist nur die Obergrenze. Das Transferbudget ist ein eigener Topf: Ablösen und Handgelder senken ihn, Verkäufe füllen ihn zu ${b.salePct}% auf. Mehr gibt es auf Anfrage beim Vorstand, durch Umschichten oder auf Raten.</p></section>
      <section class="panel s7"><div class="lab"><span>Budgets ${S.year}</span><span>${b.frozen?'<span class="bad">Transferbudget eingefroren</span>':`${b.salePct}% der Verkäufe fließen zurück`}</span></div>
       <div class="bud"><div><span class="muted">Transferbudget</span><b class="big">${eurK(b.transfer)}</b></div><div><span class="muted">Gehaltsbudget pro Woche</span><b class="big">${eurK(b.wage)}</b></div></div>
       <div class="lab" style="margin:14px 0 6px"><span>Gehälter</span><span>${eurK(bill)} von ${eurK(b.wage)} genutzt</span></div>${bar(bill/b.wage*100,bill>b.wage?'var(--bad)':bill/b.wage>.92?'var(--warn)':'var(--good)')}
@@ -149,8 +148,8 @@ function clubView(){
   }else{
     body=staffTab();
   }
-  return `<div class="pagehead"><div><h1>Verein</h1><p>${U.reg} · Ruf ${U.rep} · Prestige: ${prestigeOf(U)} · ${eurK(f.balance)}${f.loan?' · Kredit offen':''}</p></div></div>
-  <div class="seg" style="margin-bottom:16px">${tabs.map(([k,l])=>`<button class="${CLUBTAB===k?'on':''}" data-a="ctab" data-v="${k}">${l}</button>`).join('')}</div>
+  return `<div class="pagehead"><div><h1>${grpLabel()}</h1><p>${U.reg} · Ruf ${U.rep} · Prestige: ${prestigeOf(U)} · ${eurK(f.balance)}${f.loan?' · Kredit offen':''}</p></div></div>
+  ${groupTabs()}
   <div class="grid">${body}</div>`;
 }
 
@@ -320,6 +319,7 @@ function teamModal(){
    ${st('Spielstil',mine||an>=2?STYLES[T.style].n:'Analyst Level 2 nötig')}
    ${st('Jungle-Fokus',mine||an>=3?FOCUS[T.focus]:'Analyst Level 3 nötig')}
    ${row?st('Tabelle',`Platz ${row} · ${me.w} S · ${me.l} N`):''}${me&&me.form&&me.form.length?st('Form',formDots(me.form)):''}
+   ${T.tier!==2?st('Manager',T.id===S.user?`${S.manager} (du)`:T.vac?'<span class="good">Vakant</span>':(T.mgr||'-')):''}
    ${T.tier!==2&&!mine?st('Importe in der Startelf',`${impCount(T)} von ${IMPMAX}`):''}</aside>
   <section class="tmros"><div class="lab"><span>Kader</span><span>${ps.length} Spieler</span></div><div class="rows">${ps.map(p=>playerRow(p,!mine)).join('')}</div></section></div>
   <div class="acts sfoot"><button class="btn ghost" data-a="close">Schließen</button></div></div></div>`;

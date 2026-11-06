@@ -216,7 +216,7 @@ function endSeason(){sponsorSeasonEnd();
   try{pressEval()}catch(e){}try{hofSeason()}catch(e){}try{worldSeasonEnd()}catch(e){}try{careerSeason()}catch(e){}
 }
 function newSeason(){
-  ecoSeason();loansReturn();youthSeason();infraSeason();trialsEnd();rivSeason();
+  fillVacancies();ecoSeason();loansReturn();youthSeason();infraSeason();trialsEnd();rivSeason();
   for(const p of Object.values(S.players)){(p.hist=p.hist||[]).push(Object.assign({y:S.year,o:ovr(p),t:p.team},p.st||{}));if(p.hist.length>8)p.hist.shift();p.st={g:0,w:0,k:0,d:0,mvp:0};p.sg={};if(p.ch){for(const c of p.ch)if(p.age<=25)c[1]=clamp(c[1]+ri(0,2),1,20);if(p.age<=25&&R()<.4&&p.ch.length<8){const nw=CHR[p.role].filter(c=>!p.ch.some(x=>x[0]===c));if(nw.length)p.ch.push([pick(nw),ri(7,12)])}p.ch.sort((a,b)=>b[1]-a[1])}p.age++;const o=ovr(p),room=clamp((p.pot-o)/6,0,1);
     const gl=growLimit(p),gf=p.dev==='s'&&p.age>=22?1.3:p.dev==='f'&&p.age<=19?1.25:1;
     for(const x of DK){if(p.age<=gl)p.d[x]=clamp(p.d[x]+R()*.55*room*gf,1,20);

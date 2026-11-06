@@ -31,7 +31,7 @@ ok(REGS.every(r=>teamsOf(r).every(T=>impCount(T)<=IMPMAX)),'Team über dem Impor
  ACT.rest({id:p.id});ok(isOut(p)&&p.out.why==='Pause','Pause klappt nicht');const l0=(p.load=80);burnWeek();ok(p.load<l0,'Pause baut keine Belastung ab');p.out=null}
 
 // Scrims
-ACT.nav2({v:'tactic',k:'TACTAB',t:'train'});chk('Training mit Scrims');ok(html().includes('Scrim-Partner'),'Scrim-Panel fehlt');
+ACT.nav2({v:'tactic',k:'TACTAB',t:'scrim'});chk('Training mit Scrims');ok(html().includes('Scrim-Partner'),'Scrim-Panel fehlt');
 {const T2=scrimCands().find(t=>t.tier===2);S.scrimTry='';const e=scrimAsk(T2.id);ok(!e&&scrimNow()===T2,'T2-Scrim-Partner sagt ab: '+e+' '+JSON.stringify(S.scrim)+' '+S.step+' '+S.phase);ok(scrimAsk(T2.id),'Zweite Anfrage in derselben Woche');
  ok(scrimKnows(T2.id),'Partner kennt Stil nicht');const top=teamsOf(U.reg).find(t=>t.id!==S.user);ok(adaptChance(top)<=.75,'adaptChance');
  const strong=scrimCands().filter(t=>t.tier!==2).sort((a,b)=>teamOvr(b)-teamOvr(a))[0];S.scrim={tid:strong.id,until:S.step+4};ok(scrimF()>=1||teamOvr(strong)<teamOvr(U),'Starker Partner bringt nichts')}

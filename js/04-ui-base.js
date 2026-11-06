@@ -2,6 +2,8 @@
 const ICON={
   home:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
   squad:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14.6c2.4.2 4.2 1.9 4.9 4.9"/>',
+  fin:'<circle cx="12" cy="12" r="8.5"/><path d="M14.8 9.2c-.6-.8-1.6-1.2-2.8-1.2-1.6 0-2.8.8-2.8 2s1 1.7 2.8 2 2.8.8 2.8 2-1.2 2-2.8 2c-1.2 0-2.2-.4-2.8-1.2M12 6.5V8M12 16v1.5"/>',
+  train:'<path d="M6 8v8M3.5 10v4M18 8v8M20.5 10v4M6 12h12"/>',
   mgr:'<rect x="3" y="8" width="18" height="12" rx="2"/><path d="M9 8V6a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3 13h18"/>',
   tactic:'<path d="M4 6h10M19 6h1M4 12h4M13 12h7M4 18h12"/><circle cx="16.5" cy="6" r="2"/><circle cx="10.5" cy="12" r="2"/><circle cx="18.5" cy="18" r="2"/>',
   transfer:'<path d="M4 8h15l-4-4M20 16H5l4 4"/>',
@@ -187,6 +189,6 @@ function squadView(){
   else body=`${coachReport(U)}<section class="panel s12"><div class="lab"><span>Startaufstellung</span><span>Tippe einen Spieler für Details</span></div><div class="rows">${starters.map(p=>playerRow(p)).join('')}</div></section>
   <section class="panel s12"><div class="lab"><span>Bank</span><span>${bench.length} Spieler</span></div><div class="rows">${bench.map(p=>playerRow(p)).join('')||'<p class="empty">Keine Ersatzspieler. Auf dem Transfermarkt findest du Backups.</p>'}</div></section>`;
   return `<div class="pagehead"><div><h1>Kader</h1><p>Team-OVR ${teamOvr(U)} · Ø Form ${avgF} · Ø Moral ${avgM} · ${ps.length}/${MAXR} Spieler · Importe in der Startelf ${impCount(U)}/${IMPMAX} · ${eurK(sal)} Gehälter pro Woche</p></div></div>
-  <div class="seg" style="margin-bottom:16px">${[['depth','Kaderübersicht'],['list','Aufstellung'],['attr','Attribute'],['mood','Form & Moral'],['chem','Chemie'],['med','Medizin'],['stats','Statistik'],['aca','Academy'],['vert','Verträge']].map(([k,l])=>`<button class="${KTAB===k?'on':''}" data-a="ktab" data-v="${k}">${l}</button>`).join('')}</div>
+  ${groupTabs()}
   <div class="grid">${body}</div>`;
 }

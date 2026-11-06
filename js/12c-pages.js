@@ -2,8 +2,7 @@
 let MTAB='board';
 
 /* ----- Manager-Gruppe: alle Seiten über dich als Manager mit gemeinsamer Reiterleiste ----- */
-function mgrItems(){return NAVG.find(g=>g[0]==='mgr')[3]}
-function mgrTabs(){return `<div class="seg" style="margin-bottom:16px">${mgrItems().map(([l,v,tk,tv])=>{const on=S.view===v&&(!tk||tabVal(tk)===tv);return `<button class="${on?'on':''}" data-a="nav2" data-v="${v}" data-k="${tk||''}" data-t="${tv||''}">${l}</button>`}).join('')}</div>`}
+function mgrTabs(){return groupTabs()}
 function mgrView(){
   const head=`<div class="pagehead"><div><h1>${MTAB==='career'?'Karriere':'Vorstand'}</h1><p>${S.manager} · ${mgrTier()} · Ruf ${S.mrep==null?30:S.mrep} · ${S.teams[S.user].name}</p></div></div>${mgrTabs()}`;
   if(MTAB==='career')return head+`<div class="grid">${careerPanel()||'<section class="panel s12"><p class="empty">Noch keine abgeschlossene Saison.</p></section>'}${mgrPanel()}</div>`;
@@ -13,10 +12,10 @@ function mgrView(){
 function resignWhy(){if(S.jobless)return 'Du bist bereits ohne Verein.';if(LIVE||SIMRUN)return 'Nicht während eines Spiels.';return null}
 /* Freie Wahl nach der Kündigung: bis zu acht Vereine aus allen Regionen, so groß, wie dein Ruf als Manager es erlaubt. */
 function resignJobs(){const U=S.teams[S.user],top=U.rep+6+Math.round((S.mrep==null?30:S.mrep)/5);
-  const all=Object.values(S.teams).filter(t=>t.tier!==2&&!t.academy&&t.id!==S.user&&t.rep<=top);
+  const pool=Object.values(S.teams).filter(t=>t.tier!==2&&!t.academy&&t.id!==S.user&&t.rep<=top);ensureVac(pool,5);const all=pool.filter(t=>t.vac);
   const other=shuffle(all.filter(t=>t.reg!==U.reg)),same=shuffle(all.filter(t=>t.reg===U.reg));
   const pickN=(a,n)=>a.slice(0,n);let L=[...pickN(other,5),...pickN(same,3)];
-  if(L.length<4)L=[...L,...pickN(shuffle(Object.values(S.teams).filter(t=>t.tier!==2&&!t.academy&&t.id!==S.user&&!L.includes(t))),4-L.length)];
+  
   return L.sort((a,b)=>b.rep-a.rep).map(t=>t.id)}
 function resignDo(){S.mrep=clamp((S.mrep==null?30:S.mrep)-3,0,100);S.resign=false;S.jobless=true;S.jobs={list:resignJobs(),sacked:true,resigned:true};
   mail('Kündigung wirksam',`Du hast bei ${S.teams[S.user].name} gekündigt. Es liegen ${S.jobs.list.length} Angebote vor. Such dir einen Verein aus, bevor die neue Saison startet. Dein Manager-Ruf sinkt um 3.`,{type:'job'});
@@ -62,7 +61,7 @@ const UISC=[['auto','Automatisch'],['0.9','90 %'],['1','100 %'],['1.15','115 %']
 function uiPref(){try{return localStorage.getItem('riftmgr_ui')||'auto'}catch(e){return 'auto'}}
 function uiAuto(w){return w<900?1:w>=2800?1.5:w>=2200?1.3:w>=1700?1.15:1}
 function uiScale(){const p=uiPref(),w=typeof window!=='undefined'?(window.innerWidth||1200):1200;if(p==='auto')return uiAuto(w);const v=+p;return w<900?Math.min(v,1.15):v}
-function applyScale(){try{const z=uiScale();if(typeof document!=='undefined'&&document.body)document.body.style.zoom=z===1?'':String(z)}catch(e){}}
+function applyScale(){try{const z=uiScale();if(typeof document!=='undefined'&&document.body){document.body.style.zoom=z===1?'':String(z);document.documentElement.style.setProperty('--vh',(window.innerHeight/z)+'px')}}catch(e){}}
 function setUiScale(v){try{localStorage.setItem('riftmgr_ui',v)}catch(e){}applyScale()}
 function uiPanel(){const p=uiPref();return `<section class="panel s12"><div class="lab"><span>Darstellung</span><span>Skalierung ${Math.round(uiScale()*100)} %</span></div>
   <div class="seg">${UISC.map(([v,l])=>`<button class="${p===v?'on':''}" data-a="uisc" data-v="${v}">${l}</button>`).join('')}</div>
@@ -71,3 +70,15 @@ function maintPanel(){return `<section class="panel s12"><div class="lab">Wartun
   <p class="muted" style="font-size:13px;margin:0 0 8px">Hängt ein Turnier fest, startet "Phase neu starten" die aktuelle Turnierphase neu. Bisherige Ergebnisse bleiben.</p>
   <div class="acts"><button class="btn ghost sm" data-a="repair">Phase neu starten</button>${MODAL==='reset'?`<button class="btn danger sm" data-a="reset" data-ok="1">Ja, alles löschen</button><button class="btn ghost sm" data-a="reset" data-ok="0">Abbrechen</button>`:`<button class="btn ghost sm" data-a="reset">Neue Karriere</button>`}</div></section>`}
 if(typeof window!=='undefined'&&window.addEventListener){window.addEventListener('resize',()=>{try{applyScale()}catch(e){}});window.addEventListener('load',()=>applyScale())}
+
+/* Handy: Die Leiste unten scrollt waagerecht, die aktive Gruppe bleibt sichtbar. */
+function navScroll(){if(typeof document==='undefined'||typeof window==='undefined'||window.innerWidth>=900)return;const side=document.querySelector('.side'),on=side&&side.querySelector('.ngrp.open');
+  if(side&&on)side.scrollLeft=Math.max(0,on.offsetLeft-(side.clientWidth-on.offsetWidth)/2)}
+
+/* Verhandlung: der Verlauf zeigt immer die neueste Nachricht. */
+function chatBottom(){if(typeof document==='undefined')return;const c=document.querySelector('.ngchat .chat');if(c)c.scrollTop=c.scrollHeight}
+
+/* Rückmeldung auf Aktionen, die sonst still scheitern (Einstellungen, Vetos): erscheint einmal oben auf der Seite. */
+let NOTE=null;
+function say(t,k){NOTE={t,k:k||'warn'}}
+function noteBox(){if(!NOTE)return '';const n=NOTE;NOTE=null;return `<div class="note ${n.k}" style="margin-bottom:12px;grid-column:1/-1">${n.t}</div>`}

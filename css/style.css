@@ -833,3 +833,91 @@ html.ovopen,html.ovopen body{overflow:hidden}
 .rngh .btn{min-width:40px}
 .rng input[type=range]{width:100%;height:28px;accent-color:var(--brass);background:transparent;cursor:pointer;margin:0}
 .rngm{display:flex;justify-content:space-between;font-size:12px;color:var(--dim)}
+
+/* Neun Gruppen: Leiste am Handy scrollt waagerecht */
+@media (max-width:900px){
+  .side{overflow-x:auto!important;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .side::-webkit-scrollbar{display:none}
+  .ngrp{flex:0 0 19%;min-width:64px}
+}
+
+/* Wappen: Kürzel sitzt immer mittig im Schild, egal ob das Wappen Grid-, Block- oder Flex-Element ist */
+.crest{display:inline-block}
+.crest.crest>b{position:absolute!important;inset:0;display:flex!important;align-items:center;justify-content:center;margin:-3px 0 0;line-height:1;text-align:center}
+.crest.sm.sm>b{margin-top:-2px}
+.crest.lg{border:0;padding:0}
+
+/* Verhandlung in Bildschirmhöhe: zwei Spalten, Regler im Raster, Verlauf scrollt für sich.
+   --vh ist die Fensterhöhe geteilt durch die Skalierung (applyScale), weil zoom vh-Werte sonst überdehnt. */
+@media (min-width:900px){
+  .side{height:var(--vh,100vh)}
+  .ngfit{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(0,1fr);gap:14px;height:calc(var(--vh,100vh) - 176px);min-height:440px}
+  .ngmain{overflow:auto;display:flex;flex-direction:column;gap:12px;padding:14px 18px}
+  .ngchat{display:flex;flex-direction:column;overflow:hidden;padding:14px 16px}
+  .ngchat .chat{flex:1;max-height:none;overflow-y:auto;padding-right:4px}
+}
+.ngh{margin-bottom:12px}.ngh h1{font-size:28px}.ngh p{margin-top:2px}
+.ngctl{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px 22px}
+.ngwide{grid-column:1/-1}
+.ngf{min-width:0}
+.ngl{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13px;color:var(--muted);margin-bottom:5px}
+.ngl .rv,.ngl b{font-family:var(--f-mono);font-size:17px;color:var(--fg);font-variant-numeric:tabular-nums;font-weight:500}
+.ngf .seg{margin:0}.ngf .seg button{padding:7px 10px;font-size:13.5px}
+.rngr{display:flex;align-items:center;gap:8px}
+.rngr input[type=range]{flex:1;min-width:0;height:22px}
+.rngr .btn{min-width:32px;padding:3px 9px;line-height:1.2}
+.rngm{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--dim);margin-top:1px}
+.ngmain .dem div{padding:6px 10px}.ngmain .dem b{font-size:15px}
+.ngnote{margin:0;padding:7px 10px;font-size:13px}
+.ngsum{display:grid;grid-template-columns:minmax(0,1.4fr) repeat(3,minmax(0,1fr));gap:8px 16px;align-items:end;padding-top:10px;border-top:1px solid var(--line)}
+.ngsum .stat{flex-direction:column;align-items:flex-start;gap:1px;border:0;padding:0;font-size:14px}
+.ngsum .stat .muted{font-size:12px}
+.ngmain .fitbox{margin:0;padding:8px 12px;font-size:13px}
+.ngmain .fitbox .stat{display:inline-flex;gap:6px;border:0;padding:0;margin-right:14px;font-size:13px}
+.ngmain .fitbox p{margin:6px 0;font-size:13px}
+.ngacts{margin-top:auto;padding-top:2px}
+@media (max-width:899px){
+  .ngfit{display:block}.ngmain{margin-bottom:14px}.ngchat .chat{max-height:300px}
+  .ngctl{grid-template-columns:1fr}.ngsum{grid-template-columns:1fr 1fr}
+}
+.demline{display:flex;flex-wrap:wrap;gap:4px 22px;font-size:13.5px;color:var(--muted);padding:6px 0;border-bottom:1px solid var(--line)}
+.demline b{color:var(--fg);font-weight:600}
+@media (min-width:900px){.ngfit{height:calc(var(--vh,100vh) - 222px)}.ngmain{gap:10px}}
+@media (min-width:900px){
+  .ngctl{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 18px}
+  .rngr input[type=range]{height:18px}.rngr .btn{min-width:28px;padding:1px 8px}
+  .ngf .seg button{padding:6px 9px;font-size:13px}
+  .ngmain .fitbox{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+  .ngmain .fitbox p{flex:1 1 100%;margin:2px 0}
+  .ngmain .fitbox .tog{margin:0}
+}
+@media (min-width:900px) and (max-width:1250px){.ngctl{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:900px){.side{box-sizing:border-box;height:var(--vh,100vh)}}
+@media (min-width:900px) and (max-height:830px){
+  .ngmain{gap:6px;padding:10px 14px}
+  .ngmain>.lab{margin:0;padding-bottom:6px}
+  .demline{padding:2px 0}
+  .ngctl{gap:6px 16px}
+  .ngl{margin-bottom:2px}
+  .ngsum{padding-top:6px}
+  .ngmain .fitbox{padding:5px 10px}
+  .ngmain .fitbox p{margin:0}
+  .ngh{margin-bottom:8px}.ngh h1{font-size:24px}
+  .ngfit{height:calc(var(--vh,100vh) - 200px)}
+  .ngmain .btn{padding-block:8px}
+}
+
+/* Scouting und Transfermarkt in Bildschirmhöhe: Listen scrollen in ihrer Karte */
+@media (min-width:900px){
+  .fitcol{height:calc(var(--vh,100vh) - 232px);min-height:380px;overflow:auto}
+  .fitrows{max-height:calc(var(--vh,100vh) - 440px);min-height:240px;overflow:auto;padding-right:4px}
+  .ngfit{height:calc(var(--vh,100vh) - 208px)}
+}
+@media (min-width:900px) and (max-height:830px){.ngfit{height:calc(var(--vh,100vh) - 208px)}}
+@media (min-width:900px){
+  .fitcol{height:calc(var(--vh,100vh) - 300px);min-height:360px}
+  .fitrows{max-height:calc(var(--vh,100vh) - 520px);min-height:200px}
+  .scard .seg button{padding:5px 8px;font-size:12.5px}
+  .scard .seg{margin-bottom:4px!important}
+}
+@media (min-width:900px){.fitcol{height:calc(var(--vh,100vh) - 326px)}}
