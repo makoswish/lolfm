@@ -100,7 +100,8 @@ const MERCH={low:{n:'Günstig',m:.7,f:.35},normal:{n:'Normal',m:1,f:0},high:{n:'
 const LOANS=[250000,500000,1000000];
 /* Marktgröße: In Asien sind Gehälter höher, dafür bringen Sponsoren, Streams und Merch mehr. */
 const REGREV={LCK:1.4,LPL:1.35,LEC:1,LCS:1,LCP:1,CBLOL:1};
-function regRev(){return REGREV[S.teams[S.user].reg]||1}
+function regRev(){return(REGREV[S.teams[S.user].reg]||1)*eco()}
+function lsh(){return Math.round((LSHARE[S.teams[S.user].reg]||4000)*eco())}
 const LSHARE={LCK:6000,LPL:6000,LEC:4500,LCS:4500,LCP:3500,CBLOL:3000};
 const r100=x=>Math.round(x/100)*100,r1000=x=>Math.round(x/1000)*1000;
 let SAVEKEY='riftmgr_v2',SLOT=1,NEWSLOT=null;
@@ -137,8 +138,10 @@ let S=null,LIVE=null,MODAL=null,FILT={role:'ALL',src:'ALL',q:'',sort:'ovr',affor
 
 /* ===== Spieler ===== */
 function ovr(p){const w=W[p.role];let s=0;for(const k in w)s+=p.a[k]*w[k];return Math.round(s)}
-function salaryFor(o){return Math.max(800,Math.round(Math.max(0,o-40)**2*3.5*(1+Math.max(0,o-70)/12)/100)*100)}
-function valueFor(p){const o=ovr(p);let v=Math.max(0,o-40)**3*4*(1+Math.max(0,o-70)**1.5/25);if(p.team&&S.teams[p.team]&&S.teams[p.team].tier===2)v*=.6;v*=1+Math.max(0,p.pot-o)/30;if(p.age>=27)v*=.8;return Math.max(5000,Math.round(v/5000)*5000)}
+/* Branchenwachstum: S.eco ist der Marktindex (Start 1). Er steigt jede Saison, und mit ihm Gehälter, Ablösen, Sponsoren, Einnahmen und Preisgelder. */
+function eco(){return(typeof S!=='undefined'&&S&&S.eco)||1}
+function salaryFor(o){return Math.max(800,Math.round(Math.max(0,o-40)**2*3.5*(1+Math.max(0,o-70)/12)*eco()/100)*100)}
+function valueFor(p){const o=ovr(p);let v=Math.max(0,o-40)**3*4*(1+Math.max(0,o-70)**1.5/25);if(p.team&&S.teams[p.team]&&S.teams[p.team].tier===2)v*=.6;v*=1+Math.max(0,p.pot-o)/30;if(p.age>=27)v*=.8;v*=eco();return Math.max(5000,Math.round(v/5000)*5000)}
 const RNAMES={
   KR:{f:['Min-jun','Seo-jun','Ji-hoon','Do-yun','Hyun-woo','Jun-ho','Sung-min','Tae-yang','Woo-jin','Dong-hyun','Jae-won','Sang-woo','Eun-seok','Ha-joon'],l:['Kim','Lee','Park','Choi','Jung','Kang','Cho','Yoon','Jang','Lim','Han','Oh','Seo','Shin'],fam:1},
   CN:{f:['Wei','Hao','Jun','Yi','Chen','Lei','Bo','Yu','Tian','Zhe','Kai','Rui','Ming','Xuan'],l:['Wang','Li','Zhang','Liu','Chen','Yang','Huang','Zhao','Wu','Zhou','Xu','Sun','Ma','Hu'],fam:1},
@@ -213,15 +216,15 @@ function sponsorFor(rep){return Math.round((rep-28)**2*7.5/100)*100}
 function newFin(bal,fans){return{weeks:[],balance:bal,fans,slots:Object.fromEntries(SLOTS.map(x=>[x[0],null])),offers:{},merch:'normal',content:0,infra:{tc:0,gh:0,ac:0},loan:null,pstream:false,season:{inc:{},exp:{}},last:null,hist:[bal]}}
 function wageBill(){const A=S.teams[S.user+'A'];return S.teams[S.user].roster.reduce((s,id)=>s+wageOf(S.players[id]),0)+(A?A.roster.reduce((s,id)=>s+S.players[id].salary,0):0)}
 function proWages(){return S.teams[S.user].roster.reduce((s,id)=>s+S.players[id].salary,0)}
-function sustainW(){const f=S.fin,U=S.teams[S.user];const inc=(sponsorBase()||SLOTS.slice(0,2).reduce((a,[k])=>a+(f.offers[k]?f.offers[k][0].base:0),0))+f.fans*.03*regRev()+(LSHARE[U.reg]||4000)+(S.teams[S.user+'A']?2000:0);const oth=staffWages()+CONTENT[f.content][0]+upkeep()+(S.scouts||[]).reduce((a,x)=>a+x.wage,0);return Math.max(0,(inc-oth)*.95)}
+function sustainW(){const f=S.fin,U=S.teams[S.user];const inc=(sponsorBase()||SLOTS.slice(0,2).reduce((a,[k])=>a+(f.offers[k]?f.offers[k][0].base:0),0))+f.fans*.03*regRev()+lsh()+(S.teams[S.user+'A']?2000:0);const oth=staffWages()+CONTENT[f.content][0]+upkeep()+(S.scouts||[]).reduce((a,x)=>a+x.wage,0);return Math.max(0,(inc-oth)*.95)}
 function wageFree(){return S.fin.budget.wage-wageBill()}
 function setBudgets(){const f=S.fin,U=S.teams[S.user],bill=wageBill(),pos=f.balance>0;
-  f.budget={transfer:pos?r1000(Math.min(f.balance*.45,f.balance*.2+U.rep*2500)):0,wage:r100(Math.max(bill+1500,Math.min(Math.max(bill*1.1+2500,U.rep*300),sustainW()))),salePct:clamp(50+Math.round((S.board-50)/2),35,80),asked:false,frozen:!pos}}
+  f.budget={transfer:pos?r1000(Math.min(f.balance*.45,f.balance*.2+U.rep*2500*eco())):0,wage:r100(Math.max(bill+1500,Math.min(Math.max(bill*1.1+2500,U.rep*300*eco()),sustainW()))),salePct:clamp(50+Math.round((S.board-50)/2),35,80),asked:false,frozen:!pos}}
 function weeklyCosts(){const f=S.fin;return wageBill()+(HWB[f.hwb]?HWB[f.hwb].c:0)+buildCost()+staffWages()+CONTENT[f.content][0]+upkeep()+(S.scouts||[]).reduce((a,x)=>a+x.wage,0)+(f.loan?f.loan.weekly:0)}
 function reserveAmt(){return r1000(weeklyCosts()*10)}
 function releasable(){const f=S.fin;if(f.balance<=0)return 0;return Math.max(0,r1000((f.balance-reserveAmt()-f.budget.transfer)*(.5+S.board/200)))}
 function budgetReview(){const f=S.fin,b=f.budget,U=S.teams[S.user];if(f.balance<=0)return;const bill=wageBill();
-  const nt=r1000(Math.min(f.balance*.45,f.balance*.2+U.rep*2500)),nw=r100(Math.max(bill+1500,Math.min(Math.max(bill*1.1+2500,U.rep*300),sustainW())));
+  const nt=r1000(Math.min(f.balance*.45,f.balance*.2+U.rep*2500*eco())),nw=r100(Math.max(bill+1500,Math.min(Math.max(bill*1.1+2500,U.rep*300*eco()),sustainW())));
   const dt=Math.max(0,nt-b.transfer),dw=Math.max(0,nw-b.wage);if(!dt&&!dw)return;b.transfer+=dt;b.wage+=dw;b.frozen=false;
   mail('Budgetprüfung des Vorstands',`Vor dem neuen Split hat der Vorstand die Budgets angepasst: ${dt?`Transferbudget +${eurK(dt)}`:''}${dt&&dw?', ':''}${dw?`Gehaltsbudget +${eurK(dw)} pro Woche`:''}.`)}
 function finState(){const f=S.fin,w=f.weeks.slice(-8),avg=w.length?w.reduce((a,b)=>a+b,0)/w.length:0,proj=f.balance+avg*Math.max(0,52-S.step);
@@ -248,7 +251,7 @@ function migrate(){addMissingTeams();for(const p of Object.values(S.players)){if
   if(!aca())genT2();if(!S.t2)t2Init();
   {const f=S.fin;for(const[k]of SLOTS){if(!(k in f.slots))f.slots[k]=null;if(f.slots[k]&&f.slots[k].sat==null)f.slots[k].sat=60;if(!f.slots[k]&&!(f.offers&&f.offers[k]))genSlotOffers(k)}}
   initStaff();if(!S.training.plan)S.training.plan=(PLANS[S.training.focus]||PLANS.bal).slice();S.ment=S.ment||{};infraInit();S.trials=S.trials||[];
-  if(!S.fin.lshare){S.fin.lshare=1;const A=aca();if(A)for(const id of A.roster){const p=S.players[id];if(p.age<=19)p.salary=Math.min(p.salary,450)}setBudgets();mail('Finanzen überarbeitet','Neu: Liga-Ausschüttung und T2-Förderung jede Woche, günstigere Academy-Gehälter, Sponsor-Vorschuss und eine einmalige Vorstandshilfe im Notfall. Die Budgets wurden neu berechnet.')}initScouting();if(!S.tst)S.tst={};if(S.mrep==null)S.mrep=30;if(S.resign==null)S.resign=false;if(!S.mst)metaShift();fgInit();t2Fix()}
+  if(S.eco==null)S.eco=1;if(!S.ecoLog)S.ecoLog=[];if(!S.fin.lshare){S.fin.lshare=1;const A=aca();if(A)for(const id of A.roster){const p=S.players[id];if(p.age<=19)p.salary=Math.min(p.salary,450)}setBudgets();mail('Finanzen überarbeitet','Neu: Liga-Ausschüttung und T2-Förderung jede Woche, günstigere Academy-Gehälter, Sponsor-Vorschuss und eine einmalige Vorstandshilfe im Notfall. Die Budgets wurden neu berechnet.')}initScouting();if(!S.tst)S.tst={};if(S.mrep==null)S.mrep=30;if(S.eco==null)S.eco=1;if(!S.ecoLog)S.ecoLog=[];if(S.resign==null)S.resign=false;if(!S.mst)metaShift();fgInit();t2Fix()}
 function relink(ev){if(!ev)return;if(ev.type==='intl'){ev.stage.cur=ev.cur;return}
   if(ev.stage==='semi')for(const r of REGS)ev.reg[r].po.semis=ev.cur.filter(m=>m.tag===r);
   if(ev.stage==='final')for(const r of REGS)ev.reg[r].po.final=ev.cur.find(m=>m.tag===r)}
@@ -266,7 +269,7 @@ function restartEvent(){const ev=S.ev;if(!ev)return;
 
 /* ===== Neues Spiel ===== */
 function newGame(teamId,mgr){
-  S={v:2,nextId:1,usedNames:{},season:1,year:2027,step:0,phase:'season',teams:{},players:{},fa:[],user:teamId,manager:mgr||'Manager',
+  S={v:2,eco:1,ecoLog:[],nextId:1,usedNames:{},season:1,year:2027,step:0,phase:'season',teams:{},players:{},fa:[],user:teamId,manager:mgr||'Manager',
      ci:0,ev:null,rec:{},splits:{},fin:{},staff:{coach:1,analyst:1},training:{focus:'bal',intensity:'normal'},inbox:[],view:'home',
      board:60,history:[],trophies:[],lastRound:null,summary:null,trainLog:[],mailId:1};
   REGS.forEach((r,ri_)=>TEAMDATA[r].forEach(([id,name],i)=>{

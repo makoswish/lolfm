@@ -127,7 +127,7 @@ const SCOPE={all:'Alle',t1:'Profis (T1)',t2:'T2-Szene',u20:'Talente U20'};
 function kn(p){if(isMine(p))return 100;const k=(S.kn&&S.kn[p.id])||0,T=p.team?S.teams[p.team]:null;let b=0;if(T&&T.tier!==2)b=T.reg===S.teams[S.user].reg?S.staff.analyst*12:S.staff.analyst*6;return Math.max(k,b)}
 function knW(p){const k=kn(p);return k>=85?0:k>=60?1:k>=35?2:3}
 function knLv(p){const k=kn(p);return k>=85?4:k>=60?3:k>=35?2:1}
-function genScout(lvl){return{id:'s'+(S.nextId++),name:genRealName(pick(['DE','KR','FR','ES','EN','DK','BR','CN'])),lvl,reg:S.teams[S.user].reg,scope:'all',wage:lvl*700,fee:lvl*25000}}
+function genScout(lvl){return{id:'s'+(S.nextId++),name:genRealName(pick(['DE','KR','FR','ES','EN','DK','BR','CN'])),lvl,reg:S.teams[S.user].reg,scope:'all',wage:Math.round(lvl*700*eco()/100)*100,fee:r1000(lvl*25000*eco())}}
 function initScouting(){S.kn=S.kn||{};S.short=S.short||[];S.reports=S.reports||[];if(!S.scouts){const s=genScout(1);s.fee=0;S.scouts=[s]}if(!S.scoutPool)S.scoutPool=[genScout(ri(1,2)),genScout(ri(2,3)),genScout(ri(3,4))]}
 function scoutPool(sc){return Object.values(S.players).filter(p=>{if(isMine(p))return false;const T=p.team?S.teams[p.team]:null;
   if(T&&sc.reg!=='ALL'&&T.reg!==sc.reg)return false;if(!T&&!S.fa.includes(p.id))return false;

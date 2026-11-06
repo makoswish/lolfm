@@ -171,3 +171,28 @@ newGame('LYL','Tester');
 newGame('LSN','Tester');playSeason();
 {ACT.nav2({v:'mgr',k:'MTAB',t:'board'});ok(html().includes('Jetzt kündigen'),'Sofort-Knopf in der Pause fehlt');ACT.resign({ok:'1'});ok(S.jobless&&S.jobs.resigned&&S.view==='jobs','Sofortige Kündigung greift nicht');chk('Sofort gekündigt')}
 `;
+module.exports+=`
+function ok(c,msg){if(!c){console.log('FEHLER',msg);bad++}}
+function html(){return document.querySelector('#app').innerHTML}
+// Branchenwachstum: Marktindex hebt Gehälter, Werte, Sponsoren, Einnahmen
+newGame('LYL','Tester');
+{ok(S.eco===1&&eco()===1,'Marktindex startet nicht bei 1');
+ const p=S.players[S.teams[S.user].starters.MID];const sal1=salaryFor(ovr(p)),val1=valueFor(p),ls1=lsh(),rv1=regRev(),prz=SPLITPRIZE[0];
+ S.fin.slots=Object.fromEntries(SLOTS.map(x=>[x[0],null]));let sum1=0,n1=0;for(let i=0;i<8;i++){genOffers();for(const k in S.fin.offers)for(const o of S.fin.offers[k]){sum1+=o.base;n1++}}
+ S.eco=1.5;const sal2=salaryFor(ovr(p)),val2=valueFor(p);
+ ok(Math.abs(sal2/sal1-1.5)<.05,'Gehälter folgen dem Index nicht: '+sal1+' zu '+sal2);ok(Math.abs(val2/val1-1.5)<.05,'Werte folgen dem Index nicht');
+ ok(lsh()===Math.round(ls1*1.5)&&Math.abs(regRev()/rv1-1.5)<.001,'Einnahmen folgen dem Index nicht');
+ let sum2=0,n2=0;for(let i=0;i<8;i++){genOffers();for(const k in S.fin.offers)for(const o of S.fin.offers[k]){sum2+=o.base;n2++}}
+ ok(Math.abs((sum2/n2)/(sum1/n1)-1.5)<.2,'Sponsoren folgen dem Index nicht: '+Math.round(sum1/n1)+' zu '+Math.round(sum2/n2));
+ S.eco=1;
+ // Saisonwechsel: Index steigt um 3 bis 9 Prozent, Mail und Eintrag
+ playSeason();const n0=S.inbox.length;ACT.next();chk('Saisonwechsel');
+ ok(S.eco>=1.03&&S.eco<=1.09&&S.ecoLog.length===1&&S.ecoLog[0].v===S.eco,'Marktindex steigt nicht um 3 bis 9 Prozent: '+S.eco);
+ ok(S.inbox.some(m=>m.title.indexOf('Marktentwicklung')===0),'Keine Mail zur Marktentwicklung');
+ ACT.nav2({v:'club',k:'CLUBTAB',t:'fin'});chk('Finanzen');ok(html().includes('Marktindex'),'Marktindex nicht in den Finanzen');
+ // Alter Stand ohne Index lädt mit 1
+ delete S.eco;delete S.ecoLog;reload();ok(S.eco===1&&Array.isArray(S.ecoLog),'Alter Stand ohne Marktindex');
+ // Mehrere Saisons: Index wächst weiter und bleibt in einem Rahmen
+ S.eco=1;for(let i=0;i<5;i++){playSeason();ACT.next();chk('Saison '+i)}
+ ok(S.eco>1.15&&S.eco<1.6,'Marktindex nach fünf Saisons außerhalb des Rahmens: '+S.eco)}
+`;

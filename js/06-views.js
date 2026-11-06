@@ -102,6 +102,7 @@ function clubView(){
      ${f.loan?`<div class="stat"><span class="muted">Restschuld</span><span class="bad">${eur(f.loan.left)}</span></div><div class="stat"><span class="muted">Rate pro Woche</span><span>${eur(f.loan.weekly)}</span></div>
        <div class="acts" style="margin-top:8px"><button class="btn ghost sm" data-a="payloan" ${f.balance<f.loan.left?'disabled':''}>Sofort ablösen (${eurK(f.loan.left)})</button></div>`
       :`<p class="muted" style="font-size:13px;margin:0 0 8px">Rückzahlung über 26 Wochen mit 12% Zinsen. Die Bank leiht dir abhängig vom Ruf bis ${eurK(debtMax)}.</p><div class="acts">${LOANS.map(a=>`<button class="btn ghost sm" data-a="lend" data-v="${a}" ${a>debtMax?'disabled':''}>${eurK(a)} leihen</button>`).join('')}</div>`}</section>`;
+    body+=ecoPanel();
   }else if(CLUBTAB==='budget'){
     const b=f.budget,bill=wageBill(),fs=finState(),wk=f.weeks,months=[];for(let i=0;i<wk.length;i+=4)months.push(wk.slice(i,i+4).reduce((a,c)=>a+c,0));
     const mx=Math.max(1,...months.map(Math.abs)),bw=Math.max(14,Math.min(40,520/Math.max(1,13)));

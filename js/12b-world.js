@@ -110,6 +110,14 @@ function addonWeek(){const U=S.teams[S.user];for(const id of U.roster){const p=S
   if(g<a.l)a.l=0;a.c+=g-a.l;a.l=g;
   if(a.c>=a.g){book('Ablöse-Bonus',-a.amt);mail('Ablöse-Bonus fällig',`${p.name} hat ${a.g} Spiele für dich bestritten. ${eurK(a.amt)} gehen an ${S.teams[a.team]?S.teams[a.team].name:'den Ex-Verein'}.`);delete p.addon}}}
 
+/* ----- Branchenwachstum: Marktindex steigt jede Saison um 3 bis 9 Prozent ----- */
+function ecoSeason(){S.eco=S.eco||1;S.ecoLog=S.ecoLog||[];const g=+(.03+R()*.06).toFixed(3);S.eco=+(S.eco*(1+g)).toFixed(4);S.ecoLog.unshift({year:S.year+1,g,v:S.eco});if(S.ecoLog.length>10)S.ecoLog.length=10;
+  mail(`Marktentwicklung ${S.year+1}`,`Die Branche wächst um ${(g*100).toFixed(1).replace('.',',')} %. Gehälter, Ablösen, Sponsoren, Einnahmen und Preisgelder steigen mit. Marktindex: ${Math.round(S.eco*100)}.`);
+  news(`Die Branche wächst: Gehälter und Sponsoren legen um ${(g*100).toFixed(1).replace('.',',')} % zu.`,'liga')}
+function ecoPanel(){const L=S.ecoLog||[];return `<section class="panel s12"><div class="lab"><span>Marktindex</span><span>${Math.round(eco()*100)}</span></div>
+  <p class="muted" style="font-size:13px;margin:0 0 8px">Die Branche wächst jede Saison um 3 bis 9 Prozent. Gehälter, Ablösen, Sponsoren, Liga-Ausschüttung, Streams, Merch und Preisgelder steigen mit dem Index. Laufende Verträge ändern sich erst bei der Verlängerung, Infrastruktur, Content und Hardware kosten gleich viel.</p>
+  ${L.slice(0,5).map(x=>`<div class="stat"><span class="muted">${x.year}</span><span>+${(x.g*100).toFixed(1).replace('.',',')} % · Index ${Math.round(x.v*100)}</span></div>`).join('')||'<p class="empty">Noch keine Saison abgeschlossen.</p>'}</section>`}
+
 /* ----- Wöchentlicher Haken und Saisonende ----- */
 function worldWeek(){
   if(!S.mst)metaShift();

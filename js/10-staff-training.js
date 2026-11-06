@@ -3,7 +3,7 @@ const SROLE={hc:['Head Coach',1],ac:['Assistenztrainer',2],an:['Analyst',1],yc:[
 const SATTR={tech:'Technik-Training',tac:'Taktik & Makro',ment:'Mentales Training',youth:'Jugendarbeit',mot:'Motivation',ana:'Analyse'};
 const SFOC={hc:['tech','tac','ment','mot'],ac:['tech','tac','ment'],an:['ana','tac'],yc:['youth','tech','ment']};
 function genStaff(role,q){const a={};for(const k in SATTR)a[k]=clamp(Math.round(q*.6+gauss()*2.5),1,20);for(const k of SFOC[role])a[k]=clamp(Math.round(q+gauss()*2),1,20);
-  const main=SFOC[role].reduce((s,k)=>s+a[k],0)/SFOC[role].length,wage=r100(Math.max(300,(main-5)**2*28));
+  const main=SFOC[role].reduce((s,k)=>s+a[k],0)/SFOC[role].length,wage=r100(Math.max(300,(main-5)**2*28)*eco());
   return{id:'st'+(S.nextId++),role,name:genRealName(pick(['DE','KR','FR','ES','EN','DK','SE','CN','BR','PL'])),age:ri(26,52),a,wage,fee:r1000(wage*8),contract:ri(1,3)}}
 function staffOf(role){return(S.staffs||[]).filter(s=>s.role===role)}
 function bestA(roles,k){let b=0;for(const s of S.staffs||[])if(roles.includes(s.role))b=Math.max(b,s.a[k]);return b||6}

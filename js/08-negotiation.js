@@ -61,7 +61,7 @@ function ngNeed(){const p=S.players[NG.pid];if(NG.stage==='fee')return{t:feeNow(
 function pexp(t){return(t.wb||0)*.55+(t.tb||0)*.2/26}
 function baseNet(){const f=S.fin,U=S.teams[S.user],w=f.weeks.slice(-8);if(w.length>=3)return w.reduce((a,b)=>a+b,0)/w.length;
   const sp=sponsorBase()||SLOTS.slice(0,2).reduce((a,[k])=>a+(f.offers[k]?f.offers[k][0].base:0),0);
-  return sp+f.fans*.03*regRev()+(LSHARE[U.reg]||4000)+(aca()?2000:0)-weeklyCosts()}
+  return sp+f.fans*.03*regRev()+lsh()+(aca()?Math.round(2000*eco()):0)-weeklyCosts()}
 function boardProj(extraW,once){const wk=Math.max(4,52-S.step);return S.fin.balance-once+(baseNet()-extraW)*wk-finDebts()}
 function boardLimit(){return S.board>=70?-100000:S.board>=50?-30000:0}
 function boardVeto(extraW,once,what){const p=boardProj(extraW,once);if(p>=boardLimit())return null;
@@ -74,7 +74,7 @@ function vorstandBox(){const c=dealCost(),p=boardProj(c.w,c.once),lim=boardLimit
    Aufschlag FINRATE, fällig zum nächsten Saisonstart und dann abgezogen vom Konto und vom Transferbudget. Ohne Vertrauen oder bei Minus gibt es nichts. */
 const FINRATE=.1;
 function finDebts(){return(S.fin.debts||[]).reduce((a,x)=>a+x.amt,0)}
-function finLimit(){const f=S.fin;if(f.balance<=0||S.board<35||(f.budget&&f.budget.frozen))return 0;return r1000(150000+f.balance*.5)}
+function finLimit(){const f=S.fin;if(f.balance<=0||S.board<35||(f.budget&&f.budget.frozen))return 0;return r1000(150000*eco()+f.balance*.5)}
 function finRoom(){return Math.max(0,finLimit()-finDebts())}
 function fitPlan(nt,nw){const b=S.fin.budget,sw=Math.max(0,r100(Math.ceil(Math.max(0,nw-wageFree())/100)*100)),shiftT=sw*40,tot=nt+shiftT,rel=Math.max(0,r1000(Math.ceil(Math.max(0,tot-b.transfer)/1000)*1000));
   const rl=releasable(),short=Math.max(0,rel-rl),finCost=r1000(Math.ceil(short*(1+FINRATE)/1000)*1000);
