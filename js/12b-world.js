@@ -131,6 +131,38 @@ function ensureVac(cands,n){const have=cands.filter(t=>t.vac).length;if(have>=n)
   for(const [t] of pool.slice(0,n-have))fireMgr(t,'Der Verein will sich neu aufstellen.')}
 function fillVacancies(){for(const T of Object.values(S.teams)){if(!T.vac||T.id===S.user)continue;T.mgr=mgrName();T.vac=false;if(R()<.4)news(`${T.name} stellt ${T.mgr} als neuen Manager vor.`,'liga')}}
 
+/* ----- Auf- und Abstieg: Der Letzte jeder Liga spielt gegen den T2-Meister der Region (Bo5) ----- */
+const T1SUF=['Esports','Gaming','United','Legion','Titans','Collective'];
+function t2Champ(reg){const x=t2Table(reg).map(r=>S.teams[r.id]).find(t=>t&&!t.academy&&t.tier===2);return x||null}
+/* Der Erstligist hat in der Relegation Erfahrung und Heimvorteil: RELB Teamstärke obendrauf (gemessen: rund 78 % Klassenerhalt des Letzten, etwa eine Relegation mit Abstieg pro Saison in allen Regionen zusammen) */
+const RELB=7;
+function relSeries(A,B){const w=[0,0];let gi=1;A.relB=RELB;try{while(w[0]<3&&w[1]<3&&gi<=5){const g=newSim(A,B,{gi},undefined,false);while(!simTick(g)){}w[g.winner===0?0:1]++;gi++}}finally{delete A.relB}return{w,win:w[0]>w[1]}}
+function teamTag(T){let t=(T.name.split(' ')[0]||'XXX').replace(/[^A-Za-z]/g,'').slice(0,3).toUpperCase();const used=new Set(Object.values(S.teams).filter(x=>x!==T).map(x=>(x.tag||x.id).slice(0,3)));
+  if(t.length<3)t=(t+'XXX').slice(0,3);for(let i=0;used.has(t)&&i<26;i++)t=t.slice(0,2)+String.fromCharCode(65+i);return t}
+/* Der Aufsteiger holt die besten Vereinslosen, damit er nicht chancenlos ist */
+function boostPromoted(T){for(const r of ROLES){const cur=S.players[T.starters[r]];const best=S.fa.map(i=>S.players[i]).filter(p=>p&&!p.retired&&p.role===r&&ovr(p)<=T.rep+6&&canJoinReg(p,T.reg)&&impOk(p,T,T.starters[r])).sort((a,b)=>ovr(b)-ovr(a))[0];
+    if(best&&(!cur||ovr(best)>ovr(cur)+3)){best.contract=2;best.salary=salaryFor(ovr(best));sign(best,T,true)}}
+  while(T.roster.length>MAXR){const w=T.roster.map(i=>S.players[i]).filter(p=>!isStarter(p)).sort((a,b)=>ovr(a)-ovr(b))[0];if(!w)break;toFA(w)}ensureRoles(T,false)}
+function swapTiers(down,up){const reg=down.reg,low=Math.min(...teamsOf(reg).filter(t=>t!==down).map(t=>t.rep));
+  up.tier=1;up.academy=false;up.rep=clamp(Math.max(up.rep,low-2),48,66);up.name=up.name.replace(/ (Rising|Next|Prospects|Rookies|Challengers|Ascend|Youth|Nova)$/,()=>' '+pick(T1SUF));up.tag=teamTag(up);up.mgr=mgrName();up.vac=false;
+  down.tag=down.tag||(down.id.length>3?down.id.slice(0,3):down.id);down.tier=2;down.rep=Math.max(34,down.rep-8);
+  if(down.id!==S.user){down.mgr=null;down.vac=false}
+  boostPromoted(up)}
+function relegationSeason(){S.relegUser=false;S.releg=S.releg||[];
+  for(const r of REGS){const o=S.rec&&S.rec.S3&&S.rec.S3[r];if(!o||o.length<4)continue;
+    const A=S.teams[o[o.length-1]],B=t2Champ(r);if(!A||!B||A.tier===2||A.academy)continue;
+    const res=relSeries(A,B),sc=res.w[0]+':'+res.w[1],mine=A.id===S.user;
+    if(res.win){news(`${A.name} hält die Klasse: ${sc} in der Relegation gegen ${B.name}.`,'liga');
+      S.releg.unshift({year:S.year,reg:r,stay:A.id,other:B.id,names:[A.name,B.name],sc,down:false});
+      if(mine)mail('Relegation gewonnen',`Du bist Letzter geworden, setzt dich aber in der Relegation gegen ${B.name} durch (${sc}). Klassenerhalt.`)}
+    else{const an=A.name,bn0=B.name;swapTiers(A,B);news(`${an} steigt ab: ${sc} in der Relegation gegen ${bn0}. ${B.name} ist neu in der ${r}.`,'liga');
+      S.releg.unshift({year:S.year,reg:r,stay:B.id,other:A.id,names:[B.name,an],sc,down:true});
+      if(mine){S.relegUser=true;mail('Abstieg',`${an} verliert die Relegation gegen ${bn0} (${sc}) und steigt aus der ${r} ab.`)}else if(R()<.7)fireMgr(A,'Der Abstieg kostet den Manager den Job.')}}
+  if(S.releg.length>16)S.releg.length=16}
+function relegPanel(){const L=S.releg||[];return `<section class="panel s12"><div class="lab"><span>Auf- und Abstieg</span><span>${L.length}</span></div>
+  ${L.slice(0,8).map(x=>`<div class="stat"><span>${x.year} · ${x.reg}: ${x.down?`<b>${x.names[0]}</b> steigt auf, ${x.names[1]} steigt ab`:`${x.names[0]} hält die Klasse gegen ${x.names[1]}`}</span><span class="dim">${x.sc}</span></div>`).join('')||'<p class="empty">Noch keine Relegation gespielt.</p>'}
+  <p class="muted" style="font-size:13px;margin:10px 0 0">Der Letzte jeder Liga spielt am Saisonende gegen den Meister der T2-Szene seiner Region (Bo5). Verlierst du als Manager, musst du den Verein verlassen und bekommst Angebote anderer Vereine.</p></section>`}
+
 /* ----- Wöchentlicher Haken und Saisonende ----- */
 function worldWeek(){
   if(!S.mst)metaShift();

@@ -18,6 +18,13 @@ function tp(s){const o=core(s);return o==null?s:o}
 const ABB={Mec:'Mec',Trd:'Trd',CS:'CS',Wel:'Wav',Sks:'Sks',Spa:'Spa',Mak:'Mac',Vis:'Vis',Trk:'Trk',Obj:'Obj',Ent:'Dec',Pos:'Pos',Eng:'Eng',Tea:'Tea',Kom:'Com',Sho:'Sho',Rea:'Rea',Nrv:'Nrv',Kon:'Foc',Kst:'Con',Bel:'Res'};
 const SPN={'Promo-Stream mit zwei Spielern':'promo stream with two players','Werbedreh für Social Media':'ad shoot for social media'};
 const PAT=[
+ [/^(.+?) hält die Klasse: (\d+:\d+) in der Relegation gegen (.+?)\.$/,m=>`${m[1]} stay up: ${m[2]} in the relegation against ${m[3]}.`],
+ [/^(.+?) steigt ab: (\d+:\d+) in der Relegation gegen (.+?)\. (.+?) ist neu in der (\w+)\.$/,m=>`${m[1]} are relegated: ${m[2]} in the relegation against ${m[3]}. ${m[4]} are new in the ${m[5]}.`],
+ [/^Du bist Letzter geworden, setzt dich aber in der Relegation gegen (.+?) durch \((\d+:\d+)\)\. Klassenerhalt\.$/,m=>`You finished last but beat ${m[1]} in the relegation (${m[2]}). You stay up.`],
+ [/^(.+?) verliert die Relegation gegen (.+?) \((\d+:\d+)\) und steigt aus der (\w+) ab\.$/,m=>`${m[1]} lose the relegation against ${m[2]} (${m[3]}) and are relegated from the ${m[4]}.`],
+ [/^(.+?) steigt ab, (.+?) muss gehen\.$/,m=>`${m[1]} are relegated, ${m[2]} has to go.`],
+ [/^(\d{4}) · (\w+): (.+?) steigt auf, (.+?) steigt ab$/,m=>`${m[1]} · ${m[2]}: ${m[3]} promoted, ${m[4]} relegated`],
+ [/^(\d{4}) · (\w+): (.+?) hält die Klasse gegen (.+)$/,m=>`${m[1]} · ${m[2]}: ${m[3]} stay up against ${m[4]}`],
  [/^Dünn besetzt: (.+)$/,m=>`Thin squad: ${m[1]}`],
  [/^· ((?:Mec|Trd|CS|Wel|Sks|Spa|Mak|Vis|Trk|Obj|Ent|Pos|Eng|Tea|Kom|Sho|Rea|Nrv|Kon|Kst|Bel)(?:\/(?:Mec|Trd|CS|Wel|Sks|Spa|Mak|Vis|Trk|Obj|Ent|Pos|Eng|Tea|Kom|Sho|Rea|Nrv|Kon|Kst|Bel))*)$/,m=>'· '+m[1].split('/').map(a=>ABB[a]||a).join('/')],
  [/^(\w{2,4}) gewinnt$/,m=>`${m[1]} wins`],

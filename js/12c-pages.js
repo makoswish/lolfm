@@ -54,6 +54,7 @@ function lageTab(){const reg=S.teams[S.user].reg,L=teamsOf(reg).filter(t=>t.star
   const row=([t,f],i)=>`<button class="lbrow" data-a="team" data-id="${t.id}"><span class="pos">${i+1}</span>${crest(t,'sm')}<span class="nmcell">${t.name}<small class="dim"> ${STYLES[t.style].n}</small></span><b class="mono" style="color:${barCol(f)}">${Math.round(f)}</b></button>`;
   return `<section class="panel s6"><div class="lab"><span>Formstärkste Teams ${reg}</span><span>Ø Form der Startelf</span></div>${L.slice(0,5).map(row).join('')}</section>
   <section class="panel s6"><div class="lab"><span>Formschwächste Teams ${reg}</span><span>Ø Form der Startelf</span></div>${L.slice(-5).reverse().map((x,i)=>row(x,L.length-1-i)).join('')}</section>
+  ${relegPanel()}
   <section class="panel s12"><div class="lab"><span>Meldungen aus der Liga</span><span>${(S.news||[]).filter(n=>n.cat==='liga').length}</span></div>${(S.news||[]).filter(n=>n.cat==='liga').slice(0,12).map(n=>`<div class="stat"><span>${n.t}</span><span class="dim">${n.when}</span></div>`).join('')||'<p class="empty">Noch keine Meldungen.</p>'}</section>`}
 
 /* ----- Darstellung: Skalierung automatisch nach Bildschirmbreite oder fest gewählt ----- */

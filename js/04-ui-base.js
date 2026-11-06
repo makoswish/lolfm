@@ -12,7 +12,7 @@ const ICON={
 };
 const NAV=[['home','Übersicht'],['squad','Kader'],['tactic','Taktik'],['transfer','Transfers'],['league','Turniere'],['club','Verein']];
 function crest(T,cls){const t2=T.tier===2&&!T.academy,sh=t2?'M20 2 L37 11 V33 L20 44 L3 33 V11 Z':'M20 1.5 L37.5 7 V21 C37.5 33 30 40.5 20 44.5 C10 40.5 2.5 33 2.5 21 V7 Z';
-  return `<span class="crest ${cls||''}" aria-hidden="true"><svg viewBox="0 0 40 46"><path d="${sh}" fill="${T.color}"/><path d="${t2?'M20 2 L37 11 V33 L20 44 Z':'M20 1.5 L37.5 7 V21 C37.5 33 30 40.5 20 44.5 Z'}" fill="#000" opacity=".16"/><path d="${sh}" fill="none" stroke="#fff" stroke-opacity=".28" stroke-width="1.2"/></svg><b>${T.id.length>3?T.id.slice(0,3):T.id}</b></span>`}
+  return `<span class="crest ${cls||''}" aria-hidden="true"><svg viewBox="0 0 40 46"><path d="${sh}" fill="${T.color}"/><path d="${t2?'M20 2 L37 11 V33 L20 44 Z':'M20 1.5 L37.5 7 V21 C37.5 33 30 40.5 20 44.5 Z'}" fill="#000" opacity=".16"/><path d="${sh}" fill="none" stroke="#fff" stroke-opacity=".28" stroke-width="1.2"/></svg><b>${(T.tag||T.id).length>3?(T.tag||T.id).slice(0,3):(T.tag||T.id)}</b></span>`}
 function chip(r){return `<span class="chip">${r}</span>`}
 function bar(v,col){return `<div class="bar"><i style="width:${clamp(v,0,100)}%;background:${col||barCol(v)}"></i></div>`}
 function formDots(arr){return `<span class="formdots">${arr.slice(-5).map(x=>`<i style="background:${x?'var(--good)':'var(--bad)'}" title="${x?'Sieg':'Niederlage'}"></i>`).join('')}</span>`}
@@ -110,6 +110,7 @@ function todoItems(){const U=S.teams[S.user],L=[],nav=(v,k,t)=>`data-a="nav2" da
   if(S.fin.balance<0)add('bad','Das Konto ist im Minus',nav('club','CLUBTAB','fin'),'Finanzen');
   const out=ROLES.map(r=>S.players[U.starters[r]]).filter(p=>p&&isOut(p));
   if(out.length)add('bad',`${out.map(p=>p.name).join(', ')} ${out.length>1?'fallen':'fällt'} aus`,nav('squad','KTAB','list'),'Kader');
+  try{const sp=S.ev&&S.ev.type==='split'&&S.ev.id==='S3'?S.ev:null;if(sp&&sp.stage==='rr'&&sp.round>=3){const g=sp.reg[U.reg],st=tableOf(g.ids,g.res),pos=st.findIndex(x=>x.id===S.user)+1;if(pos===st.length)add('bad','Letzter Platz im Sommer-Split: Die Relegation droht',nav('league','LTAB','lage'),'Liga-Lage')}}catch(e){}
   const tired=U.roster.map(i=>S.players[i]).filter(p=>(p.load||0)>=80&&!isOut(p));
   if(tired.length)add('warn',`${tired.length} ${tired.length===1?'Spieler ist':'Spieler sind'} überlastet`,nav('tactic','TACTAB','train'),'Training');
   const ex=squadAll().filter(([p])=>p.contract<=1&&p.tried!==wkKey()&&!isLoanIn(p));
