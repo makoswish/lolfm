@@ -196,3 +196,32 @@ newGame('LYL','Tester');
  S.eco=1;for(let i=0;i<5;i++){playSeason();ACT.next();chk('Saison '+i)}
  ok(S.eco>1.15&&S.eco<1.6,'Marktindex nach fünf Saisons außerhalb des Rahmens: '+S.eco)}
 `;
+module.exports+=`
+function ok(c,msg){if(!c){console.log('FEHLER',msg);bad++}}
+function html(){return document.querySelector('#app').innerHTML}
+// Nur Vereine ohne Manager stellen ein
+newGame('LYL','Tester');
+{const T1=()=>Object.values(S.teams).filter(t=>t.tier!==2&&!t.academy);
+ ok(T1().every(t=>t.mgr&&!t.vac)&&S.teams[S.user].mgr===S.manager,'Nicht jeder Verein hat einen Manager');
+ ok(new Set(T1().filter(t=>t.id!==S.user).map(t=>t.mgr)).size>20,'Managernamen wiederholen sich zu oft');
+ ACT.team({id:T1().find(t=>t.id!==S.user).id});ok(html().includes('Manager'),'Manager fehlt im Team-Fenster');MODAL=null;
+ // Alter Stand ohne Manager lädt mit Managern
+ for(const t of T1())delete t.mgr;reload();ok(T1().every(t=>t.mgr),'Alter Stand ohne Manager');
+ // Zum Saisonende trennen sich Vereine von Managern
+ let fired=0;for(let i=0;i<30;i++){for(const t of T1()){t.mgr=t.mgr||mgrName();t.vac=false}mgrCarousel();fired+=T1().filter(t=>t.vac).length}
+ ok(fired>0&&fired<30*T1().length*.5,'Managerwechsel unplausibel: '+fired);
+ ok(!S.teams[S.user].vac,'Eigener Verein wird nie vakant');
+ for(const t of T1()){if(t.id!==S.user){t.mgr=mgrName();t.vac=false}}
+ // Kündigung: Angebote nur von Vereinen ohne Manager
+ playSeason();ACT.nav2({v:'mgr',k:'MTAB',t:'board'});ACT.resign({ok:'1'});
+ playSeason&&0;const old=S.user;
+ {S.phase='offseason';resignDo();const L=S.jobs.list.map(id=>S.teams[id]);ok(L.length>=4&&L.every(t=>t.vac&&!t.mgr),'Angebot von einem Verein mit Manager');ACT.next();ok(html().includes('Vakant'),'Vakant-Hinweis auf der Jobseite');
+  const pick1=S.jobs.list[0];const other=T1().find(t=>!t.vac&&t.id!==S.user&&t.id!==pick1);
+  ACT.jobtake({v:pick1});ACT.jobtake({v:pick1,ok:'1'});chk('Wechsel');
+  ok(S.user===pick1&&S.teams[pick1].mgr===S.manager&&!S.teams[pick1].vac,'Neuer Verein hat nicht dich als Manager');ok(S.teams[old].mgr&&S.teams[old].mgr!==S.manager&&!S.teams[old].vac,'Alter Verein bekommt keinen neuen Manager')}
+ // Zum Saisonstart sind alle Stellen besetzt
+ const vac=T1().filter(t=>t.id!==S.user).slice(0,3);for(const t of vac){t.mgr=null;t.vac=true}fillVacancies();ok(vac.every(t=>t.mgr&&!t.vac),'Vakanzen werden nicht besetzt')}
+// Entlassung: ebenfalls nur vakante Vereine
+newGame('LSN','Tester');playSeason();
+{S.board=5;S.summary=S.summary||{place:8,exp:2,splits:[],intl:[]};careerSeason();ok(S.jobless&&S.jobs.list.length>=2&&S.jobs.list.every(id=>S.teams[id].vac&&!S.teams[id].mgr),'Entlassung: Angebote von Vereinen mit Manager')}
+`;

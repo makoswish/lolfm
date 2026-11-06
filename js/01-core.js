@@ -251,7 +251,7 @@ function migrate(){addMissingTeams();for(const p of Object.values(S.players)){if
   if(!aca())genT2();if(!S.t2)t2Init();
   {const f=S.fin;for(const[k]of SLOTS){if(!(k in f.slots))f.slots[k]=null;if(f.slots[k]&&f.slots[k].sat==null)f.slots[k].sat=60;if(!f.slots[k]&&!(f.offers&&f.offers[k]))genSlotOffers(k)}}
   initStaff();if(!S.training.plan)S.training.plan=(PLANS[S.training.focus]||PLANS.bal).slice();S.ment=S.ment||{};infraInit();S.trials=S.trials||[];
-  if(S.eco==null)S.eco=1;if(!S.ecoLog)S.ecoLog=[];if(!S.fin.lshare){S.fin.lshare=1;const A=aca();if(A)for(const id of A.roster){const p=S.players[id];if(p.age<=19)p.salary=Math.min(p.salary,450)}setBudgets();mail('Finanzen überarbeitet','Neu: Liga-Ausschüttung und T2-Förderung jede Woche, günstigere Academy-Gehälter, Sponsor-Vorschuss und eine einmalige Vorstandshilfe im Notfall. Die Budgets wurden neu berechnet.')}initScouting();if(!S.tst)S.tst={};if(S.mrep==null)S.mrep=30;if(S.eco==null)S.eco=1;if(!S.ecoLog)S.ecoLog=[];if(S.resign==null)S.resign=false;if(!S.mst)metaShift();fgInit();t2Fix()}
+  if(S.eco==null)S.eco=1;if(!S.ecoLog)S.ecoLog=[];if(!S.fin.lshare){S.fin.lshare=1;const A=aca();if(A)for(const id of A.roster){const p=S.players[id];if(p.age<=19)p.salary=Math.min(p.salary,450)}setBudgets();mail('Finanzen überarbeitet','Neu: Liga-Ausschüttung und T2-Förderung jede Woche, günstigere Academy-Gehälter, Sponsor-Vorschuss und eine einmalige Vorstandshilfe im Notfall. Die Budgets wurden neu berechnet.')}initScouting();if(!S.tst)S.tst={};for(const T of Object.values(S.teams))if(T.tier!==2&&!T.academy&&T.mgr===undefined)T.mgr=T.id===S.user?S.manager:mgrName();if(S.mrep==null)S.mrep=30;if(S.eco==null)S.eco=1;if(!S.ecoLog)S.ecoLog=[];if(S.resign==null)S.resign=false;if(!S.mst)metaShift();fgInit();t2Fix()}
 function relink(ev){if(!ev)return;if(ev.type==='intl'){ev.stage.cur=ev.cur;return}
   if(ev.stage==='semi')for(const r of REGS)ev.reg[r].po.semis=ev.cur.filter(m=>m.tag===r);
   if(ev.stage==='final')for(const r of REGS)ev.reg[r].po.final=ev.cur.find(m=>m.tag===r)}
@@ -280,6 +280,7 @@ function newGame(teamId,mgr){
   }));
   for(let i=0;i<45;i++){const r=pick(REGS),p=genPlayer(ROLES[i%5],ri(46,70)+Math.round(REG[r].str),undefined,r);p.contract=0;S.players[p.id]=p;S.fa.push(p.id)}
   const U=S.teams[teamId];
+  for(const T of Object.values(S.teams))if(T.tier!==2&&!T.academy)T.mgr=T.id===teamId?S.manager:mgrName();
   S.fin=newFin((U.rep-40)*20000,U.rep*2000);S.fin.lshare=1;S.trials=[];infraInit();genOffers();setBudgets();
   VIEWREG=U.reg;
   S.tacs=['A','B','C'].map(n=>defTac(U,n));S.tacs[1].style='SCL';S.tacs[2].style='AGG';S.tacA=0;applyTac();initKnow();for(const k in S.know)S.know[k]=tKeys(S.tacs[0]).some(x=>x[0]===k)?80:45;

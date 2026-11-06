@@ -92,21 +92,24 @@ function pevAnswer(m,i){const E=PEV[m.k],p=m.pid&&S.players[m.pid],q=m.qid&&S.pl
    Zum Saisonende prüft der Vorstand. Unter 25% Vertrauen wirst du entlassen und musst einen kleineren Verein übernehmen.
    Bei Erfolg kommen Angebote von größeren Vereinen, auch aus anderen Regionen. Gewechselt wird nur in der Saisonpause. */
 const SACK_AT=25;
-function jobCands(up){const U=S.teams[S.user];return Object.values(S.teams).filter(t=>t.tier!==2&&!t.academy&&t.id!==S.user&&(up?t.rep>=U.rep+3&&t.rep<=U.rep+16:t.rep<=U.rep-3&&t.rep>=U.rep-22))}
-function genJobs(up){const L=jobCands(up),U=S.teams[S.user];if(!L.length)return[];
+/* Nur Vereine ohne Manager stellen ein. Natürliche Vakanzen entstehen zum Saisonende (mgrCarousel). Wer entlassen wird oder kündigt,
+   bekommt notfalls zusätzliche Vakanzen (force): Der Verein trennt sich dann von seinem Manager. */
+function jobCands(up,force){const U=S.teams[S.user],all=Object.values(S.teams).filter(t=>t.tier!==2&&!t.academy&&t.id!==S.user&&(up?t.rep>=U.rep+3&&t.rep<=U.rep+16:t.rep<=U.rep-3&&t.rep>=U.rep-22));
+  if(force)ensureVac(all,3);return all.filter(t=>t.vac)}
+function genJobs(up,force){const L=jobCands(up,force),U=S.teams[S.user];if(!L.length)return[];
   const w=t=>(t.reg===U.reg?3:1)*(up?1:1);const pool=L.slice(),out=[];
   for(let i=0;i<(up?2:3)&&pool.length;i++){const tot=pool.reduce((a,t)=>a+w(t),0);let x=R()*tot,k=0;for(;k<pool.length-1;k++){x-=w(pool[k]);if(x<=0)break}out.push(pool.splice(k,1)[0].id)}return out}
 function careerSeason(){const s=S.summary;if(!s)return;S.career=S.career||[];S.career.unshift({year:S.year,team:S.user,place:s.place,exp:s.exp,board:Math.round(S.board),titles:S.trophies.filter(t=>t.year===S.year).length});
   S.jobs=null;
   if(S.resign){resignDo();return}
-  if(S.board<SACK_AT){const L=genJobs(false);S.jobless=true;S.jobs={list:L.length?L:genJobs(true),sacked:true};
+  if(S.board<SACK_AT){const L=genJobs(false,true);S.jobless=true;S.jobs={list:L.length?L:genJobs(true,true),sacked:true};
     mail('Der Vorstand trennt sich von dir',`Das Vertrauen liegt bei ${Math.round(S.board)}%. Die Bilanz: ${(S.goals&&S.goals.final||[]).map(x=>`${x.txt} ${x.st}`).join(', ')}. Damit ist Schluss bei ${S.teams[S.user].name}. Es liegen ${S.jobs.list.length} Angebote vor. Du musst eins annehmen, bevor die neue Saison startet.`,{type:'job'});news(`${S.teams[S.user].name} trennt sich von ${S.manager}.`,'liga');return}
   const good=s.place<=Math.max(1,s.exp-1)||S.trophies.some(t=>t.year===S.year);
   if(good&&R()<.75){const L=genJobs(true);if(L.length){S.jobs={list:L,sacked:false};mail('Jobangebote',`${L.map(id=>S.teams[id].name).join(' und ')} ${L.length>1?'wollen':'will'} dich als Manager. Die Angebote gelten bis zum Start der neuen Saison.`,{type:'job'})}}}
 function switchTeam(tid){const T=S.teams[tid];if(!T||T.tier===2||T.academy||tid===S.user||LIVE)return 'Wechsel nicht möglich.';if(S.phase!=='offseason')return 'Gewechselt wird nur in der Saisonpause.';
   const old=S.teams[S.user],oldA=aca();loansReturn();
   if(oldA){for(const id of [...oldA.roster])toFA(S.players[id]);delete S.teams[oldA.id]}
-  old.tac=null;S.user=tid;S.jobless=false;S.jobs=null;S.resign=false;
+  old.tac=null;old.mgr=mgrName();old.vac=false;S.user=tid;T.mgr=S.manager;T.vac=false;S.jobless=false;S.jobs=null;S.resign=false;
   S.fin=newFin((T.rep-40)*20000,T.rep*2000);S.fin.lshare=1;S.fin.ibase=null;infraInit();genOffers();for(const[k]of SLOTS)if(slotOpen(k)&&S.fin.offers[k]&&S.fin.offers[k][0]){S.fin.slots[k]=S.fin.offers[k][0];S.fin.slots[k].sat=60}setBudgets();
   S.staffs=null;S.staff={coach:1,analyst:1};initStaff();newStaffPool();syncStaff();S.scouts=null;initScouting();S.trials=[];S.ment={};
   S.tacs=['A','B','C'].map(n=>defTac(T,n));S.tacs[1].style='SCL';S.tacs[2].style='AGG';S.tacA=0;applyTac();initKnow();
@@ -121,7 +124,7 @@ function jobsView(){const J=S.jobs;if(!J||!J.list.length)return `<div class="pag
   return `<div class="pagehead"><div><h1>${J.resigned?'Ohne Verein':J.sacked?'Entlassen':'Jobangebote'}</h1><p>${J.resigned?'Du hast gekündigt. Such dir einen Verein aus allen Regionen aus, bevor die neue Saison startet.':J.sacked?'Du musst einen dieser Vereine übernehmen, bevor die neue Saison startet.':'Du kannst bleiben oder zu einem dieser Vereine wechseln. Die Angebote gelten bis zum Saisonstart.'}</p></div></div>
   <div class="grid">${J.list.map(id=>{const T=S.teams[id];if(!T)return'';const exp=expected(id);return `<section class="panel s4"><div class="lab"><span>${T.name}</span><span>${T.reg}</span></div>
    <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px">${crest(T,'lg')}<div><b style="font-size:18px">${prestigeOf(T)}</b><div class="muted" style="font-size:13px">Ruf ${T.rep} · Team-OVR ${teamOvr(T)}</div></div></div>
-   <div class="stat"><span class="muted">Philosophie</span><span>${PHIL[philOf(T)][0]}</span></div><div class="stat"><span class="muted">Budget zum Start</span><span>${eurK((T.rep-40)*20000)}</span></div><div class="stat"><span class="muted">Vorstandsziel</span><span>Platz ${exp}</span></div>
+   <div class="stat"><span class="muted">Manager</span><span class="good">Vakant</span></div><div class="stat"><span class="muted">Philosophie</span><span>${PHIL[philOf(T)][0]}</span></div><div class="stat"><span class="muted">Budget zum Start</span><span>${eurK((T.rep-40)*20000)}</span></div><div class="stat"><span class="muted">Vorstandsziel</span><span>Platz ${exp}</span></div>
    <div class="stat"><span class="muted">Trainingszentrum</span><span>${iWord(iFrac('tc',aiInfra(T,'tc')))}</span></div>
    <div class="acts" style="margin-top:12px"><button class="btn sm" data-a="jobtake" data-v="${id}">Übernehmen</button></div></section>`}).join('')}
   ${J.sacked?'':`<section class="panel s12"><div class="acts"><button class="btn ghost sm" data-a="jobstay">Bei ${S.teams[S.user].name} bleiben</button></div></section>`}</div>`}

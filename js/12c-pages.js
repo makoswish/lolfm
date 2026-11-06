@@ -12,10 +12,10 @@ function mgrView(){
 function resignWhy(){if(S.jobless)return 'Du bist bereits ohne Verein.';if(LIVE||SIMRUN)return 'Nicht während eines Spiels.';return null}
 /* Freie Wahl nach der Kündigung: bis zu acht Vereine aus allen Regionen, so groß, wie dein Ruf als Manager es erlaubt. */
 function resignJobs(){const U=S.teams[S.user],top=U.rep+6+Math.round((S.mrep==null?30:S.mrep)/5);
-  const all=Object.values(S.teams).filter(t=>t.tier!==2&&!t.academy&&t.id!==S.user&&t.rep<=top);
+  const pool=Object.values(S.teams).filter(t=>t.tier!==2&&!t.academy&&t.id!==S.user&&t.rep<=top);ensureVac(pool,5);const all=pool.filter(t=>t.vac);
   const other=shuffle(all.filter(t=>t.reg!==U.reg)),same=shuffle(all.filter(t=>t.reg===U.reg));
   const pickN=(a,n)=>a.slice(0,n);let L=[...pickN(other,5),...pickN(same,3)];
-  if(L.length<4)L=[...L,...pickN(shuffle(Object.values(S.teams).filter(t=>t.tier!==2&&!t.academy&&t.id!==S.user&&!L.includes(t))),4-L.length)];
+  
   return L.sort((a,b)=>b.rep-a.rep).map(t=>t.id)}
 function resignDo(){S.mrep=clamp((S.mrep==null?30:S.mrep)-3,0,100);S.resign=false;S.jobless=true;S.jobs={list:resignJobs(),sacked:true,resigned:true};
   mail('Kündigung wirksam',`Du hast bei ${S.teams[S.user].name} gekündigt. Es liegen ${S.jobs.list.length} Angebote vor. Such dir einen Verein aus, bevor die neue Saison startet. Dein Manager-Ruf sinkt um 3.`,{type:'job'});

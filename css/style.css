@@ -840,3 +840,9 @@ html.ovopen,html.ovopen body{overflow:hidden}
   .side::-webkit-scrollbar{display:none}
   .ngrp{flex:0 0 19%;min-width:64px}
 }
+
+/* Wappen: Kürzel sitzt immer mittig im Schild, egal ob das Wappen Grid-, Block- oder Flex-Element ist */
+.crest{display:inline-block}
+.crest.crest>b{position:absolute!important;inset:0;display:flex!important;align-items:center;justify-content:center;margin:-3px 0 0;line-height:1;text-align:center}
+.crest.sm.sm>b{margin-top:-2px}
+.crest.lg{border:0;padding:0}

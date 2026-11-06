@@ -319,6 +319,7 @@ function teamModal(){
    ${st('Spielstil',mine||an>=2?STYLES[T.style].n:'Analyst Level 2 nötig')}
    ${st('Jungle-Fokus',mine||an>=3?FOCUS[T.focus]:'Analyst Level 3 nötig')}
    ${row?st('Tabelle',`Platz ${row} · ${me.w} S · ${me.l} N`):''}${me&&me.form&&me.form.length?st('Form',formDots(me.form)):''}
+   ${T.tier!==2?st('Manager',T.id===S.user?`${S.manager} (du)`:T.vac?'<span class="good">Vakant</span>':(T.mgr||'-')):''}
    ${T.tier!==2&&!mine?st('Importe in der Startelf',`${impCount(T)} von ${IMPMAX}`):''}</aside>
   <section class="tmros"><div class="lab"><span>Kader</span><span>${ps.length} Spieler</span></div><div class="rows">${ps.map(p=>playerRow(p,!mine)).join('')}</div></section></div>
   <div class="acts sfoot"><button class="btn ghost" data-a="close">Schließen</button></div></div></div>`;

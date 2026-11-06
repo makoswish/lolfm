@@ -118,13 +118,26 @@ function ecoPanel(){const L=S.ecoLog||[];return `<section class="panel s12"><div
   <p class="muted" style="font-size:13px;margin:0 0 8px">Die Branche wächst jede Saison um 3 bis 9 Prozent. Gehälter, Ablösen, Sponsoren, Liga-Ausschüttung, Streams, Merch und Preisgelder steigen mit dem Index. Laufende Verträge ändern sich erst bei der Verlängerung, Infrastruktur, Content und Hardware kosten gleich viel.</p>
   ${L.slice(0,5).map(x=>`<div class="stat"><span class="muted">${x.year}</span><span>+${(x.g*100).toFixed(1).replace('.',',')} % · Index ${Math.round(x.v*100)}</span></div>`).join('')||'<p class="empty">Noch keine Saison abgeschlossen.</p>'}</section>`}
 
+/* ----- Managerwechsel der KI-Vereine: Zum Saisonende trennen sich Vereine von Managern, die unter den Erwartungen blieben ----- */
+function mgrName(){return genRealName(pick(['DE','KR','FR','ES','EN','DK','SE','CN','BR','PL']))}
+function perfGap(T){const pl=[];for(const c of CAL){if(c.type!=='split'||!S.rec||!S.rec[c.id])continue;const arr=S.rec[c.id][T.reg];const i=arr?arr.indexOf(T.id):-1;if(i>=0)pl.push(i+1)}
+  if(!pl.length)return 0;return pl.reduce((a,b)=>a+b,0)/pl.length-expected(T.id)}
+function fireMgr(T,why){if(!T.mgr||T.vac)return;const old=T.mgr;T.mgr=null;T.vac=true;news(`${T.name} trennt sich von Manager ${old}. ${why||'Der Verein sucht einen Nachfolger.'}`,'liga')}
+function mgrCarousel(){const U=S.user,L=Object.values(S.teams).filter(t=>t.tier!==2&&!t.academy&&t.id!==U&&t.mgr);
+  for(const T of L){const g=perfGap(T),ch=g<=-2?.01:clamp(.04+Math.max(0,g)*.08,.04,.55);if(R()<ch)fireMgr(T,g>0?'Die Saison blieb unter den Erwartungen.':'Der Verein will einen Neuanfang.')}}
+/* Mindestens n Vereine aus der Auswahl brauchen einen neuen Manager: die mit dem schlechtesten Saisonverlauf trennen sich zuerst. */
+function ensureVac(cands,n){const have=cands.filter(t=>t.vac).length;if(have>=n)return;
+  const pool=cands.filter(t=>!t.vac&&t.mgr).map(t=>[t,perfGap(t)+R()*2]).sort((a,b)=>b[1]-a[1]);
+  for(const [t] of pool.slice(0,n-have))fireMgr(t,'Der Verein will sich neu aufstellen.')}
+function fillVacancies(){for(const T of Object.values(S.teams)){if(!T.vac||T.id===S.user)continue;T.mgr=mgrName();T.vac=false;if(R()<.4)news(`${T.name} stellt ${T.mgr} als neuen Manager vor.`,'liga')}}
+
 /* ----- Wöchentlicher Haken und Saisonende ----- */
 function worldWeek(){
   if(!S.mst)metaShift();
   if(S.ev&&S.ev.type==='split'&&S.step>0&&S.step%7===3&&S.phase!=='offseason')hotfix();
   injWeek();fanWeek();addonWeek();
   if(R()<.5)leagueEvent()}
-function worldSeasonEnd(){mgrSeason()}
+function worldSeasonEnd(){mgrCarousel();mgrSeason()}
 
 /* ----- Saisonrückblick ----- */
 function reviewData(){const U=S.teams[S.user],c=(S.career&&S.career[0]&&S.career[0].year===S.year)?S.career[0]:null,s=S.summary,y=String(S.year);
