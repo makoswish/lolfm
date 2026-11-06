@@ -52,3 +52,13 @@ ACT.next();chk('Neue Saison');
 const y3=S.players[y.id];ok(y3&&!y3.loan&&(y3.team===S.user||!y3.team),'Leihspieler nach Saisonende nicht zurück');
 ok(!Object.values(S.players).some(p=>p.loan),'Leihe hängt noch');
 `;
+module.exports+=`
+// Scouts empfehlen realistische Ziele
+newGame('LYL','Tester');initScouting();
+{const U=S.teams[S.user];U.rep=45;const sc=S.scouts[0];sc.lvl=3;sc.reg='ALL';sc.scope='all';sc.frole='ALL';sc.fage=99;sc.fval=0;
+ const pool=scoutPool(sc);const avgAll=pool.reduce((a,p)=>a+hurdleGap(p),0)/pool.length;
+ S.reports=[];let n=0,sum=0;for(let i=0;i<25;i++){for(const x of Object.keys(S.kn))delete S.kn[x];scoutWeek();for(const r of S.reports){n++;sum+=hurdleGap(S.players[r.pid])}S.reports=[]}
+ ok(n>20,'Scouts liefern keine Berichte');const avgRep=sum/n;
+ ok(avgRep<avgAll*.7,'Scouts empfehlen unrealistische Ziele: Abstand '+avgRep.toFixed(1)+' gegen Pool '+avgAll.toFixed(1));
+ ok(typeof scoutTab()==='string'&&scoutTab().includes('sgn')||S.reports.length===0,'Bericht ohne Wechselbereitschaft')}
+`;

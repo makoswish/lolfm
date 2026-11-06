@@ -129,13 +129,22 @@ function scoutPool(sc){return Object.values(S.players).filter(p=>{if(isMine(p))r
   if(sc.scope==='t1')return !!T&&T.tier!==2;if(sc.scope==='t2')return !!T&&T.tier===2;if(sc.scope==='u20')return p.age<=20;return true})}
 function grade(p,sc){const U=S.teams[S.user],cur=S.players[U.starters[p.role]],o=ovr(p)+gauss()*(5-sc.lvl),pot=p.pot+gauss()*(5-sc.lvl),co=cur?ovr(cur):0;
   if(o>=co+2)return['A','Sofort eine Verstärkung'];if(pot>=co+3&&p.age<=21)return['B','Spannende Perspektive'];if(o>=co-5)return['C','Solider Ersatz'];return['D','Kein Bedarf']}
+/* Scouts suchen Ziele, die der Verein auch holen kann: Abzug pro Ruf-Punkt unter der Schmerzgrenze des Spielers (hurdleGap),
+   Abzug für Stammspieler größerer Vereine, Bonus für echten Bedarf auf der Position. Je besser der Scout, desto strenger der Filter. */
+function scoutScore(p,sc){const U=S.teams[S.user],T=p.team?S.teams[p.team]:null,w=.5+sc.lvl*.2,cur=S.players[U.starters[p.role]];
+  let v=(p.pot+ovr(p))/2;v-=hurdleGap(p)*2*w;
+  if(T&&T.tier!==2&&isStarter(p)&&T.rep>U.rep+3)v-=6*w;
+  if(cur&&ovr(p)>=ovr(cur))v+=4;else if(cur&&p.age>21&&ovr(p)<ovr(cur)-3)v-=6;
+  return v}
+function scoutPick(pool,sc){const c=shuffle(pool.slice()).slice(0,14);if(!c.length)return null;
+  return c.map(p=>[p,scoutScore(p,sc)+(R()-.5)*8]).sort((a,b)=>b[1]-a[1])[0][0]}
 function scoutWeek(){initScouting();
   for(const sc of S.scouts){const pool=scoutPool(sc).filter(p=>kn(p)<90);if(!pool.length)continue;
-    const n=1+Math.floor(sc.lvl/2);for(let i=0;i<n;i++){const c=shuffle(pool.slice()).slice(0,14).sort((a,b)=>b.pot-a.pot+(R()-.5)*10)[0];if(!c)break;
+    const n=1+Math.floor(sc.lvl/2);for(let i=0;i<n;i++){const c=scoutPick(pool,sc);if(!c)break;
       S.kn[c.id]=clamp((S.kn[c.id]||0)+20+sc.lvl*10,0,100);const g=grade(c,sc);S.reports=S.reports.filter(r=>r.pid!==c.id);
       const w=Math.max(1,6-sc.lvl),lo=Math.round(ovr(c)-R()*w),kwc=keyW(c.role),srt=DK.filter(x=>x!=='cns').sort((a,b)=>(c.d[b]-c.d[a])+(kwc[b]-kwc[a])*20);
       S.reports.unshift({pid:c.id,sc:sc.name,lvl:sc.lvl,g:g[0],txt:g[1],when:shortLabel(),lo,hi:lo+w,ps:clamp(c.pot+gauss()*(5-sc.lvl),40,96),fee:r1000(valueFor(c)*(.85+R()*.3)),st:srt.slice(0,2),wk:srt.slice(-1)});
-      if(g[0]==='A'&&R()<.5)mail(`Scouting: ${c.name}`,`${sc.name} empfiehlt ${c.name} (${RN[c.role]}, ${c.team?S.teams[c.team].name:'vereinslos'}): ${g[1]}.`)}}
+      if(g[0]==='A'&&signDiff(c).lv<=2&&R()<.5)mail(`Scouting: ${c.name}`,`${sc.name} empfiehlt ${c.name} (${RN[c.role]}, ${c.team?S.teams[c.team].name:'vereinslos'}): ${g[1]}.`)}}
   if(S.reports.length>40)S.reports.length=40;
   for(const r of REGS)if(t2Watch(r))for(const t of t2Of(r))for(const x of ROLES){const p=S.players[t.starters[x]];if(p&&!isMine(p)&&(S.kn[p.id]||0)<60)S.kn[p.id]=Math.min(60,(S.kn[p.id]||0)+3)}
   if(S.scouts.length)for(const id of S.short)if(S.players[id])S.kn[id]=clamp((S.kn[id]||0)+6,0,100);
@@ -195,7 +204,7 @@ function scoutTab(){initScouting();
   <section class="panel s12"><div class="lab"><span>Scouting-Berichte</span><span>${reps.length}</span></div>
    <div class="seg" style="margin-bottom:10px">${['ALL','A','B','C','D'].map(g=>`<button class="${RFILT===g?'on':''}" data-a="rfilt" data-v="${g}">${g==='ALL'?'Alle':g+' ('+reps.filter(r=>r.g===g).length+')'}</button>`).join('')}</div>
    ${reps.filter(r=>RFILT==='ALL'||r.g===RFILT).map(r=>{const p=S.players[r.pid];return `<button class="row rep" data-a="player" data-id="${p.id}"><span class="grade g${r.g}">${r.g}</span><span style="min-width:0"><div class="nm">${chip(p.role)} ${p.name} <span class="muted" style="font-weight:500;font-size:13px">${r.txt}</span></div>
-     <div class="sub">${p.age} J. · ${p.team?S.teams[p.team].name:'vereinslos'} · ${r.sc} (L${r.lvl}) · ${r.when}</div>${r.st?`<div class="sub">Stärken: ${r.st.map(x=>DN[x]).join(', ')} · Schwäche: ${DN[r.wk[0]]}</div>`:''}</span>
+     <div class="sub">${p.age} J. · ${p.team?S.teams[p.team].name:'vereinslos'} · ${r.sc} (L${r.lvl}) · ${r.when} · ${signTag(p)}</div>${r.st?`<div class="sub">Stärken: ${r.st.map(x=>DN[x]).join(', ')} · Schwäche: ${DN[r.wk[0]]}</div>`:''}</span>
      <span class="rt"><span class="kv">OVR<b>${r.lo!=null?r.lo+'-'+r.hi:'?'}</b></span><span class="kv">POT${r.ps?stars(r.ps):'<b>?</b>'}</span><span class="kv hide-s">Preis ca.<b>${r.fee?eurK(r.fee):'-'}</b></span></span></button>`}).join('')||'<p class="empty">Keine Berichte für diesen Filter.</p>'}</section>`}
 function shortTab(){const L=(S.short||[]).map(i=>S.players[i]).filter(p=>p&&!isMine(p)),TR=(S.trials||[]).map(t=>S.players[t.pid]).filter(Boolean);
   return `<section class="panel s12"><div class="lab"><span>Probetraining</span><span>${TR.length}/${TRIALMAX} Plätze</span></div>${TR.length?`<div class="rows">${TR.map(p=>playerRow(p,true)).join('')}</div>`:'<p class="empty">Niemand im Probetraining. Vereinslose Spieler und Spieler aus der T2-Szene kannst du auf ihrer Spielerseite einladen. Nach einer Woche kennst du alle Werte.</p>'}</section><section class="panel s12"><div class="lab"><span>Beobachtungsliste</span><span>${L.length} Spieler</span></div>${L.length?`<div class="rows">${L.map(p=>playerRow(p,true)).join('')}</div>`:'<p class="empty">Noch leer. Auf jeder Spielerseite kannst du Spieler zur Beobachtung hinzufügen.</p>'}</section>`}
