@@ -78,7 +78,7 @@ function qualPanel(reg){const txt=a=>a.length===1?`Platz ${a[0]}`:a[0]===1&&a[1]
 /* ===== Verein ===== */
 function clubView(){
   const f=S.fin,U=S.teams[S.user];
-  const tabs=[['fin','Übersicht'],['budget','Budgets'],['spons','Sponsoren'],['inc','Einnahmen'],['infra','Infrastruktur'],['staff','Staff & Vorstand']];
+  const tabs=[['fin','Übersicht'],['budget','Budgets'],['spons','Sponsoren'],['inc','Einnahmen'],['infra','Infrastruktur'],['fans','Fans'],['staff','Staff & Vorstand']];
   let body='';
   if(CLUBTAB==='fin'){
     const h=f.hist,mn=Math.min(...h,0),mx=Math.max(...h,1),pts=h.map((v,i)=>`${(i/(Math.max(1,h.length-1))*300).toFixed(1)},${(90-(v-mn)/(mx-mn)*80).toFixed(1)}`).join(' ');
@@ -139,8 +139,10 @@ function clubView(){
       <div class="seg"><button class="${f.pstream?'':'on'}" data-a="pstream" data-v="0">Aus</button><button class="${f.pstream?'on':''}" data-a="pstream" data-v="1">An</button></div></section>`;
   }else if(CLUBTAB==='infra'){
     body=infraTab();
+  }else if(CLUBTAB==='fans'){
+    body=fansTab();
   }else{
-    body=`${goalsPanel()}${staffTab()}${careerPanel()}
+    body=`${goalsPanel()}${staffTab()}${mgrPanel()}${careerPanel()}
     <section class="panel s6"><div class="lab">Spielstand</div>
      <p class="muted" style="font-size:13px;margin:0 0 8px">Hängt ein Turnier fest, startet "Phase neu starten" die aktuelle Turnierphase neu. Bisherige Ergebnisse bleiben.</p>
      <div class="acts"><button class="btn ghost sm" data-a="repair">Phase neu starten</button>${MODAL==='reset'?`<button class="btn danger sm" data-a="reset" data-ok="1">Ja, alles löschen</button><button class="btn ghost sm" data-a="reset" data-ok="0">Abbrechen</button>`:`<button class="btn ghost sm" data-a="reset">Neue Karriere</button>`}</div></section>`;
@@ -249,7 +251,7 @@ function playerView(){
     if(isLoanee(p)){acts=`<button class="btn" data-a="lendback" data-id="${p.id}">Zurückholen</button>${p.contract<=2?`<button class="btn ghost" data-a="nego" data-t="renew" data-id="${p.id}">Vertrag verhandeln</button>`:''}`}
     else if(isLoanIn(p)){acts=`${!isStarter(p)?`<button class="btn" data-a="setstart" data-id="${p.id}">Als Starter setzen</button>`:''}<button class="btn danger" data-a="linend" data-id="${p.id}">Leihe beenden</button>`}
     else if(inAca){acts=`${lb}<button class="btn" data-a="promote" data-id="${p.id}">In den Profikader holen</button>${p.contract<=2?`<button class="btn ghost" data-a="nego" data-t="renew" data-id="${p.id}">Vertrag verhandeln</button>`:''}<button class="btn danger" data-a="release" data-id="${p.id}">Entlassen (${eurK(p.salary*8)})</button>`}
-    else if(main){acts=`${!isStarter(p)?`<button class="btn" data-a="setstart" data-id="${p.id}">Als Starter setzen</button>`:S.capt!==p.id?`<button class="btn ghost" data-a="capt" data-id="${p.id}">Zum Shotcaller machen</button>`:''}<button class="btn ghost" data-a="demote" data-id="${p.id}">In die Academy schicken</button>${lb}${!isOut(p)&&S.phase!=='offseason'?`<button class="btn ghost" data-a="rest" data-id="${p.id}">Eine Woche Pause</button>`:''}
+    else if(main){acts=`${!isStarter(p)?`<button class="btn" data-a="setstart" data-id="${p.id}">Als Starter setzen</button>`:S.capt!==p.id?`<button class="btn ghost" data-a="capt" data-id="${p.id}">Zum Shotcaller machen</button>`:''}${rehaBtn(p)}<button class="btn ghost" data-a="demote" data-id="${p.id}">In die Academy schicken</button>${lb}${!isOut(p)&&S.phase!=='offseason'?`<button class="btn ghost" data-a="rest" data-id="${p.id}">Eine Woche Pause</button>`:''}
       ${p.contract<=2?`<button class="btn ghost" data-a="nego" data-t="renew" data-id="${p.id}">Vertrag verhandeln</button>`:''}
       <button class="btn ghost" data-a="list" data-id="${p.id}">${p.listed?'Von Transferliste nehmen':'Auf Transferliste'}</button>
       <button class="btn danger" data-a="release" data-id="${p.id}">Entlassen (${eurK(p.salary*8)})</button>`}
@@ -263,7 +265,7 @@ function playerView(){
     body=`<section class="panel s7"><div class="lab">${mine?'Vertrag':'Verhandlung'}</div>
       <div class="stat"><span class="muted">Marktwert</span><span>${eur(val)}</span></div>
       <div class="stat"><span class="muted">${mine?'Gehalt':'Gehaltsforderung'}</span><span>${eur(mine?p.salary:demand)} / Woche</span></div>
-      ${p.team?`<div class="stat"><span class="muted">Vertrag</span><span>${p.contract} ${p.contract===1?'Saison':'Saisons'}</span></div>`:''}
+      ${p.team?`<div class="stat"><span class="muted">Vertrag</span><span>${p.contract} ${p.contract===1?'Saison':'Saisons'}</span></div>`:''}${agentRow(p)}
       ${isLoanIn(p)?`<div class="stat"><span class="muted">Leihe von</span><span>${S.teams[p.loan.from]?S.teams[p.loan.from].name:'-'} bis Saisonende</span></div><div class="stat"><span class="muted">Dein Gehaltsanteil</span><span>${p.loan.share}% · ${eur(wageOf(p))} / Woche</span></div>`:''}
       ${p.trialDone===S.season&&!mine?`<div class="stat"><span class="muted">Probetraining</span><span class="good">abgeschlossen, alle Werte bekannt</span></div>`:''}
       ${mine&&p.wb?`<div class="stat"><span class="muted">Siegprämie</span><span>${eur(p.wb)} pro Serie</span></div>`:''}

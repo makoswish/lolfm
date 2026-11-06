@@ -65,7 +65,7 @@ function tacticViewFull(){
    ${ROLES.map(r=>{const p=S.players[U.starters[r]];return `<div class="drow"><div class="dl">${chip(r)}<span class="nmcell">${p.name}</span></div><div class="dchs">${Object.entries(PROLE[r]).map(([k,o])=>{const s=suit(p,r,k);
      return `<button class="chb ${t.roles[r]===k?'on':''}" data-a="trole" data-r="${r}" data-v="${k}" title="${o[1]}"><b>${o[0]}</b><span><span class="av ${dcls(s)}" style="font-size:12px">${s.toFixed(1).replace('.',',')}</span> · ${o[2].map(x=>DSHORT[x]).join('/')}</span></button>`}).join('')}</div></div>`}).join('')}
    <p class="muted" style="font-size:13px;margin:10px 0 0">Gute Eignung (ab 13) verstärkt die Wirkung der Rolle, schlechte Eignung (unter 10) dreht sie ins Negative.</p></section>
-  <section class="panel s12"><div class="lab"><span>Patch ${S.year-2000}.${S.patch||1} · Meta</span><span>★ im Draft = Bonus</span></div>
+  <section class="panel s12"><div class="lab"><span>Patch ${S.year-2000}.${S.patch||1} · Meta</span><span>★ im Draft = Bonus</span></div>${metaNote()}
    <div class="metagrid">${ROLES.map(r=>`<div><div class="lab" style="margin-bottom:4px">${RN[r]}</div>${CHR[r].filter(isMeta).map(c=>`<div style="font-size:14px">${CH[c][0]} <span class="tagc t-${CH[c][6]}">${CH[c][6]}</span></div>`).join('')||'<span class="dim" style="font-size:13px">keine</span>'}</div>`).join('')}</div></section>
   <!--TRAIN-->${trainPanel()}${scrimPanel()}${mentorPanel()}
   <section class="panel s6"><div class="lab"><span>Einzeltraining</span><span>Tippe einen Spieler</span></div>

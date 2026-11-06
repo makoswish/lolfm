@@ -235,7 +235,7 @@ function migrate(){addMissingTeams();for(const p of Object.values(S.players)){if
   if(!aca())genT2();if(!S.t2)t2Init();
   {const f=S.fin;for(const[k]of SLOTS){if(!(k in f.slots))f.slots[k]=null;if(f.slots[k]&&f.slots[k].sat==null)f.slots[k].sat=60;if(!f.slots[k]&&!(f.offers&&f.offers[k]))genSlotOffers(k)}}
   initStaff();if(!S.training.plan)S.training.plan=(PLANS[S.training.focus]||PLANS.bal).slice();S.ment=S.ment||{};infraInit();S.trials=S.trials||[];
-  if(!S.fin.lshare){S.fin.lshare=1;const A=aca();if(A)for(const id of A.roster){const p=S.players[id];if(p.age<=19)p.salary=Math.min(p.salary,450)}setBudgets();mail('Finanzen überarbeitet','Neu: Liga-Ausschüttung und T2-Förderung jede Woche, günstigere Academy-Gehälter, Sponsor-Vorschuss und eine einmalige Vorstandshilfe im Notfall. Die Budgets wurden neu berechnet.')}initScouting();if(!S.tst)S.tst={};t2Fix()}
+  if(!S.fin.lshare){S.fin.lshare=1;const A=aca();if(A)for(const id of A.roster){const p=S.players[id];if(p.age<=19)p.salary=Math.min(p.salary,450)}setBudgets();mail('Finanzen überarbeitet','Neu: Liga-Ausschüttung und T2-Förderung jede Woche, günstigere Academy-Gehälter, Sponsor-Vorschuss und eine einmalige Vorstandshilfe im Notfall. Die Budgets wurden neu berechnet.')}initScouting();if(!S.tst)S.tst={};if(S.mrep==null)S.mrep=30;if(!S.mst)metaShift();fgInit();t2Fix()}
 function relink(ev){if(!ev)return;if(ev.type==='intl'){ev.stage.cur=ev.cur;return}
   if(ev.stage==='semi')for(const r of REGS)ev.reg[r].po.semis=ev.cur.filter(m=>m.tag===r);
   if(ev.stage==='final')for(const r of REGS)ev.reg[r].po.final=ev.cur.find(m=>m.tag===r)}

@@ -20,6 +20,7 @@ function preView(){
      return cmp('nrv','Nervenstärke',s.m.big)+cmp('pool','Championpool',s.bo>1)+cmp('cns','Konstanz',true)})()}
    <div class="stat"><span class="muted">Signature-Champs</span><span style="font-family:var(--f-body);text-align:right">${ROLES.map(r=>{const q=S.players[O.starters[r]];return q.ch&&q.ch[0]?CH[q.ch[0][0]][0]:'-'}).join(', ')}</span></div>
    ${LIVE.adapt?(LIVE.astyle?`<div class="note warn" style="margin:8px 0">${O.name} hat sich auf deinen Stil vorbereitet und spielt ${STYLES[LIVE.astyle].n}.</div>`:an>=3?`<div class="note warn" style="margin:8px 0">Dein Analyst erwartet, dass sich ${O.name} auf deinen Stil einstellt. Der Stil oben kann sich ändern.</div>`:''):''}
+   ${banTips(O,an)}
    <div class="stat"><span class="muted">Konter</span><span style="font-family:var(--f-body)">${an>=2?STYLES[SK.find(k=>COUNTER[k].vs===O.style)].n:'unbekannt'}</span></div>
    <div class="lab" style="margin-top:16px"><span>Deine Taktik</span><button class="linkbtn" data-a="nav" data-v="tactic" style="font-size:12px">bearbeiten</button></div>
    <div class="rows">${S.tacs.map((x,i)=>`<button class="row" style="grid-template-columns:minmax(0,1fr) 90px" data-a="tact" data-v="${i}"><span style="min-width:0"><div class="nm">${i===S.tacA?'● ':''}Taktik ${x.name}: ${STYLES[x.style].n}</div><div class="sub">Tempo ${TEMPO[x.tempo][0]} · ${OBJF[x.obj][0]} · Carry ${CARRY[x.carry]}</div></span>${famBar(famOf(x))}</button>`).join('')}</div>
