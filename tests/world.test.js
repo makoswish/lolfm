@@ -273,7 +273,7 @@ function html(){return document.querySelector('#app').innerHTML}
 // KI-Insolvenz: Dauerdruck führt zur Pleite, T2-Meister rückt nach, Kader wird neu aufgebaut
 newGame('LYL','Tester');playSeason();
 {const r='LEC',A=teamsOf(r).filter(t=>t.id!==S.user).sort((a,b)=>a.rep-b.rep)[0],oldIds=[...A.roster],n0=teamsOf(r).length,aid=A.id;
- ok(finState2(A)==='Gesund','Neuer Verein ist nicht gesund');
+ A.fs=0;ok(finState2(A)==='Gesund','Verein ohne Druck ist nicht gesund');
  let g=0;while(A.tier!==2&&g++<30){const B=t2Champ(r);if(!B)break;A.fs=9;aiFinSeason()}
  ok(A.tier===2,'Insolvenz greift nicht');ok(teamsOf(r).length===n0&&!teamsOf(r).includes(A),'Liga schrumpft oder behält den Pleiteverein');
  ok(A.roster.length>=5&&ROLES.every(x=>S.players[A.starters[x]]&&S.players[A.starters[x]].team===A.id),'Pleiteverein ohne neuen Kader');

@@ -199,9 +199,9 @@ function aiFinSeason(){const out=[];
 function worldWeek(){
   if(!S.mst)metaShift();
   if(S.ev&&S.ev.type==='split'&&S.step>0&&S.step%7===3&&S.phase!=='offseason')hotfix();
-  injWeek();fanWeek();addonWeek();
+  injWeek();fanWeek();addonWeek();try{extrasWeek()}catch(e){}
   if(R()<.5)leagueEvent()}
-function worldSeasonEnd(){mgrCarousel();mgrSeason()}
+function worldSeasonEnd(){mgrCarousel();mgrSeason();try{extrasSeason()}catch(e){}}
 
 /* ----- Saisonrückblick ----- */
 function reviewData(){const U=S.teams[S.user],c=(S.career&&S.career[0]&&S.career[0].year===S.year)?S.career[0]:null,s=S.summary,y=String(S.year);

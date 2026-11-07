@@ -212,6 +212,7 @@ const ACT={
   staff(d){const lv=S.staff[d.v],cost=60000*lv;if(lv>=5||S.fin.balance<cost)return;book('Investitionen',-cost);S.staff[d.v]++;save();render()},
   reset(d){if(d.ok==='1'){try{localStorage.removeItem(SAVEKEY)}catch(e){}setMeta(SLOT,null);S=null;LIVE=null;MODAL=null}else if(d.ok==='0')MODAL=null;else MODAL='reset';render()}
 };
+Object.assign(ACT,XACT);
 function loanErr(id,msg){pmsg(id,msg,false);if(S.view!=='player'){PV.tab='vertrag';PV.back=S.view;S.view='player'}}
 /* Bereiche der Live-Ansicht werden pro Minute neu gezeichnet: Eingaben dort reagieren schon beim Drücken */
 document.addEventListener('pointerdown',e=>{const b=e.target&&e.target.closest&&e.target.closest('[data-pd]');if(!b)return;const f=ACT[b.dataset.pd];if(!f)return;try{f(b.dataset,b)}catch(err){ERR=err.message;render()}});

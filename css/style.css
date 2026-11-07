@@ -1036,3 +1036,8 @@ body::before{background:transparent}
   .banner h2{animation:resin .7s cubic-bezier(.2,.9,.2,1) both;text-shadow:0 0 30px currentColor}
   @keyframes resin{0%{opacity:0;transform:scale(.6) skewX(-8deg)}70%{transform:scale(1.08) skewX(-6deg)}100%{opacity:1;transform:scale(1) skewX(-6deg)}}
 }
+/* Transferfenster */
+.winbar{display:flex;align-items:center;gap:10px;margin:0 0 12px;padding:9px 14px;font-size:13px;background:var(--panel);border-left:3px solid var(--dim);color:var(--dim)}
+.winbar .dot{width:8px;height:8px;border-radius:50%;background:var(--bad);flex:none}
+.winbar.open{border-left-color:var(--good);color:var(--text)}
+.winbar.open .dot{background:var(--good)}
