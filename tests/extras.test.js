@@ -51,4 +51,14 @@ newGame('LYL','Tester');render();chk('Start');
 // Benannte Spielstände
 {save();ACT.slotname({v:String(SLOT),name:'Meisterjahr'});ok(slotName(SLOT)==='Meisterjahr','Name nicht gespeichert');
  ok(slotList().includes('Meisterjahr'),'Name nicht in der Liste');ACT.slotname({v:String(SLOT),name:''});ok(!slotName(SLOT),'Name nicht entfernt');}
+
+// Kredit: Betrag, Laufzeit, Zins nach Bonität, Tilgung, Prognose
+{ACT.nav2({v:'club',k:'CLUBTAB',t:'fin'});chk('Finanzen');ok(html().includes('data-a="loan"')&&!html().includes('data-a="lend" data-v'),'Kredit-Knopf ruft die falsche Aktion auf');ok(html().includes('Kontoprognose'),'Prognose fehlt');
+ S.board=80;const r1=creditRate(26);S.board=30;const r2=creditRate(26);S.board=80;ok(r2>r1,'Schlechtes Vertrauen verteuert den Kredit nicht');ok(creditRate(52)>creditRate(13),'Längere Laufzeit nicht teurer');
+ S.fin.loan=null;S.fin.balance=300000;const A1=Math.round(100000*eco()/10000)*10000;ACT.crdset({k:'a',v:String(A1)});ACT.crdset({k:'w',v:'13'});const b0=S.fin.balance;ACT.loan({});
+ ok(S.fin.loan&&S.fin.loan.princ===A1&&S.fin.balance===b0+A1,'Kredit nicht aufgenommen: '+JSON.stringify(S.fin.loan));
+ const p0=S.fin.loan.princ;weekTick();chk('Woche mit Kredit');ok(S.fin.loan.princ<p0,'Tilgung läuft nicht');ok(S.fin.last.Kreditrate<0,'Rate nicht gebucht');
+ S.fin.balance=500000;const pr=S.fin.loan.princ;ACT.payloan({v:'0.5'});ok(S.fin.loan&&S.fin.loan.princ<pr,'Teiltilgung wirkt nicht');ACT.payloan({v:'1'});ok(!S.fin.loan,'Kredit nicht abgelöst');
+ S.fin.loan={left:50000,weekly:5000};weekTick();ok(S.fin.loan&&S.fin.loan.left<50000,'Alter Kredit ohne Zinsfeld läuft nicht');
+ S.fin.loan=null;S.board=10;ok(creditMax()===0,'Bank leiht trotz Misstrauen');S.board=60;}
 `;

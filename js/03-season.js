@@ -155,7 +155,7 @@ function weekTick(){
   L['Content-Team']=-CONTENT[f.content][0];
   L.Infrastruktur=-upkeep();
   {const A=aca();if(A)L['Academy-Gehälter']=-A.roster.reduce((x,i)=>x+S.players[i].salary,0)}
-  if(f.loan){const pay=Math.min(f.loan.weekly,f.loan.left);L.Kreditrate=-pay;f.loan.left-=pay;if(f.loan.left<=0){f.loan=null;mail('Kredit abbezahlt','Der Kredit ist vollständig zurückgezahlt.')}}
+  if(f.loan){const l=f.loan;if(l.princ==null){l.princ=l.left;l.rate=0}const int=Math.round(l.princ*(l.rate||0)/52),pay=Math.min(l.weekly,l.princ+int);L.Kreditrate=-pay;l.princ-=pay-int;l.left=l.princ;if(l.princ<=0){f.loan=null;mail('Kredit abbezahlt','Der Kredit ist vollständig zurückgezahlt.')}}
   for(const k in L)book(k,L[k]);
   infraWeek();trialWeek();burnWeek();worldWeek();
   f.last=L;f.weeks.push(netW());f.hist.push(f.balance);

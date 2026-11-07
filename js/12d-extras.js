@@ -127,3 +127,48 @@ const XACT={
 
 const _todoItems=todoItems;
 todoItems=function(){const L=_todoItems();if(S.phase!=='offseason'&&winOpen()&&S.ev&&S.ev.round===1&&!S.jobless)L.push({lvl:'info',txt:'Transferfenster schließt nach dieser Woche',attrs:'data-a="nav2" data-v="transfer" data-k="TTAB" data-t="markt"',btn:'Zum Markt'});return L};
+
+/* ===== Finanzen: Kredit mit Betrag, Laufzeit und Zins nach Bonität, Kontoprognose ===== */
+const CRD_A=[50000,100000,250000,500000,1000000],CRD_W=[13,26,52];
+let CRD={a:100000,w:26};
+function creditMax(){const f=S.fin,U=S.teams[S.user];if(S.board<20||f.budget&&f.budget.frozen)return 0;
+  return r1000(Math.max(250000,U.rep*10000)*eco()*(S.board>=50?1:S.board>=35?.6:.3))}
+function creditRate(w){const f=S.fin;return +(.06+(1-S.board/100)*.08+(f.balance<0?.03:0)+((w||26)-13)/39*.03).toFixed(3)}
+function creditGrade(){const r=creditRate(26);return r<.09?'A':r<.12?'B':r<.16?'C':'D'}
+function creditQuote(a,w){const rate=creditRate(w),int=Math.round(a*rate*w/52),weekly=Math.ceil((a+int)/w);return{rate,int,weekly,total:a+int}}
+function creditPanel(){const f=S.fin;
+  if(f.loan){const l=f.loan,princ=l.princ!=null?l.princ:l.left,wk=Math.ceil(princ/Math.max(1,l.weekly)),can=f.balance>=princ;
+    return `<div class="lab" style="margin-top:18px"><span>Kredit</span><span class="dim">Zins ${((l.rate||0)*100).toFixed(1).replace('.',',')}%</span></div>
+     <div class="stat"><span class="muted">Restschuld</span><span class="bad">${eur(princ)}</span></div><div class="stat"><span class="muted">Rate pro Woche</span><span>${eur(l.weekly)}</span></div><div class="stat"><span class="muted">Noch etwa</span><span>${wk} Wochen</span></div>
+     <p class="muted" style="font-size:13px;margin:8px 0">Wer früher zahlt, spart die restlichen Zinsen.</p>
+     <div class="acts"><button class="btn ghost sm" data-a="payloan" data-v="0.5" ${f.balance<princ*.5?'disabled':''}>Hälfte tilgen (${eurK(Math.round(princ*.5))})</button><button class="btn ghost sm" data-a="payloan" data-v="1" ${can?'':'disabled'}>Ganz ablösen (${eurK(princ)})</button></div>`}
+  const mx=creditMax(),amts=CRD_A.map(x=>Math.round(x*eco()/10000)*10000).filter(x=>x<=mx);if(!amts.length&&mx>0)amts.push(mx);
+  if(!amts.includes(CRD.a))CRD.a=amts[Math.min(1,amts.length-1)]||0;
+  const q=creditQuote(CRD.a,CRD.w),v=CRD.a?boardVeto(q.weekly,-CRD.a,'Dieser Kredit'):null;
+  if(!mx)return `<div class="lab" style="margin-top:18px">Kredit</div><p class="muted" style="font-size:13px;margin:0">Die Bank leiht dir nichts. Das Vertrauen des Vorstands ist zu niedrig.</p>`;
+  return `<div class="lab" style="margin-top:18px"><span>Kredit</span><span class="dim">Bonität ${creditGrade()} · bis ${eurK(mx)}</span></div>
+   <div class="acts">${amts.map(a=>`<button class="btn ${a===CRD.a?'':'ghost'} sm" data-a="crdset" data-k="a" data-v="${a}">${eurK(a)}</button>`).join('')}</div>
+   <div class="acts" style="margin-top:6px">${CRD_W.map(w=>`<button class="btn ${w===CRD.w?'':'ghost'} sm" data-a="crdset" data-k="w" data-v="${w}">${w} Wochen</button>`).join('')}</div>
+   <div class="stat" style="margin-top:8px"><span class="muted">Zins pro Jahr</span><span>${(q.rate*100).toFixed(1).replace('.',',')}%</span></div>
+   <div class="stat"><span class="muted">Zinskosten gesamt</span><span>${eur(q.int)}</span></div>
+   <div class="stat"><span class="muted">Rate pro Woche</span><span>${eur(q.weekly)}</span></div>
+   ${v?`<p class="bad" style="font-size:13px;margin:8px 0">${v}</p>`:''}
+   <div class="acts" style="margin-top:8px"><button class="btn sm" data-a="loan" ${v||!CRD.a?'disabled':''}>Kredit aufnehmen</button></div>`}
+function forecastPanel(){const f=S.fin,wk=Math.min(26,Math.max(4,52-S.step)),net=baseNet(),pts=[];let b=f.balance,low=b,lowAt=0,neg=null;
+  const debts=(f.debts||[]).reduce((a,x)=>a+x.amt,0);
+  for(let i=1;i<=wk;i++){b+=net;if(i===wk&&S.phase!=='offseason')b-=0;pts.push(b);if(b<low){low=b;lowAt=i}if(neg==null&&b<0)neg=i}
+  const mn=Math.min(0,...pts),mx=Math.max(1,...pts),w=300,h=80,xy=pts.map((v,i)=>[(i/(pts.length-1||1))*w,h-8-(v-mn)/(mx-mn||1)*(h-16)]),zero=h-8-(0-mn)/(mx-mn||1)*(h-16);
+  return `<section class="panel s12" style="margin-top:14px"><div class="lab"><span>Kontoprognose</span><span class="dim">nächste ${wk} Wochen</span></div>
+   <svg viewBox="0 0 ${w} ${h}" style="width:100%;height:100px" preserveAspectRatio="none" role="img" aria-label="Prognose"><line x1="0" x2="${w}" y1="${zero.toFixed(1)}" y2="${zero.toFixed(1)}" stroke="var(--line)" stroke-dasharray="3 4"/><polyline points="${xy.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')}" fill="none" stroke="${net>=0?'var(--good)':'var(--bad)'}" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>
+   <div class="stat"><span class="muted">Ø Saldo pro Woche (letzte 8)</span><span class="${net>=0?'good':'bad'}">${net>=0?'+':''}${eur(Math.round(net))}</span></div>
+   <div class="stat"><span class="muted">Kontostand in ${wk} Wochen</span><span class="${b<0?'bad':''}">${eur(Math.round(b))}</span></div>
+   ${neg!=null?`<div class="stat"><span class="muted">Konto rutscht ins Minus in</span><span class="bad">Woche ${neg}</span></div>`:''}
+   ${debts?`<div class="stat"><span class="muted">Raten zum nächsten Saisonstart</span><span>${eur(debts)}</span></div>`:''}</section>`}
+Object.assign(XACT,{
+  crdset(d){CRD[d.k]=+d.v;render()},
+  loan(d){const f=S.fin;if(f.loan||!CRD.a)return;const a=Math.min(CRD.a,creditMax()),q=creditQuote(a,CRD.w);
+    const v=boardVeto(q.weekly,-a,'Dieser Kredit');if(v){mail('Vorstand: Veto',v);save();render();return}
+    book('Kredit',a);f.budget.transfer+=a;if(f.balance>0)f.budget.frozen=false;f.loan={princ:a,left:a,weekly:q.weekly,rate:q.rate,wks:CRD.w};
+    mail('Kredit aufgenommen',`${eurK(a)} sind auf dem Konto und im Transferbudget. Zins ${(q.rate*100).toFixed(1).replace('.',',')}% pro Jahr, Rate ${eurK(q.weekly)} pro Woche über ${CRD.w} Wochen.`);save();render()},
+  payloan(d){const f=S.fin;if(!f.loan)return;const l=f.loan,princ=l.princ!=null?l.princ:l.left,x=Math.round(princ*(+d.v||1));if(f.balance<x)return;
+    book('Kredittilgung',-x);l.princ=princ-x;l.left=l.princ;if(l.princ<=0){f.loan=null;mail('Kredit abbezahlt','Der Kredit ist vollständig zurückgezahlt.')}else l.weekly=Math.max(1,Math.ceil(l.weekly*l.princ/princ));save();render()}});

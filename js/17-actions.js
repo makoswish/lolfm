@@ -206,8 +206,6 @@ const ACT={
   pstream(d){S.fin.pstream=d.v==='1';save();render()},
   infraask(d){const e=infraAsk(d.v);if(e)mail('Antrag nicht möglich',e);save();render()},
   hwb(d){if(HWB[d.v]){const dc=HWB[d.v].c-(HWB[S.fin.hwb]?HWB[S.fin.hwb].c:0);if(dc>0){const v=boardVeto(dc,0,'Dieses höhere Hardware-Budget');if(v){mail('Vorstand: Veto',v);save();render();return}}S.fin.hwb=d.v}save();render()},
-  loan(d){const f=S.fin,a=+d.v;if(f.loan)return;{const v=boardVeto(a*1.12/Math.max(4,52-S.step),-a,'Dieser Kredit');if(v){mail('Vorstand: Veto',v);save();render();return}}book('Kredit',a);f.budget.transfer+=a;if(f.balance>0)f.budget.frozen=false;f.loan={left:Math.round(a*1.12),weekly:Math.round(a*1.12/26)};mail('Kredit aufgenommen',`${eurK(a)} sind auf dem Konto und im Transferbudget. Rückzahlung: ${eurK(f.loan.weekly)} pro Woche über 26 Wochen.`);save();render()},
-  payloan(){const f=S.fin;if(!f.loan||f.balance<f.loan.left)return;book('Kredittilgung',-f.loan.left);f.loan=null;save();render()},
   repair(){if(LIVE){clearInterval(LIVE.timer);LIVE=null}restartEvent();ERR=null;S.view='home';save();render()},
   staff(d){const lv=S.staff[d.v],cost=60000*lv;if(lv>=5||S.fin.balance<cost)return;book('Investitionen',-cost);S.staff[d.v]++;save();render()},
   reset(d){if(d.ok==='1'){try{localStorage.removeItem(SAVEKEY)}catch(e){}setMeta(SLOT,null);S=null;LIVE=null;MODAL=null}else if(d.ok==='0')MODAL=null;else MODAL='reset';render()}
