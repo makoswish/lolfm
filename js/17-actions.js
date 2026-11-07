@@ -210,7 +210,7 @@ const ACT={
   staff(d){const lv=S.staff[d.v],cost=60000*lv;if(lv>=5||S.fin.balance<cost)return;book('Investitionen',-cost);S.staff[d.v]++;save();render()},
   reset(d){if(d.ok==='1'){try{localStorage.removeItem(SAVEKEY)}catch(e){}setMeta(SLOT,null);S=null;LIVE=null;MODAL=null}else if(d.ok==='0')MODAL=null;else MODAL='reset';render()}
 };
-Object.assign(ACT,XACT);
+Object.assign(ACT,XACT,CLIPACT);
 function loanErr(id,msg){pmsg(id,msg,false);if(S.view!=='player'){PV.tab='vertrag';PV.back=S.view;S.view='player'}}
 /* Bereiche der Live-Ansicht werden pro Minute neu gezeichnet: Eingaben dort reagieren schon beim Drücken */
 document.addEventListener('pointerdown',e=>{const b=e.target&&e.target.closest&&e.target.closest('[data-pd]');if(!b)return;const f=ACT[b.dataset.pd];if(!f)return;try{f(b.dataset,b)}catch(err){ERR=err.message;render()}});
@@ -222,7 +222,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('change',e=>{const t=e.target;if(t&&t.id==='impfile'&&t.files&&t.files[0]){const r=new FileReader();r.onload=()=>doImport(String(r.result));r.readAsText(t.files[0])}});
 document.addEventListener('keydown',e=>{
   if(MODAL&&MODAL.qs){if(e.key==='Escape'){MODAL=null;render()}else if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();const n=QS.items.length;if(n){QS.i=(QS.i+(e.key==='ArrowDown'?1:n-1))%n;qsRefresh();const on=document.querySelector&&document.querySelector('.qsr.on');if(on&&on.scrollIntoView)on.scrollIntoView({block:'nearest'})}}else if(e.key==='Enter'){e.preventDefault();qsGo(QS.i)}return}
-  if(e.key==='Escape'&&MODAL&&(MODAL.team||MODAL.cf||MODAL.loan||MODAL.lin||MODAL.opt)){MODAL=null;render();return}
+  if(e.key==='Escape'&&MODAL&&(MODAL.team||MODAL.cf||MODAL.loan||MODAL.lin||MODAL.opt||MODAL.clip)){if(MODAL.clip)clipStop();MODAL=null;render();return}
   const t=e.target,typing=t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT'||t.isContentEditable);
   if(S&&((e.key==='k'&&(e.ctrlKey||e.metaKey))||(e.key==='/'&&!typing&&!e.ctrlKey&&!e.metaKey))){e.preventDefault();qsOpen()}});
 document.addEventListener('input',e=>{const t=e.target;if(t&&t.id==='qsin'&&!e.isComposing){QS.q=t.value;QS.i=0;qsRefresh()}});

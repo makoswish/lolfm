@@ -67,26 +67,29 @@ function lvCtl(){const sp=LIVE.speed,b=(v,l,t)=>`<button class="btn sm ${sp===v?
    <button class="btn ghost sm sndb ${SND?'on':''}" data-a="snd" aria-pressed="${SND}" title="Töne und Vibration bei großen Momenten">${SND?'Ton an':'Ton aus'}</button></div></div>`}
 
 /* ---- Karte ---- */
-function lvMapBox(z){const post=LIVE.phase==='post',big=post?null:[...z.ev].filter(e=>z.t-e.t<=1&&e.w>=2).pop();
-  return `<div class="mapwrap">${miniMap(z)}${big?`<div class="mapban s${big.side} ${big.w>=3?'big3':''}"><span class="evi s${big.side}">${evIcon(big.k)}</span><b>${EVK[big.k][1]}</b><span class="muted">${S.teams[big.side===0?z.A:z.B].id}</span></div>`:''}</div>
+function lvMapBox(z){const post=LIVE.phase==='post',big=post?null:[...z.ev].filter(e=>z.t-e.t<=1&&e.w>=2).pop(),foc=!post&&fightFocus(z),tp=!post&&recentTurn(z);
+  return `<div class="mapwrap${foc?' fx':''}">${miniMap(z)}${tp?`<button class="btn sm clipchip" data-pd="clip" data-t="${tp.t}">Wendepunkt-Clip ansehen</button>`:''}${big?`<div class="mapban s${big.side} ${big.w>=3?'big3':''}"><span class="evi s${big.side}">${evIcon(big.k)}</span><b>${EVK[big.k][1]}</b><span class="muted">${S.teams[big.side===0?z.A:z.B].id}</span></div>`:''}</div>
    <p class="maplab">${z.t<14?'Lane-Phase':z.t<25?'Midgame':'Lategame'} · Minute ${z.t}</p>`}
-function miniMap(z){
-  const tw=[0,1].map(i=>{const L=z.lost[i],col=i===0?'var(--blue)':'var(--red)';
-    return ['top','mid','bot','nex'].map(l=>TWR[i][l].map((p,k)=>{const dead=k<L[l],key=i+l+k,fresh=dead&&LIVE&&LIVE.tdead&&!LIVE.tdead[key]&&LIVE.phase==='live';if(dead&&LIVE){(LIVE.tdead=LIVE.tdead||{})[key]=1}
+function miniMap(z,fr){
+  const pos0=fr?fr.pos:z.pos,lost0=fr?fr.lost:z.lost,loc0=fr?fr.loc:z.evLoc;
+  const tw=[0,1].map(i=>{const L=lost0[i],col=i===0?'var(--blue)':'var(--red)';
+    return ['top','mid','bot','nex'].map(l=>TWR[i][l].map((p,k)=>{const dead=k<L[l],key=i+l+k,fresh=!fr&&dead&&LIVE&&LIVE.tdead&&!LIVE.tdead[key]&&LIVE.phase==='live';if(!fr&&dead&&LIVE){(LIVE.tdead=LIVE.tdead||{})[key]=1}
       return `<rect class="${fresh?'tfall':''}" x="${p[0]-1.6}" y="${p[1]-1.6}" width="3.2" height="3.2" rx=".6" fill="${dead?'var(--dim)':col}" opacity="${dead?.35:1}"/>`}).join('')).join('')}).join('');
   const pin=LIVE&&LIVE.pin;
-  const dots=z.pos?[0,1].map(i=>z.st[i].map(id=>{const q=z.pos[id];if(!q)return'';const p=S.players[id],pn=id===pin;
+  const dots=pos0?[0,1].map(i=>z.st[i].map(id=>{const q=pos0[id];if(!q)return'';const p=S.players[id],pn=id===pin;
     return `<g class="mk" data-pd="pin" data-id="${id}" opacity="${q[2]?.35:1}"><title>${esc(p.name)} (${RN[p.role]})</title><circle cx="${q[0]}" cy="${q[1]}" r="6" fill="transparent"/><circle cx="${q[0]}" cy="${q[1]}" r="2.9" fill="${i===0?'var(--blue)':'var(--red)'}" stroke="${pn?'var(--brass2)':'var(--bg)'}" stroke-width="${pn?1.2:.7}"/><text x="${q[0]}" y="${q[1]+1.1}" text-anchor="middle" font-size="2.8" font-weight="700" fill="var(--bg)" font-family="Barlow,sans-serif">${p.role[0]}</text>${pn?`<text x="${q[0]}" y="${q[1]-4.4}" text-anchor="middle" font-size="3.4" font-weight="700" fill="var(--fg)" stroke="var(--bg)" stroke-width=".6" paint-order="stroke" font-family="Barlow,sans-serif">${esc(p.name)}</text>`:''}</g>`}).join('')).join(''):'';
   const an=lvReduced()?'':'<animate attributeName="r" values="2;10" dur=".9s" fill="freeze"/><animate attributeName="opacity" values=".95;0" dur=".9s" fill="freeze"/>';
-  const pulse=z.evLoc&&z.winner<0?`<circle cx="${z.evLoc[0]}" cy="${z.evLoc[1]}" r="3.5" fill="var(--brass)" opacity=".25"/><circle cx="${z.evLoc[0]}" cy="${z.evLoc[1]}" r="7" fill="none" stroke="var(--brass2)" stroke-width=".8" opacity=".8">${an}</circle>`:'';
-  return `<svg viewBox="0 0 100 100" class="mmap" role="img" aria-label="Minimap">
+  const pulse=loc0&&(fr||z.winner<0)?`<circle cx="${loc0[0]}" cy="${loc0[1]}" r="3.5" fill="var(--brass)" opacity=".25"/><circle cx="${loc0[0]}" cy="${loc0[1]}" r="7" fill="none" stroke="var(--brass2)" stroke-width=".8" opacity=".8">${an}</circle>`:'';
+  const foc=fightFocus(z,fr),vb=foc?[Math.max(0,Math.min(48,foc.loc[0]-26)),Math.max(0,Math.min(48,foc.loc[1]-26)),52,52]:[0,0,100,100],vbs=fr?(MODAL&&MODAL.clip?MODAL.clip:{}):LIVE||{},prev=vbs.vb||[0,0,100,100];vbs.vb=vb;
+  const zoom=!lvReduced()&&prev.join()!==vb.join()&&(fr||LIVE&&LIVE.phase==='live')?`<animate attributeName="viewBox" from="${prev.join(' ')}" to="${vb.join(' ')}" dur=".75s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines=".3 .7 .3 1"/>`:'';
+  return `<svg viewBox="${vb.join(' ')}" class="mmap${foc?' fight':''}" role="img" aria-label="Minimap">${zoom}
     <rect width="100" height="100" rx="4" fill="var(--panel2)"/>
     <path d="M8 92 L8 8 L92 8 M8 92 L92 8 M8 92 L92 92 L92 8" stroke="var(--line)" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
     <path d="M6 6 L94 94" stroke="var(--blue)" stroke-opacity=".14" stroke-width="7" fill="none"/>
     <circle cx="30" cy="30" r="4" fill="none" stroke="var(--muted)" stroke-width=".7"/><text x="30" y="31.3" text-anchor="middle" font-size="3.6" fill="var(--muted)" font-family="Barlow,sans-serif">B</text>
     <circle cx="70" cy="70" r="4" fill="none" stroke="var(--muted)" stroke-width=".7"/><text x="70" y="71.3" text-anchor="middle" font-size="3.6" fill="var(--muted)" font-family="Barlow,sans-serif">D</text>
     <circle cx="8" cy="92" r="5" fill="var(--blue)" opacity=".35"/><circle cx="92" cy="8" r="5" fill="var(--red)" opacity=".35"/>
-    ${tw}${pulse}${dots}</svg>`}
+    ${tw}${pulse}${dots}${foc&&!lvReduced()?fightFx(foc):''}</svg>`}
 /* Countdown für Herold, Drache und Baron, laufende Buffs, Objectives-Stand */
 function lvTimers(z){const t=z.t,sn=z.tl[z.tl.length-1],post=LIVE.phase==='post',c=[],nm=i=>S.teams[i===0?z.A:z.B].id;
   if(!post){
@@ -179,7 +182,7 @@ function lvPost(z){const s=LIVE.series,A=S.teams[z.A],B=S.teams[z.B],me=myS(),wo
    <div style="display:flex;justify-content:center;margin:8px 0 4px">${avatar(mvp,'lg')}</div><p class="muted" style="margin:4px 0 12px">Spieler des Spiels: ${mvp.name} (${RN[mvp.role]}, Note ${z.rt[z.mvp].toFixed(1).replace('.',',')}) · ${z.end} Minuten${s.bo>1?` · Serie ${s.wins[me]}:${s.wins[1-me]}`:''}</p>
    ${s.done?`<button class="btn" data-a="after">Weiter</button>`:`<button class="btn" data-a="nextgame">Zum nächsten Spiel</button>`}</div>
    <div class="grid" style="margin-top:16px">
-   <section class="panel s6"><div class="lab">Wendepunkt</div>${tp?`<p style="margin:0 0 6px"><span class="tm">${lvPad(tp.t)}'</span> <b>${tp.e?lvTxt(z,tp.e.text):'Der Goldvorsprung kippt.'}</b></p><p class="muted" style="margin:0;font-size:13.5px">Die Siegchance von ${W.name} steigt hier von ${wv(tp.a)}% auf ${wv(tp.b)}%.</p>`:'<p class="muted" style="margin:0">Das Spiel war von Anfang an klar. Es gab keinen Wendepunkt.</p>'}</section>
+   <section class="panel s6"><div class="lab">Wendepunkt</div>${tp?`<p style="margin:0 0 6px"><span class="tm">${lvPad(tp.t)}'</span> <b>${tp.e?lvTxt(z,tp.e.text):'Der Goldvorsprung kippt.'}</b></p><p class="muted" style="margin:0;font-size:13.5px">Die Siegchance von ${W.name} steigt hier von ${wv(tp.a)}% auf ${wv(tp.b)}%.</p>`:'<p class="muted" style="margin:0">Das Spiel war von Anfang an klar. Es gab keinen Wendepunkt.</p>'}${tpList(z).length?`<div class="acts" style="margin-top:10px">${tpList(z).map((x,k)=>`<button class="btn ghost sm" data-a="clip" data-t="${x.t}">${k?'':'Clip ansehen · '}Minute ${x.t}</button>`).join('')}</div>`:''}</section>
    <section class="panel s6"><div class="lab">Spielfakten</div><div class="stat"><span class="muted">First Blood</span><span>${fx('fb')}</span></div><div class="stat"><span class="muted">Erster Turm</span><span>${fx('tw')}</span></div><div class="stat"><span class="muted">Erster Drache</span><span>${fx('dr')}</span></div>
     <div class="stat"><span class="muted">Größter Goldvorsprung</span><span>${A.id} ${eurK(Math.max(0,...z.tl.map(x=>x.G))).replace(' €','')} · ${B.id} ${eurK(Math.max(0,...z.tl.map(x=>-x.G))).replace(' €','')}</span></div>
     <div class="stat"><span class="muted">Comps</span><span style="font-family:var(--f-body)">${compTag(z.dr[0].picks)||'Gemischt'} vs ${compTag(z.dr[1].picks)||'Gemischt'}</span></div></section>

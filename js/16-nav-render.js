@@ -47,7 +47,7 @@ function newsView(){const L=(S.news||[]).filter(n=>NWF==='ALL'||n.cat===NWF);
   <div class="grid"><section class="panel s12">${L.map(n=>`<div class="news"><span class="w"><span class="mc" style="--mc:var(--brass)">${NCAT[n.cat]||'Liga'}</span> ${n.when}</span><span>${n.t}</span></div>`).join('')||'<p class="empty">Noch keine Meldungen.</p>'}</section></div>`}
 /* ===== Render ===== */
 /* Offenes Overlay: Seite dahinter nicht scrollen lassen */
-function ovOpen(){return !!(MODAL&&(MODAL.team||MODAL.cf||MODAL.loan||MODAL.lin||MODAL.qs||MODAL.opt||MODAL==='sim'))||!!SIMRUN||!!(SIMREP&&!SIMRUN)}
+function ovOpen(){return !!(MODAL&&(MODAL.team||MODAL.cf||MODAL.loan||MODAL.lin||MODAL.qs||MODAL.opt||MODAL.clip||MODAL==='sim'))||!!SIMRUN||!!(SIMREP&&!SIMRUN)}
 function render(){
   const app=$('#app');try{const hc=document.documentElement.classList;hc.toggle('ovopen',ovOpen());hc.toggle('islive',!!(S&&S.view==='live'&&LIVE&&LIVE.phase==='live'))}catch(e){}
   if(!S){document.documentElement.style.removeProperty('--team');app.innerHTML=startView()+(MODAL&&MODAL.cf?confirmView():'')+(MODAL&&MODAL.opt?optModal():'');HKEY=null;try{i18nApply(app)}catch(e){}return}
@@ -56,7 +56,7 @@ function render(){
   if(S.view==='nego'&&!NG)S.view='squad';
   if(S.view==='mh'&&!MHV)S.view='league';
   const v={home:homeView,squad:squadView,tactic:tacticView,transfer:transferView,league:leagueView,club:clubView,prematch:preView,live:liveView,player:playerView,draft:draftView,nego:negoView,mh:mhView,inbox:inboxView,news:newsView,save:saveView,jobs:jobsView,cmp:cmpView,hof:hofView,review:reviewView,mgr:mgrView,trend:trendView,help:helpView}[S.view]||homeView;
-  try{app.innerHTML=`<div class="shell">${sideNav()}<div class="main">${topBar()}<main class="content">${ERR?errView():v()}</main></div></div>${MODAL&&MODAL.team?teamModal():''}${MODAL==='sim'&&!SIMRUN?simMenu():''}${SIMRUN?simOverlay():''}${SIMREP&&!SIMRUN?simReport():''}${MODAL&&MODAL.cf?confirmView():''}${MODAL&&MODAL.opt?optModal():''}${MODAL&&MODAL.loan?loanModal():''}${MODAL&&MODAL.lin?loanInModal():''}${MODAL&&MODAL.qs?qsModal():''}`;histSync();if(MODAL&&MODAL.qs){const n=$('#qsin');if(n){n.focus();try{n.setSelectionRange(n.value.length,n.value.length)}catch(e){}}}}
+  try{app.innerHTML=`<div class="shell">${sideNav()}<div class="main">${topBar()}<main class="content">${ERR?errView():v()}</main></div></div>${MODAL&&MODAL.team?teamModal():''}${MODAL==='sim'&&!SIMRUN?simMenu():''}${SIMRUN?simOverlay():''}${SIMREP&&!SIMRUN?simReport():''}${MODAL&&MODAL.cf?confirmView():''}${MODAL&&MODAL.opt?optModal():''}${MODAL&&MODAL.loan?loanModal():''}${MODAL&&MODAL.clip?clipModal():''}${MODAL&&MODAL.lin?loanInModal():''}${MODAL&&MODAL.qs?qsModal():''}`;histSync();if(MODAL&&MODAL.qs){const n=$('#qsin');if(n){n.focus();try{n.setSelectionRange(n.value.length,n.value.length)}catch(e){}}}}
   catch(e){ERR=e.message;try{app.innerHTML=`<main class="content">${errView()}</main>`}catch(_){app.innerHTML='<p style="padding:20px">Fehler im Spielstand.</p>'}}
   try{navScroll();chatBottom();pageFx();musSync();i18nApply(app)}catch(e){}
 }

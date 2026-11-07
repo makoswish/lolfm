@@ -111,4 +111,13 @@ Raten zum nächsten Saisonstart=>Instalments due at next season start
 Kredit abbezahlt=>Loan repaid
 Der Kredit ist vollständig zurückgezahlt.=>The loan is fully repaid.
 Kredit aufgenommen=>Loan taken out
+Wendepunkt-Clip ansehen=>Watch turning-point clip
+Wendepunkt · Minute {}=>Turning point · minute {}
+Ruhige Minute.=>Quiet minute.
+Kills {} : {}=>Kills {} : {}
+Abspielen=>Play
+Noch einmal=>Again
+Clip ansehen · Minute {}=>Watch clip · minute {}
+Clip ansehen=>Watch clip
+Minute {}=>Minute {}
 `;
