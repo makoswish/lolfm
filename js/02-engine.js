@@ -158,8 +158,8 @@ function simTick(z){
   if(t>=55&&z.winner<0)z.winner=z.G>=0?0:1;
   z.tl.push({t,G:Math.round(z.G),k:[...s.k],tw:[...s.tw],dr:[...s.dr],bn:[...s.bn],wp:+winProb(z).toFixed(3)});
   z.evLoc=loc;for(let i=z.ev.length-1;i>=0&&z.ev[i].t===t;i--)z.ev[i].loc=loc;
-  if(z.winner>=0){add(z.winner,`${tn(z.winner)} zerstört den Nexus. Sieg nach ${t} Minuten.`,true,'nexus');z.tl[z.tl.length-1].wp=z.winner===0?1:0;z.end=t;z.evLoc=z.winner===0?[92,8]:[8,92];finishSim(z);return true}
-  if(z.live)z.pos=simPos(z,ph);
+  if(z.winner>=0){add(z.winner,`${tn(z.winner)} zerstört den Nexus. Sieg nach ${t} Minuten.`,true,'nexus');z.tl[z.tl.length-1].wp=z.winner===0?1:0;z.end=t;z.evLoc=z.winner===0?[92,8]:[8,92];if(z.live&&typeof recFrame==='function')recFrame(z);finishSim(z);return true}
+  if(z.live){z.pos=simPos(z,ph);if(typeof recFrame==='function')recFrame(z)}
   return false;
 }
 function simPos(z,ph){const pos={},t=z.t,c=[50+clamp(z.G/600,-22,22),50-clamp(z.G/600,-22,22)];

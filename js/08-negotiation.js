@@ -42,6 +42,7 @@ function askFor(p){const U=S.teams[S.user],T=p.team?S.teams[p.team]:null;if(!T)r
 function canAfford(p){const pl=fitPlan(askFor(p),demandFor(p,false));return pl.ok||pl.finOk}
 function startNego(type,pid){
   const p=S.players[pid],U=S.teams[S.user],o=ovr(p);
+  if(type==='buy'&&p.team&&!winOpen()){pmsg(pid,'Das Transferfenster ist geschlossen. Es öffnet in der Saisonpause und in den ersten zwei Wochen von Winter- und Sommer-Split.',false);return false}
   if(type!=='renew'&&U.roster.length>=MAXR){pmsg(pid,`Dein Kader ist voll (${MAXR}). Gib zuerst einen Spieler ab.`,false);return false}
   if(p.tried===wkKey()){pmsg(pid,'Diese Woche sind keine weiteren Gespräche möglich.',false);return false}
   if(isLoanIn(p)){pmsg(pid,'Er ist nur ausgeliehen. Über seinen Vertrag verhandelt sein Verein.',false);return false}

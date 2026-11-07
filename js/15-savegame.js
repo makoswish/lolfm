@@ -25,11 +25,11 @@ function slotWhen(t){if(!t)return'';const d=new Date(t);return d.toLocaleDateStr
 /* Liste der drei Speicherplätze. Im Spiel: wechseln und löschen. Auf dem Startbildschirm: laden, löschen oder Platz fürs neue Spiel wählen. */
 function slotList(){const pick=S?null:(NEWSLOT||freeSlot()||SLOT);
   return `<div class="slots">${Array.from({length:NSLOTS},(_,i)=>i+1).map(n=>{const m=slotInfo(n),cur=S&&n===SLOT;
-   const info=m?`${crest({id:m.id||"?",color:m.color},"sm")}<span class="slmain"><b>${esc(m.team)}</b><small class="muted">${esc(m.mgr||'')} · Saison ${m.year}, Woche ${Math.min(52,m.step||0)}/52 · ${slotWhen(m.when)}</small></span>`
+   const info=m?`${crest({id:m.id||"?",color:m.color},"sm")}<span class="slmain"><b>${slotName(n)?esc(slotName(n))+' · ':''}${esc(m.team)}</b><small class="muted">${esc(m.mgr||'')} · Saison ${m.year}, Woche ${Math.min(52,m.step||0)}/52 · ${slotWhen(m.when)}</small></span>`
     :`<span class="slnum">${n}</span><span class="slmain"><b class="dim">Leer</b><small class="muted">Platz ${n}</small></span>`;
    let acts='';
-   if(cur)acts=`<span class="dtag st">Aktiv</span>`;
-   else if(m)acts=`<button class="btn ghost sm" data-a="slotload" data-v="${n}" ${LIVE?'disabled':''}>Laden</button><button class="btn danger sm" data-a="slotdel" data-v="${n}">Löschen</button>`;
+   if(cur)acts=`<span class="dtag st">Aktiv</span><button class="btn ghost sm" data-a="slotname" data-v="${n}">Name</button>`;
+   else if(m)acts=`<button class="btn ghost sm" data-a="slotname" data-v="${n}">Name</button><button class="btn ghost sm" data-a="slotload" data-v="${n}" ${LIVE?'disabled':''}>Laden</button><button class="btn danger sm" data-a="slotdel" data-v="${n}">Löschen</button>`;
    if(!S)acts+=`<button class="btn ${pick===n?'':'ghost'} sm" data-a="slotpick" data-v="${n}">${pick===n?'Neues Spiel hier':'Hier neu starten'}</button>`;
    return `<div class="slot ${cur||pick===n?'on':''}">${info}<span class="slacts">${acts}</span></div>`}).join('')}</div>
   ${!S&&slotInfo(pick)?`<p class="warn" style="font-size:13px;margin:8px 0 0">Ein neues Spiel überschreibt den Spielstand in Platz ${pick}.</p>`:''}`}

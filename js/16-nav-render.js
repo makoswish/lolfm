@@ -11,7 +11,7 @@ function tacticView(){const h=tacticViewFull(),gi=h.indexOf('<div class="grid">'
   if(TACTAB==='ment')return ph('Mentoring','Erfahrene Spieler bringen Talente voran.')+'<div class="grid">'+cut(3,4)+'</div>';
   return head.replace('</div></div>','</div></div>'+groupTabs())+'<div class="grid">'+body.slice(0,ix[0])+'</div>'}
 const NAVG=[
- ['buero','Büro','home',[['Übersicht','home'],['Postfach','inbox'],['News','news']]],
+ ['buero','Büro','home',[['Übersicht','home'],['Postfach','inbox'],['News','news'],['Hilfe','help']]],
  ['team','Kader','squad',[['Kaderübersicht','squad','KTAB','depth'],['Aufstellung','squad','KTAB','list'],['Attribute','squad','KTAB','attr'],['Form & Moral','squad','KTAB','mood'],['Teamchemie','squad','KTAB','chem'],['Medizin','squad','KTAB','med'],['Statistik','squad','KTAB','stats'],['Verträge','squad','KTAB','vert']]],
  ['taktik','Taktik','tactic',[['Taktik','tactic','TACTAB','tac'],['Rollen & Meta','tactic','TACTAB','roles']]],
 ['train','Training','tactic',[['Trainingsplan','tactic','TACTAB','train'],['Scrims','tactic','TACTAB','scrim'],['Mentoring','tactic','TACTAB','ment'],['Trainerstab','club','CLUBTAB','staff']]],
@@ -19,7 +19,7 @@ const NAVG=[
  ['comp','Wettbewerb','league',[['Turniere','league','LTAB','comp'],['Meine Spiele','league','LTAB','hist'],['Statistiken','league','LTAB','stats'],['Auszeichnungen','league','LTAB','awards'],['T2-Szene','league','LTAB','t2'],['Meta & Patch','league','LTAB','meta'],['Liga-Lage','league','LTAB','lage']],'Liga'],
  ['fin','Finanzen','club',[['Übersicht','club','CLUBTAB','fin'],['Budgets','club','CLUBTAB','budget'],['Sponsoren','club','CLUBTAB','spons'],['Einnahmen','club','CLUBTAB','inc']]],
  ['verein','Verein','club',[['Infrastruktur','club','CLUBTAB','infra'],['Fans','club','CLUBTAB','fans'],['Academy','squad','KTAB','aca']]],
- ['mgr','Manager','mgr',[['Vorstand','mgr','MTAB','board'],['Karriere','mgr','MTAB','career'],['Rekorde','hof'],['Saisonrückblick','review'],['Spielstand','save']]]];
+ ['mgr','Manager','mgr',[['Vorstand','mgr','MTAB','board'],['Karriere','mgr','MTAB','career'],['Rekorde','hof'],['Saisonrückblick','review'],['Verlauf','trend'],['Spielstand','save']]]];
 const GICON={buero:ICON.home,team:ICON.squad,taktik:ICON.tactic,train:ICON.train,markt:ICON.transfer,comp:ICON.league,fin:ICON.fin,verein:ICON.club,mgr:ICON.mgr};
 function tabVal(k){return{KTAB,TACTAB,TTAB,LTAB,CLUBTAB,MTAB}[k]}
 function navBadge(v,t){if(v==='inbox'){const n=unseen();return n?`<span class="nbadge">${n>9?'9+':n}</span>`:''}
@@ -47,7 +47,7 @@ function newsView(){const L=(S.news||[]).filter(n=>NWF==='ALL'||n.cat===NWF);
   <div class="grid"><section class="panel s12">${L.map(n=>`<div class="news"><span class="w"><span class="mc" style="--mc:var(--brass)">${NCAT[n.cat]||'Liga'}</span> ${n.when}</span><span>${n.t}</span></div>`).join('')||'<p class="empty">Noch keine Meldungen.</p>'}</section></div>`}
 /* ===== Render ===== */
 /* Offenes Overlay: Seite dahinter nicht scrollen lassen */
-function ovOpen(){return !!(MODAL&&(MODAL.team||MODAL.cf||MODAL.loan||MODAL.lin||MODAL.qs||MODAL.opt||MODAL==='sim'))||!!SIMRUN||!!(SIMREP&&!SIMRUN)}
+function ovOpen(){return !!(MODAL&&(MODAL.team||MODAL.cf||MODAL.loan||MODAL.lin||MODAL.qs||MODAL.opt||MODAL.clip||MODAL==='sim'))||!!SIMRUN||!!(SIMREP&&!SIMRUN)}
 function render(){
   const app=$('#app');try{const hc=document.documentElement.classList;hc.toggle('ovopen',ovOpen());hc.toggle('islive',!!(S&&S.view==='live'&&LIVE&&LIVE.phase==='live'))}catch(e){}
   if(!S){document.documentElement.style.removeProperty('--team');app.innerHTML=startView()+(MODAL&&MODAL.cf?confirmView():'')+(MODAL&&MODAL.opt?optModal():'');HKEY=null;try{i18nApply(app)}catch(e){}return}
@@ -55,8 +55,8 @@ function render(){
   if((S.view==='prematch'||S.view==='live'||S.view==='draft')&&!LIVE)S.view='home';
   if(S.view==='nego'&&!NG)S.view='squad';
   if(S.view==='mh'&&!MHV)S.view='league';
-  const v={home:homeView,squad:squadView,tactic:tacticView,transfer:transferView,league:leagueView,club:clubView,prematch:preView,live:liveView,player:playerView,draft:draftView,nego:negoView,mh:mhView,inbox:inboxView,news:newsView,save:saveView,jobs:jobsView,cmp:cmpView,hof:hofView,review:reviewView,mgr:mgrView}[S.view]||homeView;
-  try{app.innerHTML=`<div class="shell">${sideNav()}<div class="main">${topBar()}<main class="content">${ERR?errView():v()}</main></div></div>${MODAL&&MODAL.team?teamModal():''}${MODAL==='sim'&&!SIMRUN?simMenu():''}${SIMRUN?simOverlay():''}${SIMREP&&!SIMRUN?simReport():''}${MODAL&&MODAL.cf?confirmView():''}${MODAL&&MODAL.opt?optModal():''}${MODAL&&MODAL.loan?loanModal():''}${MODAL&&MODAL.lin?loanInModal():''}${MODAL&&MODAL.qs?qsModal():''}`;histSync();if(MODAL&&MODAL.qs){const n=$('#qsin');if(n){n.focus();try{n.setSelectionRange(n.value.length,n.value.length)}catch(e){}}}}
+  const v={home:homeView,squad:squadView,tactic:tacticView,transfer:transferView,league:leagueView,club:clubView,prematch:preView,live:liveView,player:playerView,draft:draftView,nego:negoView,mh:mhView,inbox:inboxView,news:newsView,save:saveView,jobs:jobsView,cmp:cmpView,hof:hofView,review:reviewView,mgr:mgrView,trend:trendView,help:helpView}[S.view]||homeView;
+  try{app.innerHTML=`<div class="shell">${sideNav()}<div class="main">${topBar()}<main class="content">${ERR?errView():v()}</main></div></div>${MODAL&&MODAL.team?teamModal():''}${MODAL==='sim'&&!SIMRUN?simMenu():''}${SIMRUN?simOverlay():''}${SIMREP&&!SIMRUN?simReport():''}${MODAL&&MODAL.cf?confirmView():''}${MODAL&&MODAL.opt?optModal():''}${MODAL&&MODAL.loan?loanModal():''}${MODAL&&MODAL.clip?clipModal():''}${MODAL&&MODAL.lin?loanInModal():''}${MODAL&&MODAL.qs?qsModal():''}`;histSync();if(MODAL&&MODAL.qs){const n=$('#qsin');if(n){n.focus();try{n.setSelectionRange(n.value.length,n.value.length)}catch(e){}}}}
   catch(e){ERR=e.message;try{app.innerHTML=`<main class="content">${errView()}</main>`}catch(_){app.innerHTML='<p style="padding:20px">Fehler im Spielstand.</p>'}}
   try{navScroll();chatBottom();pageFx();musSync();i18nApply(app)}catch(e){}
 }

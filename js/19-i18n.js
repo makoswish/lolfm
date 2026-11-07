@@ -5,7 +5,7 @@
 let LANG='de';try{if(localStorage.getItem('riftmgr_lang')==='en')LANG='en'}catch(e){}
 const I18N={map:null,cache:new Map(),miss:new Set()};
 function i18nInit(){if(I18N.map)return;const m=new Map();
-  for(const src of [typeof EN1!=='undefined'?EN1:'',typeof EN2!=='undefined'?EN2:'',typeof EN3!=='undefined'?EN3:''])
+  for(const src of [typeof EN1!=='undefined'?EN1:'',typeof EN2!=='undefined'?EN2:'',typeof EN3!=='undefined'?EN3:'',typeof EN4!=='undefined'?EN4:''])
     for(const line of src.split('\n')){const i=line.indexOf('=>');if(i>0)m.set(line.slice(0,i),line.slice(i+2))}
   I18N.map=m}
 const SPL={Winter:'Winter',Frühjahrs:'Spring',Sommer:'Summer'};
@@ -28,6 +28,15 @@ const PAT=[
  [/^(.+?) meldet Insolvenz an und startet neu in der T2-Szene\. (.+?) rückt in die (\w+) nach\.$/,m=>`${m[1]} file for bankruptcy and restart in the T2 scene. ${m[2]} move up into the ${m[3]}.`],
  [/^(.+?) kämpft mit finanziellen Problemen: Sponsoren fehlen und die Gehälter sind zu hoch\.$/,m=>`${m[1]} are in financial trouble: sponsors are missing and wages are too high.`],
  [/^Investoren retten (.+?) vor der Insolvenz\.$/,m=>`Investors save ${m[1]} from bankruptcy.`],
+ [/^(.+?) bietet sich als Gastcoach an$/,m=>`${m[1]} offers to be a guest coach`],
+ [/^Der Ex-Profi (.+?) würde zwei Wochen mit dem Team arbeiten\. Kosten: ([\d.]+) €\.$/,m=>`The ex-pro ${m[1]} would work with the team for two weeks. Cost: €${m[2].replace('.',',')}.`],
+ [/^(.+?) streamt jetzt und will kooperieren$/,m=>`${m[1]} now streams and wants to cooperate`],
+ [/^Der Ex-Profi (.+?) hat eine große Community\. Eine gemeinsame Aktion kostet ([\d.]+) €\.$/,m=>`The ex-pro ${m[1]} has a big community. A joint campaign costs €${m[2].replace('.',',')}.`],
+ [/^(.+?) übernimmt die besten Spieler von (.+?)\. (.+?) zieht sich in die T2-Szene zurück, (.+?) rückt in die (\w+) nach\.$/,m=>`${m[1]} take over the best players of ${m[2]}. ${m[3]} withdraw to the T2 scene, ${m[4]} move up into the ${m[5]}.`],
+ [/^(.+?) fühlt sich ernst genommen \(Moral \+(\d+)\)\.$/,m=>`${m[1]} feels taken seriously (morale +${m[2]}).`],
+ [/^(.+?) sind auf dem Konto und im Transferbudget\. Zins ([\d,]+)% pro Jahr, Rate (.+?) pro Woche über (\d+) Wochen\.$/,m=>`${m[1]} are in the account and the transfer budget. Interest ${m[2].replace(',','.')}% per year, rate ${m[3]} per week over ${m[4]} weeks.`],
+ [/^Hälfte tilgen \((.+?)\)$/,m=>`Repay half (${m[1]})`],
+ [/^Ganz ablösen \((.+?)\)$/,m=>`Repay in full (${m[1]})`],
  [/^(\d{4}) · (\w+): (.+?) hält die Klasse gegen (.+)$/,m=>`${m[1]} · ${m[2]}: ${m[3]} stay up against ${m[4]}`],
  [/^Dünn besetzt: (.+)$/,m=>`Thin squad: ${m[1]}`],
  [/^· ((?:Mec|Trd|CS|Wel|Sks|Spa|Mak|Vis|Trk|Obj|Ent|Pos|Eng|Tea|Kom|Sho|Rea|Nrv|Kon|Kst|Bel)(?:\/(?:Mec|Trd|CS|Wel|Sks|Spa|Mak|Vis|Trk|Obj|Ent|Pos|Eng|Tea|Kom|Sho|Rea|Nrv|Kon|Kst|Bel))*)$/,m=>'· '+m[1].split('/').map(a=>ABB[a]||a).join('/')],
