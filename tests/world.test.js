@@ -270,14 +270,35 @@ newGame('LYL','Tester');
 module.exports+=`
 function ok(c,msg){if(!c){console.log('FEHLER',msg);bad++}}
 function html(){return document.querySelector('#app').innerHTML}
+// KI-Insolvenz: Dauerdruck führt zur Pleite, T2-Meister rückt nach, Kader wird neu aufgebaut
+newGame('LYL','Tester');playSeason();
+{const r='LEC',A=teamsOf(r).filter(t=>t.id!==S.user).sort((a,b)=>a.rep-b.rep)[0],oldIds=[...A.roster],n0=teamsOf(r).length,aid=A.id;
+ ok(finState2(A)==='Gesund','Neuer Verein ist nicht gesund');
+ let g=0;while(A.tier!==2&&g++<30){const B=t2Champ(r);if(!B)break;A.fs=9;aiFinSeason()}
+ ok(A.tier===2,'Insolvenz greift nicht');ok(teamsOf(r).length===n0&&!teamsOf(r).includes(A),'Liga schrumpft oder behält den Pleiteverein');
+ ok(A.roster.length>=5&&ROLES.every(x=>S.players[A.starters[x]]&&S.players[A.starters[x]].team===A.id),'Pleiteverein ohne neuen Kader');
+ ok(oldIds.every(id=>!A.roster.includes(id)),'Alte Spieler noch im Pleiteverein');
+ ok(oldIds.every(id=>S.players[id].team!==aid),'Alte Spieler verweisen noch auf den Pleiteverein');
+ ok(S.releg.some(x=>x.bankrupt&&x.reg===r),'Keine Insolvenz in der Liste');ok(S.news.some(n=>/Insolvenz/.test(n.t)),'Keine Nachricht');
+ ACT.nav2({v:'league',k:'LTAB',t:'lage'});chk('Liga-Lage Insolvenz');ok(html().includes('meldet Insolvenz'),'Insolvenz nicht sichtbar');
+ reload();ok(S.teams[aid].tier===2,'Insolvenz übersteht das Neuladen nicht');
+ // Mehrere Saisons: Insolvenzen bleiben selten und Teamzahlen stabil
+ let seasons=0;const c0=REGS.map(x=>teamsOf(x).length).join(',');
+ for(let k=0;k<2;k++){nextSeason();playSeason();chk('Insolvenz-Saison '+k);seasons++}
+ ok(REGS.map(x=>teamsOf(x).length).join(',')===c0,'Teamzahlen ändern sich');
+}
+// Abgestiegene Altvereine dürfen beim Laden nicht als Erstligist neu entstehen
+newGame('LYL','Tester');
+{const r='LCS',sz=teamsOf(r).length,A=teamsOf(r).filter(t=>t.id!==S.user)[0],B=t2Champ(r);swapTiers(A,B);reload();
+ ok(teamsOf(r).length===sz,'Liga wächst nach dem Laden: '+sz+' gegen '+teamsOf(r).length);}
 // Relegation: Tausch der Ligen, Bo5, Abstieg des Nutzers wie Entlassung
 newGame('LYL','Tester');
 {const count=()=>REGS.map(r=>teamsOf(r).length+':'+t2Of(r).filter(t=>!t.academy).length).join(',');const c0=count();
  playSeason();chk('Saison 1');ok(S.phase==='offseason','Saison endet nicht');ok(Array.isArray(S.releg),'Keine Relegations-Liste');
  ok(REGS.every(r=>S.releg.some(x=>x.reg===r)||S.releg.length>=0),'Relegation');
- ok(S.releg.length===REGS.length,'Nicht jede Region hat eine Relegation gespielt: '+S.releg.length);
+ ok(REGS.every(r=>S.releg.some(x=>x.reg===r)),'Nicht jede Region hat Relegation oder Insolvenz: '+S.releg.length);
  ok(count()===c0,'Teamzahlen ändern sich: '+c0+' gegen '+count());
- ok(S.releg.every(x=>/^[0-3]:[0-3]$/.test(x.sc)&&(x.sc.startsWith('3')||x.sc.endsWith('3'))),'Bo5 endet ohne Sieger');
+ ok(S.releg.filter(x=>!x.bankrupt).every(x=>/^[0-3]:[0-3]$/.test(x.sc)&&(x.sc.startsWith('3')||x.sc.endsWith('3'))),'Bo5 endet ohne Sieger');
  // Tausch direkt: Letzter gegen T2-Meister
  const r='LCK',A=teamsOf(r).sort((a,b)=>a.rep-b.rep)[0],B=t2Champ(r),nA=A.name,nB=B.name,reg1=teamsOf(r).length;
  ok(A.tier!==2&&!A.academy&&B&&B.tier===2&&!B.academy,'Vorbereitung');

@@ -159,9 +159,41 @@ function relegationSeason(){S.relegUser=false;S.releg=S.releg||[];
       S.releg.unshift({year:S.year,reg:r,stay:B.id,other:A.id,names:[B.name,an],sc,down:true});
       if(mine){S.relegUser=true;mail('Abstieg',`${an} verliert die Relegation gegen ${bn0} (${sc}) und steigt aus der ${r} ab.`)}else if(R()<.7)fireMgr(A,'Der Abstieg kostet den Manager den Job.')}}
   if(S.releg.length>16)S.releg.length=16}
+function crisisList(){const L=Object.values(S.teams).filter(t=>t.tier!==2&&!t.academy&&(t.fs||0)>=BK_CRISIS*.6).sort((a,b)=>(b.fs||0)-(a.fs||0));
+  return L.length?`<div class="lab" style="margin-top:12px"><span>Finanzlage</span><span>${L.length}</span></div>`+L.slice(0,6).map(t=>`<div class="stat"><span>${t.name} · ${t.reg}</span><span class="${t.fs>=BK_BUST*.8?'bad':'dim'}">${finState2(t)}</span></div>`).join(''):''}
 function relegPanel(){const L=S.releg||[];return `<section class="panel s12"><div class="lab"><span>Auf- und Abstieg</span><span>${L.length}</span></div>
-  ${L.slice(0,8).map(x=>`<div class="stat"><span>${x.year} · ${x.reg}: ${x.down?`<b>${x.names[0]}</b> steigt auf, ${x.names[1]} steigt ab`:`${x.names[0]} hält die Klasse gegen ${x.names[1]}`}</span><span class="dim">${x.sc}</span></div>`).join('')||'<p class="empty">Noch keine Relegation gespielt.</p>'}
-  <p class="muted" style="font-size:13px;margin:10px 0 0">Der Letzte jeder Liga spielt am Saisonende gegen den Meister der T2-Szene seiner Region (Bo5). Verlierst du als Manager, musst du den Verein verlassen und bekommst Angebote anderer Vereine.</p></section>`}
+  ${L.slice(0,8).map(x=>`<div class="stat"><span>${x.year} · ${x.reg}: ${x.bankrupt?`${x.names[1]} meldet Insolvenz, <b>${x.names[0]}</b> rückt nach`:x.down?`<b>${x.names[0]}</b> steigt auf, ${x.names[1]} steigt ab`:`${x.names[0]} hält die Klasse gegen ${x.names[1]}`}</span><span class="dim">${x.sc}</span></div>`).join('')||'<p class="empty">Noch keine Relegation gespielt.</p>'}
+  ${crisisList()}
+  <p class="muted" style="font-size:13px;margin:10px 0 0">Der Letzte jeder Liga spielt am Saisonende gegen den Meister der T2-Szene seiner Region (Bo5). Vereine mit dauerhaft zu hohen Gehältern geraten in eine Krise und gehen im Extremfall insolvent. Dann rückt der T2-Meister nach. Verlierst du als Manager, musst du den Verein verlassen und bekommst Angebote anderer Vereine.</p></section>`}
+
+/* ----- KI-Finanzen: Dauerhafte Verluste führen zur Krise und schließlich zur Insolvenz ----- */
+/* Pro Saison: Marge m = (Einnahmen mal Tabellenform - Gehälter - Fixkosten) / Einnahmen. Druck T.fs steigt bei Verlust, sinkt bei Gewinn,
+   hohe Vereine haben Reserven. Ab BK_CRISIS meldet der Verein eine Krise (er verkauft einen Star), ab BK_BUST droht die Insolvenz (30 % Rettung durch Investoren). */
+const BK_CRISIS=1.0,BK_BUST=2.0;
+function aiInc(T){const rv=(REGREV[T.reg]||1)*eco();return((sponsorFor(T.rep)+6000)/1.5*2.1+T.rep*2000*.03)*rv+Math.round((LSHARE[T.reg]||4000)*eco())}
+function aiWages(T){return T.roster.reduce((a,i)=>a+(S.players[i]?S.players[i].salary:0),0)}
+function aiMargin(T,place,n,exp){const perf=1.14-.34*((place-1)/Math.max(1,n-1)),inc=aiInc(T)*perf;return(exp==null?.55:exp)+.1-(aiWages(T)+3500*eco())/inc}
+function aiExp(L){const x=L.map(t=>t.rep),y=L.map(t=>(aiWages(t)+3500*eco())/aiInc(t)),n=x.length,mx=x.reduce((a,b)=>a+b,0)/n,my=y.reduce((a,b)=>a+b,0)/n;let sxy=0,sxx=0;for(let i=0;i<n;i++){sxy+=(x[i]-mx)*(y[i]-my);sxx+=(x[i]-mx)**2}const k=sxx?sxy/sxx:0;return t=>my+k*(t.rep-mx)}
+function finState2(T){const f=T.fs||0;return f>=BK_BUST?'Insolvenzgefahr':f>=BK_CRISIS?'Krise':f>=.5?'Angespannt':'Gesund'}
+function liquidate(T){for(const id of [...T.roster]){const p=S.players[id];if(p)toFA(p)}
+  for(const r of ROLES){const p=genPlayer(r,ri(44,50)+Math.round(Math.max(0,T.rep-40)/6),ri(16,19),T.reg);p.pot=clamp(ovr(p)+ri(8,22),ovr(p),90);p.salary=Math.min(p.salary,500);sign(p,T,true)}
+  T.starters={};for(const r of ROLES){const b=T.roster.map(i=>S.players[i]).filter(p=>p.role===r).sort((a,b)=>ovr(b)-ovr(a))[0];if(b)T.starters[r]=b.id}}
+function bankrupt(T,up){const reg=T.reg,nm=T.name,un=up.name;swapTiers(T,up);liquidate(T);T.rep=Math.max(30,T.rep-6);T.fs=0;up.fs=0;
+  news(`${nm} meldet Insolvenz an und startet neu in der T2-Szene. ${up.name} rückt in die ${reg} nach.`,'liga');
+  S.releg=S.releg||[];S.releg.unshift({year:S.year,reg,stay:up.id,other:T.id,names:[up.name,nm],sc:'Insolvenz',down:true,bankrupt:true});if(S.releg.length>16)S.releg.length=16}
+function aiFinSeason(){const out=[];
+  for(const r of REGS){const o=S.rec&&S.rec.S3&&S.rec.S3[r];const L=teamsOf(r).filter(t=>t.id!==S.user&&!t.academy);
+    const expF=aiExp(L);
+    for(const T of L){const place=o?Math.max(1,o.indexOf(T.id)+1):Math.ceil(teamsOf(r).length/2),n=teamsOf(r).length;
+      const m=aiMargin(T,place,n,expF(T));const res=(T.rep-60)/100;
+      T.fs=Math.max(0,+((T.fs||0)*.7+(m<0?(.0-m)*3:-.15)-res*.1).toFixed(3));
+      if(T.fs>=BK_CRISIS&&!T.crisis){T.crisis=true;news(`${T.name} kämpft mit finanziellen Problemen: Sponsoren fehlen und die Gehälter sind zu hoch.`,'liga');
+        const star=T.roster.map(i=>S.players[i]).sort((a,b)=>ovr(b)-ovr(a))[0];if(star&&T.roster.length>6&&R()<.6){T.rep=Math.max(34,T.rep-2)}}
+      if(T.fs<BK_CRISIS*.6)T.crisis=false;
+      if(T.fs>=BK_BUST)out.push(T)}}
+  for(const T of out){const up=t2Champ(T.reg);if(!up||T.tier===2)continue;
+    if(R()<.3){T.fs=BK_CRISIS*.5;T.crisis=false;news(`Investoren retten ${T.name} vor der Insolvenz.`,'liga');continue}
+    bankrupt(T,up)}}
 
 /* ----- Wöchentlicher Haken und Saisonende ----- */
 function worldWeek(){

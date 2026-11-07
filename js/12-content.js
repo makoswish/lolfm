@@ -116,7 +116,7 @@ function switchTeam(tid){const T=S.teams[tid];if(!T||T.tier===2||T.academy||tid=
   S.tacs=['A','B','C'].map(n=>defTac(T,n));S.tacs[1].style='SCL';S.tacs[2].style='AGG';S.tacA=0;applyTac();initKnow();
   S.board=mgrBoard();S.capt=null;S.scrim=null;VIEWREG=T.reg;KTAB='depth';S.goals=null;
   /* T2-Ligen ausgleichen: die neue Academy braucht in ihrer Region einen Platz */
-  const t2n=t2Of(T.reg).filter(t=>!t.academy);if(t2n.length>=8){const w=t2n.sort((a,b)=>teamOvr(a)-teamOvr(b))[0];for(const id of [...w.roster])toFA(S.players[id]);delete S.teams[w.id]}
+  const t2n=t2Of(T.reg).filter(t=>!t.academy&&!REGS.some(r=>TEAMDATA[r].some(x=>x[0]===t.id)));if(t2Of(T.reg).filter(t=>!t.academy).length>=8&&t2n.length){const w=t2n.sort((a,b)=>teamOvr(a)-teamOvr(b))[0];for(const id of [...w.roster])toFA(S.players[id]);delete S.teams[w.id]}
   for(const r of REGS){const n=t2Of(r).length+(r===T.reg?1:0);if(n<8){const used=new Set(Object.keys(S.teams));const L='ABCDEFGH'.split('').find(x=>!used.has(REGC[r]+'2'+x));if(L)mkT2Team(REGC[r]+'2'+L,`${pick(T2CITY[r])} ${pick(T2SUF)}`,r,clamp(46+REG[r].off+ri(-2,2),36,58),`hsl(${ri(0,359)} 30% 62%)`)}}
   mkT2Team(acaId(),T.name+' Academy',T.reg,clamp(T.rep-30,38,56),T.color,true);t2Init();
   mail(`Neuer Job: ${T.name}`,`Du übernimmst ${T.name} (${T.reg}, Ruf ${T.rep}, ${prestigeOf(T)}). Das Vorstandsziel für die neue Saison: Platz ${expected(tid)}. Trainerstab, Scouts und Finanzen gehören zum Verein, deine Taktik-Ideen musst du dem Team erst beibringen.`);

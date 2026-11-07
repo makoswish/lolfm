@@ -213,7 +213,7 @@ function endSeason(){sponsorSeasonEnd();
   S.history.unshift({year:S.year,splits:splits.map(s=>s.place),intl:intl.map(x=>x.res),worlds:S.teams[S.rec.WLD.champ].name});
   S.phase='offseason';
   mail('Saison beendet',`Sommer-Split: Platz ${place} (Ziel: ${exp}). Worlds-Sieger: ${S.teams[S.rec.WLD.champ].name}. Starte die neue Saison, wenn du bereit bist.`);
-  try{pressEval()}catch(e){}try{hofSeason()}catch(e){}try{relegationSeason()}catch(e){}try{worldSeasonEnd()}catch(e){}try{careerSeason()}catch(e){}
+  try{pressEval()}catch(e){}try{hofSeason()}catch(e){}try{aiFinSeason()}catch(e){}try{relegationSeason()}catch(e){}try{worldSeasonEnd()}catch(e){}try{careerSeason()}catch(e){}
 }
 function newSeason(){
   fillVacancies();ecoSeason();loansReturn();youthSeason();infraSeason();trialsEnd();rivSeason();
